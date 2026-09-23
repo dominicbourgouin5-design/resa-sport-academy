@@ -40,10 +40,18 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
     e.preventDefault();
     setStatus('loading');
     try {
+      // Nettoie les champs vides ("" → undefined)
+      const cleanForm = Object.fromEntries(
+        Object.entries(form).map(([k, v]) => [
+          k,
+          v === '' || (Array.isArray(v) && v.length === 0) ? undefined : v
+        ])
+      );
+
       const res = await fetch('/api/registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: mode, ...form })
+        body: JSON.stringify({ type: mode, ...cleanForm })
       });
       setStatus(res.ok ? 'success' : 'error');
     } catch {
