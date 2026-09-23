@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import Logo from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
 import { useAdminSidebar } from './AdminShell';
 
@@ -126,13 +127,16 @@ export default function AdminSidebar({ role }: { role: string }) {
       >
         {/* Logo */}
         <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
-          <Link href="/admin" className="flex flex-col">
-            <span className="font-display text-xl font-black tracking-tight">
-              RESA<span className="text-resa-red">.</span>
-            </span>
-            <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.28em] text-white/40">
-              Administration
-            </span>
+          <Link href="/admin" className="flex items-center gap-3">
+            <Logo size="sm" />
+            <div className="flex flex-col">
+              <span className="font-display text-base font-black tracking-tight text-white">
+                RESA
+              </span>
+              <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.28em] text-white/40">
+                Admin
+              </span>
+            </div>
           </Link>
 
           {/* Bouton fermer mobile */}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import Logo from '@/components/ui/Logo';
 import { login } from './actions';
 
 export default function LoginForm({ redirectTo }: { redirectTo: string }) {
@@ -31,16 +32,17 @@ export default function LoginForm({ redirectTo }: { redirectTo: string }) {
       {/* ─── Contenu ─── */}
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mb-3 inline-flex flex-col items-center">
-            <span className="font-display text-4xl font-black tracking-tight text-white drop-shadow-2xl">
-              RESA<span className="text-resa-red">.</span>
-            </span>
-            <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.28em] text-white/70">
-              Administration
-            </span>
-          </div>
+
+            <div className="mb-3 flex flex-col items-center gap-3">
+              <Logo size="xl" />
+              <div className="text-center">
+                <div className="font-display text-2xl font-black text-white">
+                  RESA Sport Academy
+                </div>
+              </div>
+            </div>
           <p className="mt-6 text-sm font-medium text-white/85 drop-shadow-lg">
-            Connectez-vous pour accéder au back-office.
+            Connectez-vous pour accéder au back-office admin.
           </p>
         </div>
 

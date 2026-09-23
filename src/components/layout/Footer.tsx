@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import Logo from '@/components/ui/Logo';
 
 export default function Footer() {
   const t = useTranslations('footer');
@@ -9,8 +10,18 @@ export default function Footer() {
   return (
     <footer className="bg-resa-navy text-white/80">      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 md:grid-cols-3 md:px-6">
         <div>
-          <div className="font-display text-2xl font-bold text-white">RESA</div>
-          <p className="mt-2 text-sm">{t('tagline')}</p>
+          <div className="flex items-center gap-3">
+                <Logo size="md" />
+                <div>
+                  <div className="font-display text-xl font-black text-white">
+                    RESA
+                  </div>
+                  <div className="text-[9px] font-bold uppercase tracking-[0.28em] text-white/40">
+                    Sport Academy
+                  </div>
+                </div>
+              </div>
+              <p className="mt-4 text-sm">{t('tagline')}</p>
         </div>
 
         <div>
