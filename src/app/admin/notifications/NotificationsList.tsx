@@ -1,11 +1,66 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
 import { markAsRead, markAllAsRead, deleteNotification } from './actions';
 
 export default function NotificationsList({ notifications }: { notifications: any[] }) {
   const [items, setItems] = useState<any[]>(notifications ?? []);
+
+  // ─── Mise à jour automatique en temps réel ───
+  useEffect(() => {
+    const supabase = createClient();
+
+    const channel = supabase
+      .channel('notifications-list-live')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications'
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newItem = payload.new;
+            setItems((prev) => (prev.some((x) => x.id === newItem.id) ? prev : [newItem, ...prev]));
+          } else if (payload.eventType === 'UPDATE') {
+            setItems((prev) =>
+              prev.map((n) => (n.id === payload.new.id ? { ...n, ...payload.new } : n))
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setItems((prev) => prev.filter((n) => n.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    // Écoute aussi le signal direct du Service Worker
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'PUSH_RECEIVED') {
+        supabase
+          .from('notifications')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50)
+          .then(({ data }) => {
+            if (data) setItems(data);
+          });
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+    }
+
+    return () => {
+      supabase.removeChannel(channel);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+      }
+    };
+  }, []);
 
   const handleRead = async (id: string) => {
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
@@ -34,7 +89,7 @@ export default function NotificationsList({ notifications }: { notifications: an
     }
   };
 
-  const unreadCount = (items ?? []).filter((n) => !n.is_read).length;
+  const unreadCount = items.filter((n) => !n.is_read).length;
 
   if (items.length === 0) {
     return (
@@ -94,7 +149,6 @@ export default function NotificationsList({ notifications }: { notifications: an
                   )}
 
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] text-resa-text/40">
-                    {/* suppressHydrationWarning ajouté ci-dessous */}
                     <span suppressHydrationWarning>
                       {new Date(n.created_at).toLocaleDateString('fr-FR', {
                         day: '2-digit',

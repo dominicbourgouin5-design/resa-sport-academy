@@ -3,12 +3,10 @@
 // ════════════════════════════════════════════════════════════
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] Install');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activate');
   event.waitUntil(self.clients.claim());
 });
 
@@ -19,29 +17,32 @@ self.addEventListener('push', (event) => {
   let data = {
     title: 'RESA Sport Academy',
     body: 'Nouvelle notification',
-    url: '/admin'
+    url: '/admin/notifications'
   };
 
-  // ⚠️ Parsing robuste : JSON si possible, sinon texte brut
   try {
     if (event.data) {
       const raw = event.data.text();
-      console.log('[SW] Raw data:', raw);
-
-      // Essaie de parser en JSON
       try {
         const parsed = JSON.parse(raw);
         data = { ...data, ...parsed };
-        console.log('[SW] Parsed as JSON');
       } catch {
-        // Pas du JSON → utilise le texte brut comme body
         data.body = raw;
-        console.log('[SW] Parsed as plain text');
       }
     }
   } catch (err) {
-    console.error('[SW] Failed to read push data:', err);
+    console.error('[SW] Erreur lecture push data:', err);
   }
+
+  // 👇 NOUVEAU : Envoie immédiatement un message aux onglets ouverts pour rafraîchir la cloche et la liste
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+    clients.forEach((client) => {
+      client.postMessage({
+        type: 'PUSH_RECEIVED',
+        payload: data
+      });
+    });
+  });
 
   const options = {
     body: data.body || 'Cliquez pour voir',
@@ -49,43 +50,28 @@ self.addEventListener('push', (event) => {
     badge: '/favicon-96x96.png',
     vibrate: [200, 100, 200],
     tag: 'resa-notif-' + Date.now(),
-    data: { url: data.url || '/admin' },
-    actions: [
-      { action: 'open', title: 'Ouvrir' },
-      { action: 'close', title: 'Fermer' }
-    ]
+    data: { url: data.url || '/admin/notifications' }
   };
 
-  console.log('[SW] Showing notification:', data.title);
-
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-      .then(() => console.log('[SW] ✅ Notification displayed'))
-      .catch((err) => console.error('[SW] ❌ Display failed:', err))
-  );
+  event.waitUntil(self.registration.showNotification(data.title, options));
 });
 
 // ─── Clic sur la notification ───────────────────────────────
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked');
   event.notification.close();
-
-  if (event.action === 'close') return;
-
-  const url = event.notification.data?.url || '/admin';
+  const url = event.notification.data?.url || '/admin/notifications';
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clients) => {
-        for (const client of clients) {
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
-            client.navigate(url);
-            return client.focus();
-          }
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
         }
-        if (self.clients.openWindow) {
-          return self.clients.openWindow(url);
-        }
-      })
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(url);
+      }
+    })
   );
 });

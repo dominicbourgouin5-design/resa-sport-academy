@@ -14,6 +14,7 @@ type Notif = {
   link: string | null;
   is_read: boolean;
   created_at: string;
+  user_id?: string;
 };
 
 export default function NotificationsBell({ userId }: { userId: string }) {
@@ -23,7 +24,6 @@ export default function NotificationsBell({ userId }: { userId: string }) {
 
   // ─── Chargement initial ───
   useEffect(() => {
-    console.log('[Bell] Chargement initial pour user:', userId);
     const supabase = createClient();
 
     supabase
@@ -34,70 +34,72 @@ export default function NotificationsBell({ userId }: { userId: string }) {
       .order('created_at', { ascending: false })
       .limit(10)
       .then(({ data, error }) => {
-        console.log('[Bell] Notifs chargées:', data?.length, 'error:', error);
-        if (error) console.error('[Bell] Erreur:', error);
+        if (error) console.error('[Bell] Erreur chargement:', error);
         setItems((data ?? []) as Notif[]);
         setLoading(false);
       });
   }, [userId]);
 
-  // ─── Écoute en temps réel Supabase Realtime ───
+  // ─── Écoute Realtime & Service Worker ───
   useEffect(() => {
     const supabase = createClient();
 
+    // 1. Écoute Supabase Realtime (sans le filter UUID qui bloque)
     const channel = supabase
-      .channel(`notifications-bell-${userId}`)
+      .channel(`bell-live-${userId}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`
+          table: 'notifications'
         },
         (payload) => {
-          console.log('[Bell] 🔔 Nouvelle notif reçue:', payload.new);
-          setItems((prev) => {
-            if (prev.some((n) => n.id === (payload.new as Notif).id)) return prev;
-            return [payload.new as Notif, ...prev].slice(0, 10);
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          console.log('[Bell] 🔄 Notif mise à jour:', payload.new);
-          setItems((prev) =>
-            prev.map((n) => (n.id === (payload.new as Notif).id ? (payload.new as Notif) : n))
-          );
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          console.log('[Bell] 🗑️ Notif supprimée:', payload.old);
-          setItems((prev) => prev.filter((n) => n.id !== (payload.old as any).id));
+          if (payload.eventType === 'INSERT') {
+            const n = payload.new as Notif;
+            if (!n.user_id || n.user_id === userId) {
+              console.log('[Bell] 🔔 Reçu via Realtime:', n);
+              setItems((prev) => (prev.some((x) => x.id === n.id) ? prev : [n, ...prev].slice(0, 10)));
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as Notif;
+            setItems((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+          } else if (payload.eventType === 'DELETE') {
+            const oldId = (payload.old as any).id;
+            setItems((prev) => prev.filter((n) => n.id !== oldId));
+          }
         }
       )
       .subscribe((status) => {
         console.log('[Bell] Realtime status:', status);
       });
 
+    // 2. Pont direct : Dès que le Service Worker reçoit un Push, on rafraîchit la cloche !
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'PUSH_RECEIVED') {
+        console.log('[Bell] ⚡ Push intercepté en direct par le navigateur');
+        supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('is_read', false)
+          .order('created_at', { ascending: false })
+          .limit(10)
+          .then(({ data }) => {
+            if (data) setItems(data as Notif[]);
+          });
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+    }
+
     return () => {
-      console.log('[Bell] Cleanup channel');
       supabase.removeChannel(channel);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+      }
     };
   }, [userId]);
 
@@ -180,7 +182,6 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                               {n.body}
                             </div>
                           )}
-                          {/* suppressHydrationWarning ajouté ci-dessous */}
                           <div className="mt-1 text-[10px] text-resa-text/40" suppressHydrationWarning>
                             {new Date(n.created_at).toLocaleDateString('fr-FR', {
                               day: '2-digit',
