@@ -1,0 +1,376 @@
+@import "tailwindcss";
+
+@theme {
+  /* Couleurs officielles */
+  --color-resa-navy:      #0A1F44;
+  --color-resa-navy-deep: #061530;
+  --color-resa-royal:     #1E3A8A;
+  --color-resa-red:       #DC2626;
+  --color-resa-white:     #FFFFFF;
+  --color-resa-gray:      #F4F6FA;
+  --color-resa-text:      #0F172A;
+  --color-resa-gold:      #F59E0B;
+
+  /* Typographie */
+  --font-display: 'Arial Narrow', 'Impact', system-ui, sans-serif;
+  --font-body:    system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-resa-text);
+  background: var(--color-resa-white);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* ─── Effets visuels ─────────────────────────────── */
+
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.bg-halo {
+  background:
+    radial-gradient(120% 80% at 70% 0%, rgba(30,58,138,.55) 0%, transparent 60%),
+    radial-gradient(80% 60% at 0% 100%, rgba(220,38,38,.18) 0%, transparent 60%);
+}
+
+.bg-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255,255,255,.04) 0 2px,
+    transparent 2px 12px
+  );
+}
+
+.bg-dots {
+  background-image: radial-gradient(rgba(255,255,255,.15) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-fade-navy {
+  background: linear-gradient(180deg, #0A1F44 0%, #061530 100%);
+}
+
+.shadow-resa {
+  box-shadow:
+    0 1px 2px rgba(10,31,68,.06),
+    0 8px 24px rgba(10,31,68,.08);
+}
+
+.shadow-resa-lg {
+  box-shadow:
+    0 2px 4px rgba(10,31,68,.08),
+    0 24px 48px rgba(10,31,68,.12);
+}
+
+/* ─── Keyframes ──────────────────────────────────── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeRight {
+  from { opacity: 0; transform: translateX(-32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeLeft {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(220,38,38,.6); }
+  50%      { opacity: .85; box-shadow: 0 0 0 10px rgba(220,38,38,0); }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes scrollX {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ─── Classes animation ──────────────────────────── */
+
+.anim-fade-up    { animation: fadeUp   .8s cubic-bezier(.22,.9,.28,1) both; }
+.anim-fade-in    { animation: fadeIn   .8s cubic-bezier(.22,.9,.28,1) both; }
+.anim-fade-right { animation: fadeRight .9s cubic-bezier(.22,.9,.28,1) both; }
+.anim-fade-left  { animation: fadeLeft  .9s cubic-bezier(.22,.9,.28,1) both; }
+.anim-zoom-in    { animation: zoomIn    .8s cubic-bezier(.22,.9,.28,1) both; }
+.anim-float      { animation: float     6s ease-in-out infinite; }
+.anim-glow       { animation: pulseGlow 2.4s ease-in-out infinite; }
+
+/* Délais (utiles en cascade) */
+.delay-100 { animation-delay: .1s; }
+.delay-200 { animation-delay: .2s; }
+.delay-300 { animation-delay: .3s; }
+.delay-400 { animation-delay: .4s; }
+.delay-500 { animation-delay: .5s; }
+.delay-600 { animation-delay: .6s; }
+.delay-700 { animation-delay: .7s; }
+
+/* ─── Reveal on scroll ───────────────────────────── */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity .8s cubic-bezier(.22,.9,.28,1),
+    transform .8s cubic-bezier(.22,.9,.28,1);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-right { transform: translateX(-32px); }
+.reveal-left  { transform: translateX(32px); }
+.reveal-zoom  { transform: scale(.94); }
+
+.reveal-right.is-visible,
+.reveal-left.is-visible,
+.reveal-zoom.is-visible {
+  transform: translateX(0) scale(1);
+}
+
+/* ─── Ligne gradient animée ──────────────────────── */
+
+.gradient-line {
+  background: linear-gradient(90deg, #DC2626 0%, #1E3A8A 50%, #DC2626 100%);
+  background-size: 200% 100%;
+  animation: gradientShift 4s ease-in-out infinite;
+}
+
+/* ─── Accessibilité ─────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1 !important; transform: none !important; }
+}
+
+
+/* ─── Typographie de l'article (rendu public + aperçu) ──── */
+
+.prose-article {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: rgba(15, 23, 42, 0.85);
+}
+
+.prose-article > * + * {
+  margin-top: 1.1em;
+}
+
+.prose-article p {
+  margin: 0;
+}
+
+.prose-article h2 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--color-resa-navy);
+  margin-top: 1.75em;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.prose-article h3 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-resa-navy);
+  margin-top: 1.5em;
+  line-height: 1.3;
+}
+
+.prose-article strong {
+  font-weight: 700;
+  color: var(--color-resa-navy);
+}
+
+.prose-article em {
+  font-style: italic;
+  color: rgba(15, 23, 42, 0.9);
+}
+
+.prose-article a {
+  color: var(--color-resa-red);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: opacity 0.2s;
+}
+
+.prose-article a:hover {
+  opacity: 0.7;
+}
+
+.prose-article ul,
+.prose-article ol {
+  padding-left: 1.5rem;
+}
+
+.prose-article ul {
+  list-style: disc;
+}
+
+.prose-article ol {
+  list-style: decimal;
+}
+
+.prose-article li {
+  margin: 0.35em 0;
+}
+
+.prose-article li::marker {
+  color: var(--color-resa-red);
+  font-weight: 700;
+}
+
+.prose-article blockquote {
+  border-left: 3px solid var(--color-resa-red);
+  padding-left: 1rem;
+  margin: 1.5em 0;
+  font-style: italic;
+  font-size: 1.05rem;
+  color: rgba(10, 31, 68, 0.85);
+}
+
+.prose-article hr {
+  border: 0;
+  border-top: 1px solid rgba(10, 31, 68, 0.1);
+  margin: 2em 0;
+}
+
+/* Lettrine sur le premier paragraphe (page détail uniquement) */
+.prose-article.has-drop-cap > p:first-of-type::first-letter {
+  font-family: var(--font-display);
+  font-size: 3.2em;
+  font-weight: 900;
+  color: var(--color-resa-red);
+  float: left;
+  line-height: 0.85;
+  margin: 0.1em 0.15em 0 0;
+}
+
+/* Éditeur Tiptap (barre d'outils + zone de saisie) */
+.tiptap-editor .ProseMirror {
+  outline: none;
+  min-height: 320px;
+  padding: 1rem 1.25rem;
+}
+
+.tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: rgba(15, 23, 42, 0.3);
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap-editor .ProseMirror p {
+  margin: 0.5em 0;
+}
+
+.tiptap-editor .ProseMirror h2 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--color-resa-navy);
+  margin: 1em 0 0.5em;
+}
+
+.tiptap-editor .ProseMirror h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-resa-navy);
+  margin: 0.8em 0 0.4em;
+}
+
+.tiptap-editor .ProseMirror ul,
+.tiptap-editor .ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 0.5em 0;
+}
+
+.tiptap-editor .ProseMirror ul { list-style: disc; }
+.tiptap-editor .ProseMirror ol { list-style: decimal; }
+.tiptap-editor .ProseMirror li::marker { color: var(--color-resa-red); }
+
+.tiptap-editor .ProseMirror blockquote {
+  border-left: 3px solid var(--color-resa-red);
+  padding-left: 1rem;
+  margin: 0.8em 0;
+  font-style: italic;
+  color: rgba(10, 31, 68, 0.85);
+}
+
+.tiptap-editor .ProseMirror hr {
+  border: 0;
+  border-top: 1px solid rgba(10, 31, 68, 0.1);
+  margin: 1.5em 0;
+}
+
+.tiptap-editor .ProseMirror a {
+  color: var(--color-resa-red);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tiptap-editor .ProseMirror strong {
+  font-weight: 700;
+  color: var(--color-resa-navy);
+}
+
+.tiptap-editor .ProseMirror code {
+  background: rgba(10, 31, 68, 0.06);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: ui-monospace, monospace;
+}
