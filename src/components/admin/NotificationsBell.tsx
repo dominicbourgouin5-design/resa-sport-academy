@@ -19,10 +19,13 @@ type Notif = {
 export default function NotificationsBell({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notif[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // ─── Chargement initial ───
   useEffect(() => {
+    console.log('[Bell] Chargement initial pour user:', userId);
     const supabase = createClient();
+
     supabase
       .from('notifications')
       .select('*')
@@ -30,15 +33,20 @@ export default function NotificationsBell({ userId }: { userId: string }) {
       .eq('is_read', false)
       .order('created_at', { ascending: false })
       .limit(10)
-      .then(({ data }) => setItems((data ?? []) as Notif[]));
+      .then(({ data, error }) => {
+        console.log('[Bell] Notifs chargées:', data?.length, 'error:', error);
+        if (error) console.error('[Bell] Erreur:', error);
+        setItems((data ?? []) as Notif[]);
+        setLoading(false);
+      });
   }, [userId]);
 
-  // ─── Realtime : écoute les nouvelles notifications ───
+  // ─── Realtime ───
   useEffect(() => {
     const supabase = createClient();
 
     const channel = supabase
-      .channel(`notifications:${userId}`)
+      .channel(`notifications-bell-${userId}`)
       .on(
         'postgres_changes',
         {
@@ -48,8 +56,12 @@ export default function NotificationsBell({ userId }: { userId: string }) {
           filter: `user_id=eq.${userId}`
         },
         (payload) => {
-          console.log('[Bell] Nouvelle notification reçue :', payload.new);
-          setItems((prev) => [payload.new as Notif, ...prev].slice(0, 10));
+          console.log('[Bell] 🔔 Nouvelle notif reçue:', payload.new);
+          setItems((prev) => {
+            // Évite les doublons
+            if (prev.some((n) => n.id === (payload.new as Notif).id)) return prev;
+            return [payload.new as Notif, ...prev].slice(0, 10);
+          });
         }
       )
       .on(
@@ -61,10 +73,23 @@ export default function NotificationsBell({ userId }: { userId: string }) {
           filter: `user_id=eq.${userId}`
         },
         (payload) => {
-          console.log('[Bell] Notification mise à jour :', payload.new);
+          console.log('[Bell] 🔄 Notif mise à jour:', payload.new);
           setItems((prev) =>
             prev.map((n) => (n.id === (payload.new as Notif).id ? (payload.new as Notif) : n))
           );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('[Bell] 🗑️ Notif supprimée:', payload.old);
+          setItems((prev) => prev.filter((n) => n.id !== (payload.old as any).id));
         }
       )
       .subscribe((status) => {
@@ -72,6 +97,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
       });
 
     return () => {
+      console.log('[Bell] Cleanup channel');
       supabase.removeChannel(channel);
     };
   }, [userId]);
@@ -122,7 +148,11 @@ export default function NotificationsBell({ userId }: { userId: string }) {
               )}
             </div>
 
-            {items.length === 0 ? (
+            {loading ? (
+              <div className="px-4 py-8 text-center text-xs italic text-resa-text/40">
+                Chargement…
+              </div>
+            ) : items.length === 0 ? (
               <div className="px-4 py-8 text-center text-xs italic text-resa-text/40">
                 Aucune notification
               </div>
