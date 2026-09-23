@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
+import PageHero from '@/components/ui/PageHero';
 import { Link } from '@/i18n/navigation';
 
 export default function SchoolsList({ schools }: { schools: any[] }) {
@@ -18,22 +19,15 @@ export default function SchoolsList({ schools }: { schools: any[] }) {
   return (
     <>
       {/* ─── HERO compact ─── */}
-      <section className="relative overflow-hidden bg-resa-navy text-white">
-        <div className="absolute inset-0 bg-grid opacity-50" />
-        <div className="absolute inset-0 bg-halo" />
-        <div className="relative mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
-          <span className="mb-3 inline-block rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/85 backdrop-blur">
-            {locale === 'fr' ? 'Ligue Scolaire Primaire — Saison 2027' : 'Primary School League — 2027 Season'}
-          </span>
-          <h1 className="font-display text-3xl font-black leading-tight tracking-tight md:text-5xl">
-            {t('title')}
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">
-            {t('subtitle')}
-          </p>
-        </div>
-        <div className="h-1 gradient-line" />
-      </section>
+       <PageHero
+        slides={[
+          '/images/headers/ecoles-1.jpg',
+          '/images/headers/ecoles-2.jpg'
+        ]}
+        badge={locale === 'fr' ? 'Ligue Scolaire Primaire — Saison 2027' : 'Primary School League — 2027 Season'}
+        title={t('title')}
+        subtitle={t('subtitle')}
+      />
 
       {/* ─── BARRE DE FILTRE ─── */}
       <section className="border-b border-black/5 bg-resa-gray">

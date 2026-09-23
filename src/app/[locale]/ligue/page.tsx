@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import Reveal from '@/components/ui/Reveal';
 import { getGlobalStats } from '@/lib/queries';
+import LigueHero from './LigueHero';
 
 export default async function LiguePage({
   params
@@ -18,7 +19,7 @@ export default async function LiguePage({
 function LigueContent({ stats }: { stats: any }) {
   const t = useTranslations('ligue');
 
-    // Chiffres clés — DYNAMIQUES
+  // Chiffres clés — DYNAMIQUES
   const statItems = [
     { value: stats.schools,    label: t('statSchools') },
     { value: stats.teams,      label: t('statTeams') },
@@ -94,29 +95,7 @@ function LigueContent({ stats }: { stats: any }) {
   return (
     <>
       {/* ─── HERO ─── */}
-      <section className="relative overflow-hidden bg-resa-navy text-white">
-        <div className="absolute inset-0 bg-grid opacity-50" />
-        <div className="absolute inset-0 bg-halo" />
-        <div className="pointer-events-none absolute -right-20 top-1/4 h-96 w-96 rounded-full bg-resa-red/10 blur-3xl anim-float" />
-
-        <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24">
-          <div className="max-w-3xl">
-            <span className="mb-3 inline-block rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/85 backdrop-blur anim-fade-up">
-              {t('season')}
-            </span>
-            <h1 className="font-display text-4xl font-black leading-[1.02] tracking-tight md:text-6xl anim-fade-up delay-100">
-              {t('title')}
-            </h1>
-            <p className="mt-4 text-base text-white/75 md:text-lg anim-fade-up delay-200">
-              {t('subtitle')}
-            </p>
-            <div className="mt-6 inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold text-white/80 backdrop-blur anim-fade-up delay-300">
-              ⚽ {t('seasonText')}
-            </div>
-          </div>
-        </div>
-        <div className="h-1 gradient-line" />
-      </section>
+      <LigueHero />
 
       {/* ─── CHIFFRES CLÉS ─── */}
       <section className="border-b border-black/5 bg-resa-gray">

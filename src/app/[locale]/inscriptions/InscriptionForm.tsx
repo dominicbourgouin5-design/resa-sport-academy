@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { WHATSAPP_URL, cn } from '@/lib/utils';
+import InscriptionsHero from './InscriptionsHero';
 
 type Mode = 'school' | 'individual';
 
@@ -102,49 +103,24 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
   return (
     <>
       {/* ─── HERO ─── */}
-      <section className="relative overflow-hidden bg-resa-navy text-white">
-        <div className="absolute inset-0 bg-grid opacity-50" />
-        <div className="absolute inset-0 bg-halo" />
-        <div className="pointer-events-none absolute -right-20 top-1/4 h-96 w-96 rounded-full bg-resa-red/10 blur-3xl anim-float" />
+      <InscriptionsHero />
 
-        <div className="relative mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-20">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
-            {/* Texte */}
-            <div>
-              <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/85 backdrop-blur anim-fade-up">
-                <span className="h-1.5 w-1.5 rounded-full bg-resa-red anim-glow" />
-                Saison 2027 · Inscriptions ouvertes
-              </span>
-              <h1 className="font-display text-4xl font-black leading-[1.05] tracking-tight md:text-5xl lg:text-6xl anim-fade-up delay-100">
-                {t('title')}
-              </h1>
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-white/75 md:text-lg anim-fade-up delay-200">
-                {t('subtitle')}
-              </p>
-
-              {/* 3 points clés */}
-              <div className="mt-8 flex flex-wrap gap-x-8 gap-y-4 anim-fade-up delay-300">
-                <Bullet>{mode === 'school' ? 'Gratuit pour les écoles publiques' : 'Détection ouverte à tous'}</Bullet>
-                <Bullet>Réponse sous 48 h</Bullet>
-                <Bullet>Bilingue FR / EN</Bullet>
-              </div>
-            </div>
-
-            {/* Étapes */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md md:p-8 anim-fade-up delay-400">
-              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">
-                Comment ça marche
-              </div>
-              <div className="mt-5 space-y-5">
-                <Step n={1} title="Vous remplissez le formulaire" text="2 minutes suffisent." />
-                <Step n={2} title="Notre équipe étudie la demande" text="Vérification des places disponibles." />
-                <Step n={3} title="Nous vous recontactons" text="Par téléphone ou WhatsApp." />
-                <Step n={4} title="Votre place est confirmée" text="Bienvenue dans la Ligue." last />
-              </div>
-            </div>
+      {/* ─── COMMENT ÇA MARCHE ─── */}
+      <section className="border-b border-black/5 bg-resa-gray">
+        <div className="mx-auto max-w-7xl px-4 py-10 md:px-6 md:py-12">
+          <div className="mb-6">
+            <div className="mb-3 h-1 w-14 bg-resa-red" />
+            <h2 className="font-display text-2xl font-black text-resa-navy md:text-3xl">
+              Comment ça marche
+            </h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StepLight n={1} title="Vous remplissez le formulaire" text="2 minutes suffisent." />
+            <StepLight n={2} title="Nous étudions la demande" text="Vérification des places." />
+            <StepLight n={3} title="Nous vous recontactons" text="Par téléphone ou WhatsApp." />
+            <StepLight n={4} title="Votre place est confirmée" text="Bienvenue dans la Ligue." />
           </div>
         </div>
-        <div className="h-1 gradient-line" />
       </section>
 
       {/* ─── FORMULAIRE ─── */}
@@ -368,30 +344,16 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
 
 // ─── Composants utilitaires ─────────────────────────────────
 
-function Bullet({ children }: { children: React.ReactNode }) {
+function StepLight({ n, title, text }: { n: number; title: string; text: string }) {
   return (
-    <div className="flex items-center gap-2 text-xs font-semibold text-white/70">
-      <span className="grid h-5 w-5 place-items-center rounded-full bg-resa-red text-[10px] text-white">
-        ✓
-      </span>
-      {children}
-    </div>
-  );
-}
-
-function Step({ n, title, text, last = false }: { n: number; title: string; text: string; last?: boolean }) {
-  return (
-    <div className="relative flex gap-4">
-      {!last && (
-        <span className="absolute left-[15px] top-8 h-full w-px bg-white/10" aria-hidden />
-      )}
-      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/20 bg-white/5 font-display text-xs font-black text-white backdrop-blur">
-        {n}
+    <div className="rounded-xl border border-black/5 bg-white p-4 shadow-resa transition-all duration-300 hover:-translate-y-1 hover:shadow-resa-lg">
+      <div className="flex items-center gap-3">
+        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-resa-navy font-display text-xs font-black text-white">
+          {n}
+        </div>
+        <div className="text-sm font-bold text-resa-navy">{title}</div>
       </div>
-      <div>
-        <div className="text-sm font-bold text-white">{title}</div>
-        <div className="text-xs text-white/55">{text}</div>
-      </div>
+      <div className="mt-2 text-[11px] text-resa-text/60">{text}</div>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
+import CompetitionHero from './CompetitionHero';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
@@ -71,22 +72,7 @@ export default function CompetitionTabs({
   return (
     <>
       {/* HERO */}
-      <section className="relative overflow-hidden bg-resa-navy text-white">
-        <div className="absolute inset-0 bg-grid opacity-60" />
-        <div className="absolute inset-0 bg-halo" />
-        <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-20">
-          <span className="mb-4 inline-block rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/85 backdrop-blur anim-fade-up">
-            {season.name_fr}
-          </span>
-          <h1 className="font-display text-4xl font-black leading-tight tracking-tight md:text-6xl anim-fade-up delay-100">
-            {t('title')}
-          </h1>
-          <p className="mt-4 max-w-2xl text-base text-white/75 md:text-lg anim-fade-up delay-200">
-            {t('subtitle')}
-          </p>
-        </div>
-        <div className="h-1 gradient-line" />
-      </section>
+      <CompetitionHero seasonName={season.name_fr} />
 
       {/* FILTRES */}
       <section className="sticky top-[72px] z-30 border-b border-black/5 bg-white/95 backdrop-blur">
@@ -217,7 +203,6 @@ export default function CompetitionTabs({
         {/* ─── STATISTIQUES ─── */}
         {tab === 'stats' && (
           <div className="anim-fade-in">
-            {/* Sous-onglets */}
             <div className="mb-8 flex flex-wrap gap-2 border-b border-black/5 pb-4">
               {(['scorers', 'assists', 'mvp', 'discipline'] as StatTab[]).map((k) => (
                 <button
@@ -235,7 +220,6 @@ export default function CompetitionTabs({
               ))}
             </div>
 
-            {/* Buteurs */}
             {statTab === 'scorers' && (
               <StatsTable
                 rows={scorers}
@@ -246,7 +230,6 @@ export default function CompetitionTabs({
               />
             )}
 
-            {/* Passeurs */}
             {statTab === 'assists' && (
               <StatsTable
                 rows={assists}
@@ -257,7 +240,6 @@ export default function CompetitionTabs({
               />
             )}
 
-            {/* MVP */}
             {statTab === 'mvp' && (
               <StatsTable
                 rows={mvps}
@@ -268,7 +250,6 @@ export default function CompetitionTabs({
               />
             )}
 
-            {/* Discipline */}
             {statTab === 'discipline' && (
               <DisciplineTable rows={discipline} t={t} />
             )}
@@ -408,7 +389,7 @@ function DisciplineTable({ rows, t }: { rows: any[]; t: any }) {
   );
 }
 
-// ─── MatchCard (inchangé) ───────────────────────────────────
+// ─── MatchCard ──────────────────────────────────────────────
 function MatchCard({ match, locale, t }: { match: any; locale: string; t: any }) {
   const home = match.home_team?.school?.name ?? match.home_team?.name;
   const away = match.away_team?.school?.name ?? match.away_team?.name;

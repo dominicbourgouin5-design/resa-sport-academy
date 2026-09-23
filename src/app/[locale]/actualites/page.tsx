@@ -1,6 +1,7 @@
 import { setRequestLocale } from 'next-intl/server';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import NewsHero from './NewsHero';
 import { getNews } from '@/lib/queries';
 
 export default async function NewsPage({
@@ -33,24 +34,7 @@ function NewsContent({ news, locale }: { news: any[]; locale: string }) {
   return (
     <>
       {/* ─── HERO ─── */}
-      <section className="relative overflow-hidden bg-resa-navy text-white">
-        <div className="absolute inset-0 bg-grid opacity-50" />
-        <div className="absolute inset-0 bg-halo" />
-        <div className="relative mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-20">
-          <div className="max-w-3xl">
-            <span className="mb-3 inline-block rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/85 backdrop-blur anim-fade-up">
-              {news.length} {isFr ? 'articles publiés' : 'published articles'}
-            </span>
-            <h1 className="font-display text-4xl font-black leading-tight tracking-tight md:text-5xl anim-fade-up delay-100">
-              {t('title')}
-            </h1>
-            <p className="mt-3 text-base text-white/70 md:text-lg anim-fade-up delay-200">
-              {t('subtitle')}
-            </p>
-          </div>
-        </div>
-        <div className="h-1 gradient-line" />
-      </section>
+      <NewsHero count={news.length} />
 
       {/* ─── LISTE ─── */}
       <section className="mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">

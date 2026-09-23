@@ -2,6 +2,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import Reveal from '@/components/ui/Reveal';
+import ResaHero from './ResaHero';
 
 export default async function ResaPage({
   params
@@ -45,30 +46,8 @@ function ResaContent() {
 
   return (
     <>
-      {/* ─── HERO ─── */}
-      <section className="relative overflow-hidden bg-resa-navy text-white">
-        <div className="absolute inset-0 bg-grid opacity-50" />
-        <div className="absolute inset-0 bg-halo" />
-        <div className="absolute inset-0 bg-stripes opacity-30" />
-        <div className="pointer-events-none absolute -right-20 top-1/4 h-[500px] w-[500px] rounded-full bg-resa-red/15 blur-3xl anim-float" />
-        <div className="pointer-events-none absolute -left-20 bottom-0 h-[400px] w-[400px] rounded-full bg-resa-royal/20 blur-3xl anim-float delay-500" />
-
-        <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24">
-          <div className="max-w-3xl">
-            <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/85 backdrop-blur anim-fade-up">
-              <span className="h-1.5 w-1.5 rounded-full bg-resa-red anim-glow" />
-              {t('badge')}
-            </span>
-            <h1 className="font-display text-4xl font-black leading-[1.05] tracking-tight md:text-5xl lg:text-6xl anim-fade-up delay-100">
-              {t('title')}
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/75 md:text-lg anim-fade-up delay-200">
-              {t('subtitle')}
-            </p>
-          </div>
-        </div>
-        <div className="h-1 gradient-line" />
-      </section>
+       {/* ─── HERO ─── */}
+      <ResaHero />
 
       {/* ─── MISSION & VISION ─── */}
       <section className="mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-20">
