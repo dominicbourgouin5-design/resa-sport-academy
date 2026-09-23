@@ -93,29 +93,30 @@ export default function NotificationsList({ notifications }: { notifications: an
                     <p className="mt-1 text-[13px] text-resa-text/70">{n.body}</p>
                   )}
 
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] text-resa-text/40">
-                    <span>
-                        {new Date(n.created_at).toLocaleDateString('fr-FR', {
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] text-resa-text/40">
+                    {/* suppressHydrationWarning ajouté ci-dessous */}
+                    <span suppressHydrationWarning>
+                      {new Date(n.created_at).toLocaleDateString('fr-FR', {
                         day: '2-digit',
                         month: 'long',
                         hour: '2-digit',
                         minute: '2-digit'
-                        })}
+                      })}
                     </span>
 
                     {n.sender && (
-                        <span className="inline-flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1.5">
                         <span className="font-semibold text-resa-navy/70">
-                            {n.sender.full_name ?? n.sender.email}
+                          {n.sender.full_name ?? n.sender.email}
                         </span>
                         {n.is_broadcast && (
-                            <span className="rounded-full bg-resa-navy/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-resa-navy">
+                          <span className="rounded-full bg-resa-navy/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-resa-navy">
                             Annonce
-                            </span>
+                          </span>
                         )}
-                        </span>
+                      </span>
                     )}
-                    </div>
+                  </div>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2 opacity-0 transition group-hover:opacity-100">

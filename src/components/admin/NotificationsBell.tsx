@@ -41,7 +41,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
       });
   }, [userId]);
 
-  // ─── Realtime ───
+  // ─── Écoute en temps réel Supabase Realtime ───
   useEffect(() => {
     const supabase = createClient();
 
@@ -58,7 +58,6 @@ export default function NotificationsBell({ userId }: { userId: string }) {
         (payload) => {
           console.log('[Bell] 🔔 Nouvelle notif reçue:', payload.new);
           setItems((prev) => {
-            // Évite les doublons
             if (prev.some((n) => n.id === (payload.new as Notif).id)) return prev;
             return [payload.new as Notif, ...prev].slice(0, 10);
           });
@@ -181,9 +180,13 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                               {n.body}
                             </div>
                           )}
-                          <div className="mt-1 text-[10px] text-resa-text/40">
+                          {/* suppressHydrationWarning ajouté ci-dessous */}
+                          <div className="mt-1 text-[10px] text-resa-text/40" suppressHydrationWarning>
                             {new Date(n.created_at).toLocaleDateString('fr-FR', {
-                              day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                              day: '2-digit',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
                             })}
                           </div>
                         </div>
