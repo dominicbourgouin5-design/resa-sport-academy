@@ -1,6 +1,5 @@
 // ════════════════════════════════════════════════════════════
 // Service Worker — RESA Sport Academy
-// Reçoit les notifications push et les affiche au système
 // ════════════════════════════════════════════════════════════
 
 self.addEventListener('install', (event) => {
@@ -13,7 +12,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// ─── Réception d'une notification push ──────────────────────
+// ─── Réception d'un push ────────────────────────────────────
 self.addEventListener('push', (event) => {
   console.log('[SW] Push received');
 
@@ -23,36 +22,52 @@ self.addEventListener('push', (event) => {
     url: '/admin'
   };
 
+  // ⚠️ Parsing robuste : JSON si possible, sinon texte brut
   try {
     if (event.data) {
-      data = { ...data, ...event.data.json() };
+      const raw = event.data.text();
+      console.log('[SW] Raw data:', raw);
+
+      // Essaie de parser en JSON
+      try {
+        const parsed = JSON.parse(raw);
+        data = { ...data, ...parsed };
+        console.log('[SW] Parsed as JSON');
+      } catch {
+        // Pas du JSON → utilise le texte brut comme body
+        data.body = raw;
+        console.log('[SW] Parsed as plain text');
+      }
     }
   } catch (err) {
-    console.error('[SW] Failed to parse push data:', err);
+    console.error('[SW] Failed to read push data:', err);
   }
 
   const options = {
-    body: data.body,
-    icon: data.icon || '/favicon-96x96.png',
+    body: data.body || 'Cliquez pour voir',
+    icon: '/favicon-96x96.png',
     badge: '/favicon-96x96.png',
     vibrate: [200, 100, 200],
-    tag: data.url || 'resa-notif',
-    data: { url: data.url },
+    tag: 'resa-notif-' + Date.now(),
+    data: { url: data.url || '/admin' },
     actions: [
       { action: 'open', title: 'Ouvrir' },
       { action: 'close', title: 'Fermer' }
     ]
   };
 
+  console.log('[SW] Showing notification:', data.title);
+
   event.waitUntil(
     self.registration.showNotification(data.title, options)
+      .then(() => console.log('[SW] ✅ Notification displayed'))
+      .catch((err) => console.error('[SW] ❌ Display failed:', err))
   );
 });
 
 // ─── Clic sur la notification ───────────────────────────────
 self.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked');
-
   event.notification.close();
 
   if (event.action === 'close') return;
@@ -62,14 +77,12 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clients) => {
-        // Si un onglet est déjà ouvert sur le site → focus
         for (const client of clients) {
           if (client.url.includes(self.location.origin) && 'focus' in client) {
             client.navigate(url);
             return client.focus();
           }
         }
-        // Sinon → ouvre un nouvel onglet
         if (self.clients.openWindow) {
           return self.clients.openWindow(url);
         }

@@ -20,7 +20,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notif[]>([]);
 
-  // Chargement initial
+  // ─── Chargement initial ───
   useEffect(() => {
     const supabase = createClient();
     supabase
@@ -33,11 +33,12 @@ export default function NotificationsBell({ userId }: { userId: string }) {
       .then(({ data }) => setItems((data ?? []) as Notif[]));
   }, [userId]);
 
-  // Realtime : nouvelle notif arrive → ajout au state
+  // ─── Realtime : écoute les nouvelles notifications ───
   useEffect(() => {
     const supabase = createClient();
+
     const channel = supabase
-      .channel('notif-bell')
+      .channel(`notifications:${userId}`)
       .on(
         'postgres_changes',
         {
@@ -47,10 +48,28 @@ export default function NotificationsBell({ userId }: { userId: string }) {
           filter: `user_id=eq.${userId}`
         },
         (payload) => {
+          console.log('[Bell] Nouvelle notification reçue :', payload.new);
           setItems((prev) => [payload.new as Notif, ...prev].slice(0, 10));
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('[Bell] Notification mise à jour :', payload.new);
+          setItems((prev) =>
+            prev.map((n) => (n.id === (payload.new as Notif).id ? (payload.new as Notif) : n))
+          );
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Bell] Realtime status:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
