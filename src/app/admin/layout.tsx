@@ -1,5 +1,6 @@
 import { getCurrentProfile } from '@/lib/auth';
 import AdminShell from '@/components/admin/AdminShell';
+import ServiceWorkerRegister from '@/components/admin/ServiceWorkerRegister';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminTopbar from '@/components/admin/AdminTopbar';
 import '../globals.css';
@@ -30,7 +31,8 @@ export default async function AdminLayout({
     <html lang="fr">
       <body className="min-h-screen bg-resa-gray">
         <AdminShell>
-        <div className="min-h-screen">
+          <ServiceWorkerRegister />
+          <div className="min-h-screen">
           <AdminSidebar role={profile.role} />
           <div className="flex min-h-screen flex-col lg:pl-60">
             <AdminTopbar profile={profile} />

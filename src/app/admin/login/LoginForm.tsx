@@ -8,8 +8,8 @@ export default function LoginForm({ redirectTo }: { redirectTo: string }) {
   const [state, formAction, pending] = useActionState(login, null);
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8 sm:py-10">
-      {/* ─── Image de fond PLEINEMENT VISIBLE ─── */}
+<div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-6">
+        {/* ─── Image de fond PLEINEMENT VISIBLE ─── */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url('/images/login-bg.jpg')` }}
@@ -31,20 +31,19 @@ export default function LoginForm({ redirectTo }: { redirectTo: string }) {
 
       {/* ─── Contenu ─── */}
       <div className="relative w-full max-w-md">
-        <div className="mb-8 text-center">
-
-            <div className="mb-3 flex flex-col items-center gap-3">
-              <Logo size="xl" />
+          <div className="mb-6 text-center">
+            <div className="flex flex-col items-center gap-2">
+              <Logo size="lg" />
               <div className="text-center">
-                <div className="font-display text-2xl font-black text-white">
+                <div className="font-display text-xl font-black text-white leading-tight">
                   RESA Sport Academy
                 </div>
               </div>
             </div>
-          <p className="mt-6 text-sm font-medium text-white/85 drop-shadow-lg">
-            Connectez-vous pour accéder au back-office admin.
-          </p>
-        </div>
+            <p className="mt-3 text-xs font-medium text-white/75 drop-shadow-lg">
+              Connectez-vous pour accéder au back-office.
+            </p>
+          </div>
 
         <form
           action={formAction}
@@ -101,10 +100,7 @@ export default function LoginForm({ redirectTo }: { redirectTo: string }) {
             Accès réservé au personnel autorisé de RESA Sport Academy.
           </p>
         </form>
-
-        <p className="mt-8 text-center text-[10px] font-bold uppercase tracking-[0.28em] text-white/60 drop-shadow-lg">
-          Côte d'Ivoire · Saison 2027
-        </p>
+ 
       </div>
     </div>
   );

@@ -73,11 +73,12 @@ const SECTIONS: Section[] = [
   {
     label: 'Administration',
     items: [
-      {
-        label: 'Utilisateurs', icon: 'users',
-        children: [{ href: '/admin/utilisateurs', label: 'Comptes & rôles' }]
-      },
-      { label: "Journal d'audit", icon: 'audit', href: '/admin/audit' }
+          {
+            label: 'Utilisateurs', icon: 'users',
+            children: [{ href: '/admin/utilisateurs', label: 'Comptes & rôles' }]
+          },
+          { label: 'Notifications', icon: 'audit', href: '/admin/notifications' },
+          { label: "Journal d'audit", icon: 'audit', href: '/admin/audit' }
     ]
   }
 ];

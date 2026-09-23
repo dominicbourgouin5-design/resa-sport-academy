@@ -406,3 +406,98 @@ export async function getRecentAudit(limit = 10) {
     .limit(limit);
   return data ?? [];
 }
+
+
+// ─── Notifications non lues ─────────────────────────────────
+export async function getUnreadNotifications() {
+  const { getCurrentProfile } = await import('./auth');
+  const me = await getCurrentProfile();
+  if (!me) return { count: 0, items: [] };
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('notifications')
+    .select('id, title, body, type, link, is_read, created_at')
+    .eq('user_id', me.id)
+    .eq('is_read', false)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const { count } = await supabase
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', me.id)
+    .eq('is_read', false);
+
+  return { count: count ?? 0, items: data ?? [] };
+}
+
+// ─── Toutes les notifications ───────────────────────────────
+export async function getAllNotifications(limit = 50) {
+  try {
+    const { getCurrentProfile } = await import('./auth');
+    const me = await getCurrentProfile();
+    if (!me) return [];
+
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('notifications')
+      .select(`
+        *,
+        sender:profiles!notifications_sender_id_fkey(id, full_name, email)
+      `)
+      .eq('user_id', me.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    return data ?? [];
+  } catch (err) {
+    console.error('getAllNotifications error:', err);
+    return [];
+  }
+}
+
+
+
+
+// ─── Liste des utilisateurs actifs (hors soi-même) ─────────
+export async function getActiveUsers() {
+  const { getCurrentProfile } = await import('./auth');
+  const me = await getCurrentProfile();
+  if (!me) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, full_name, email, role')
+    .eq('is_active', true)
+    .neq('id', me.id)
+    .order('full_name');
+
+  return data ?? [];
+}
+
+// ─── Notifications envoyées par moi ─────────────────────────
+export async function getSentNotifications(limit = 50) {
+  try {
+    const { getCurrentProfile } = await import('./auth');
+    const me = await getCurrentProfile();
+    if (!me) return [];
+
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('notifications')
+      .select(`
+        *,
+        recipient:profiles!notifications_user_id_fkey(id, full_name, email)
+      `)
+      .eq('sender_id', me.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    return data ?? [];
+  } catch (err) {
+    console.error('getSentNotifications error:', err);
+    return [];
+  }
+}
