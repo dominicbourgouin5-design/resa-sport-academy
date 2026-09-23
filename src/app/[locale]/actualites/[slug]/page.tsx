@@ -36,8 +36,8 @@ function ArticleContent({ article, locale }: { article: any; locale: string }) {
     ? (body ?? '')
     : (body ?? '')
         .split(/\n\n+/)
-        .filter((p) => p.trim())
-        .map((p) => `<p>${p.trim().replace(/\n/g, '<br/>')}</p>`)
+        .filter((p: string) => p.trim())
+        .map((p: string) => `<p>${p.trim().replace(/\n/g, '<br/>')}</p>`)
         .join('');
 
   return (
