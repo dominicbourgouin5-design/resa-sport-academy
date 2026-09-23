@@ -12,8 +12,17 @@ import '../globals.css';
 
 export const metadata: Metadata = {
   title: 'RESA Sport Academy — Ligue Scolaire Primaire',
-  description:
-    "Académie de football et Ligue Scolaire Primaire de Côte d'Ivoire — U7, U9, U11."
+  description: "Académie de football et Ligue Scolaire Primaire de Côte d'Ivoire — U7, U9, U11.",
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' }
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
+    ]
+  },
+  manifest: '/site.webmanifest'
 };
 
 export function generateStaticParams() {

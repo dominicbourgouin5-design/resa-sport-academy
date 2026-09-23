@@ -62,17 +62,17 @@ export default function Header() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6">
 
           {/* Logo */}
-        <Link href="/" className="group flex items-center gap-3">
-          <Logo size="md" className="transition-transform duration-300 group-hover:scale-105" />
-          <div className="flex flex-col leading-none">
-            <span className="font-display text-xl font-black tracking-tight text-white">
-              RESA
-            </span>
-            <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.28em] text-white/50 transition-colors duration-300 group-hover:text-white/80">
-              Sport Academy
-            </span>
-          </div>
-        </Link>
+          <Link href="/" className="group flex items-center gap-3">
+            <Logo size="md" className="transition-transform duration-300 group-hover:scale-105" />
+            <div className="flex flex-col justify-center leading-none">
+              <span className="font-display text-xl font-black tracking-tight text-white">
+                RESA
+              </span>
+              <span className="mt-1 text-[9px] font-bold uppercase tracking-[0.28em] text-white/60">
+                Sport Academy
+              </span>
+            </div>
+          </Link>
 
           {/* Nav desktop */}
           <nav className="hidden items-center gap-1 lg:flex">

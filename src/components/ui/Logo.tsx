@@ -3,31 +3,28 @@ import { cn } from '@/lib/utils';
 
 export default function Logo({
   size = 'md',
-  className,
-  variant = 'default'
+  className
 }: {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
-  variant?: 'default' | 'white';
 }) {
   const sizeMap = {
-    sm: 'h-8 w-8',
-    md: 'h-10 w-10',
-    lg: 'h-14 w-14',
-    xl: 'h-20 w-20'
+    sm: { w: 32, h: 32 },
+    md: { w: 44, h: 44 },
+    lg: { w: 56, h: 56 },
+    xl: { w: 80, h: 80 }
   };
 
-  const src = variant === 'white'
-    ? '/images/brand/resa-logo-white.png'
-    : '/images/brand/resa-logo.png';
+  const dim = sizeMap[size];
 
   return (
-    <div className={cn('relative shrink-0 overflow-hidden rounded-full bg-white', sizeMap[size], className)}>
+    <div className={cn('relative shrink-0', className)} style={{ width: dim.w, height: dim.h }}>
       <Image
-        src={src}
+        src="/images/brand/resa-logo.png"
         alt="RESA Sport Academy"
-        fill
-        className="object-contain p-1"
+        width={dim.w}
+        height={dim.h}
+        className="h-full w-full object-contain"
         priority
       />
     </div>
