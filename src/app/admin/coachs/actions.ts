@@ -19,6 +19,15 @@ const csv = (v: any) =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+const parseJson = (v: any, fallback: any[] = []) => {
+  try {
+    const parsed = JSON.parse(String(v ?? '[]'));
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 // ─── Supprimer un coach ─────────────────────────────────────
 export async function deleteCoach(id: string) {
   await requireRole(['admin', 'league_manager']);
@@ -76,12 +85,10 @@ export async function saveCoach(
     return { error: 'Le nom et le slug sont obligatoires.' };
   }
 
-  let career: any[] = [];
-  try {
-    career = JSON.parse(String(formData.get('career') ?? '[]'));
-  } catch {
-    career = [];
-  }
+  // Parse JSON fields
+  const career = parseJson(formData.get('career'));
+  const rates = parseJson(formData.get('rates'));
+  const availability = parseJson(formData.get('availability'));
 
   const payload: any = {
     name,
@@ -110,6 +117,8 @@ export async function saveCoach(
     certifications: csv(formData.get('certifications')),
     languages: csv(formData.get('languages')),
     career,
+    rates,
+    availability,
     social_instagram: String(formData.get('social_instagram') ?? '').trim() || null,
     social_linkedin: String(formData.get('social_linkedin') ?? '').trim() || null,
     social_twitter: String(formData.get('social_twitter') ?? '').trim() || null,

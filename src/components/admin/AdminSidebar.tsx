@@ -85,6 +85,17 @@ const SECTIONS: Section[] = [
           { href: '/admin/actualites/nouveau', label: 'Publier une actualité' }
         ]
       },
+
+
+      {
+        label: 'Camps & Tryouts', icon: 'inbox',
+        children: [
+          { href: '/admin/camps', label: 'Tous les camps' },
+          { href: '/admin/camps/nouveau', label: 'Créer un camp / tryout' }
+        ]
+      },
+
+
       {
         label: 'Sponsors', icon: 'sponsor',
         children: [{ href: '/admin/sponsors', label: 'Tous les partenaires' }]

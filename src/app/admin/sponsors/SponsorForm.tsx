@@ -3,25 +3,32 @@
 import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import ImageUpload from '@/components/admin/ImageUpload';
+import RichEditor from '@/components/admin/RichEditor';
 import { saveSponsor } from './actions';
 import { cn } from '@/lib/utils';
 
 const TIERS = [
-  { value: 'platinum', label: 'Platinum', desc: 'Partenaire principal', color: 'from-slate-700 to-slate-900', badge: 'bg-slate-800 text-white' },
-  { value: 'gold',     label: 'Gold',     desc: 'Partenaire majeur',    color: 'from-amber-500 to-amber-700',   badge: 'bg-amber-500 text-white' },
-  { value: 'silver',   label: 'Silver',   desc: 'Partenaire officiel',  color: 'from-gray-400 to-gray-600',     badge: 'bg-gray-500 text-white' },
-  { value: 'official', label: 'Officiel', desc: 'Partenaire de la Ligue', color: 'from-resa-navy to-resa-royal', badge: 'bg-resa-navy text-white' }
+  { value: 'platinum', label: 'Platinum', desc: 'Partenaire principal', color: 'from-slate-700 to-slate-900' },
+  { value: 'gold',     label: 'Gold',     desc: 'Partenaire majeur',    color: 'from-amber-500 to-amber-700' },
+  { value: 'silver',   label: 'Silver',   desc: 'Partenaire officiel',  color: 'from-gray-400 to-gray-600' },
+  { value: 'official', label: 'Officiel', desc: 'Partenaire de la Ligue', color: 'from-resa-navy to-resa-royal' }
 ] as const;
+
+type Lang = 'fr' | 'en';
 
 export default function SponsorForm({ sponsor }: { sponsor?: any }) {
   const [state, formAction, pending] = useActionState(saveSponsor, null);
   const isEdit = !!sponsor;
+
+  const [lang, setLang] = useState<Lang>('fr');
 
   const [name, setName] = useState(sponsor?.name ?? '');
   const [slug, setSlug] = useState(sponsor?.slug ?? '');
   const [tier, setTier] = useState<string>(sponsor?.tier ?? 'official');
   const [logoUrl, setLogoUrl] = useState(sponsor?.logo_url ?? '');
   const [isActive, setIsActive] = useState(sponsor?.is_active ?? true);
+  const [longDescFr, setLongDescFr] = useState(sponsor?.long_description_fr ?? '');
+  const [longDescEn, setLongDescEn] = useState(sponsor?.long_description_en ?? '');
 
   const autoSlug = (v: string) =>
     v.toLowerCase()
@@ -37,7 +44,7 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-4xl">
 
       {/* Fil d'ariane */}
       <div className="mb-6 text-[11px] text-resa-text/50">
@@ -62,8 +69,35 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
         </p>
       </div>
 
-      <form action={formAction} className="space-y-6">
+      <form action={formAction} className="space-y-6 pb-32">
         {isEdit && <input type="hidden" name="id" value={sponsor.id} />}
+        <input type="hidden" name="long_description_fr" value={longDescFr} />
+        <input type="hidden" name="long_description_en" value={longDescEn} />
+
+        {/* Sélecteur de langue */}
+        <div className="inline-flex rounded-full border border-black/5 bg-resa-gray p-1">
+          {(['fr', 'en'] as Lang[]).map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => setLang(l)}
+              className={cn(
+                'rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition',
+                lang === l
+                  ? 'bg-white text-resa-navy shadow-sm'
+                  : 'text-resa-text/50 hover:text-resa-navy'
+              )}
+            >
+              {l === 'fr' ? '🇫🇷 Français' : '🇬🇧 English'}
+            </button>
+          ))}
+        </div>
+
+        {lang === 'en' && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[12px] text-amber-800">
+            💡 <strong>Optionnel</strong> — Si vous laissez les champs EN vides, la version FR sera affichée aux visiteurs anglophones.
+          </div>
+        )}
 
         {/* Section 1 : Niveau */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
@@ -129,16 +163,26 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
               onChange={setSlug}
               required
               placeholder="banque-atlantique-ci"
-              hint="Identifiant unique, minuscules et tirets."
+              hint={`URL publique : /sponsors/${slug || 'mon-partenaire'}`}
             />
 
-            <Field
-              label="Site web"
-              name="website_url"
-              type="url"
-              defaultValue={sponsor?.website_url}
-              placeholder="https://exemple.ci"
-            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label={`Secteur (${lang.toUpperCase()})`}
+                name={lang === 'fr' ? 'sector_fr' : 'sector_en'}
+                defaultValue={
+                  lang === 'fr' ? sponsor?.sector_fr : sponsor?.sector_en
+                }
+                placeholder={lang === 'fr' ? 'Ex : Banque, Télécoms…' : 'Ex: Banking, Telecom…'}
+              />
+              <Field
+                label="Partenaire depuis (année)"
+                name="since_year"
+                type="number"
+                defaultValue={sponsor?.since_year?.toString()}
+                placeholder="2024"
+              />
+            </div>
           </div>
         </section>
 
@@ -163,50 +207,136 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
           </div>
         </section>
 
-        {/* Section 4 : Description */}
+        {/* Section 4 : Description courte */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
           <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-red/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-red" />
-            <h2 className="text-sm font-bold text-resa-navy">Description</h2>
+            <h2 className="text-sm font-bold text-resa-navy">Description courte</h2>
           </header>
 
           <div className="space-y-4 p-5">
-            <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-resa-text/60">
-                Description (FR)
-              </label>
-              <textarea
-                name="description_fr"
-                defaultValue={sponsor?.description_fr ?? ''}
-                rows={3}
-                placeholder="Ex : Partenaire principal de la saison 2027."
-                className="w-full resize-y rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[13px] leading-relaxed text-resa-navy placeholder:text-resa-text/30 outline-none transition focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+            {lang === 'fr' ? (
+              <div>
+                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-resa-text/60">
+                  Description (FR)
+                </label>
+                <textarea
+                  name="description_fr"
+                  defaultValue={sponsor?.description_fr ?? ''}
+                  rows={3}
+                  placeholder="Ex : Partenaire principal de la saison 2027."
+                  className="w-full resize-y rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[13px] leading-relaxed text-resa-navy placeholder:text-resa-text/30 outline-none transition focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+                />
+                <div className="mt-1 text-[10px] text-resa-text/40">
+                  Apparaît sur la carte du partenaire (page /sponsors). 1-2 lignes recommandé.
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-resa-text/60">
+                  Description (EN)
+                </label>
+                <textarea
+                  name="description_en"
+                  defaultValue={sponsor?.description_en ?? ''}
+                  rows={3}
+                  placeholder="Ex : Main partner of the 2027 season."
+                  className="w-full resize-y rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[13px] leading-relaxed text-resa-navy placeholder:text-resa-text/30 outline-none transition focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+                />
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Section 5 : Description longue (page dédiée) */}
+        <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-royal/5 to-transparent px-5 py-3">
+            <div className="h-4 w-1 rounded-full bg-resa-royal" />
+            <h2 className="text-sm font-bold text-resa-navy">
+              Page dédiée — Présentation longue ({lang.toUpperCase()})
+            </h2>
+          </header>
+
+          <div className="p-5">
+            {lang === 'fr' ? (
+              <div>
+                <RichEditor
+                  value={longDescFr}
+                  onChange={setLongDescFr}
+                  placeholder="Rédigez la présentation complète du partenaire. Utilisez 📷 et 🎥 pour insérer des médias…"
+                />
+                <div className="mt-1 text-[10px] text-resa-text/40">
+                  Ce contenu s'affiche sur la page dédiée <strong>/sponsors/{slug || 'mon-partenaire'}</strong>.
+                </div>
+              </div>
+            ) : (
+              <div>
+                <RichEditor
+                  value={longDescEn}
+                  onChange={setLongDescEn}
+                  placeholder="Write the full presentation of the partner…"
+                />
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Section 6 : Réseaux sociaux */}
+        <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-navy/5 to-transparent px-5 py-3">
+            <div className="h-4 w-1 rounded-full bg-resa-navy" />
+            <h2 className="text-sm font-bold text-resa-navy">Réseaux sociaux</h2>
+          </header>
+
+          <div className="space-y-4 p-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="LinkedIn"
+                name="social_linkedin"
+                defaultValue={sponsor?.social_linkedin}
+                placeholder="https://linkedin.com/company/…"
+              />
+              <Field
+                label="Instagram"
+                name="social_instagram"
+                defaultValue={sponsor?.social_instagram}
+                placeholder="https://instagram.com/…"
+              />
+              <Field
+                label="Facebook"
+                name="social_facebook"
+                defaultValue={sponsor?.social_facebook}
+                placeholder="https://facebook.com/…"
+              />
+              <Field
+                label="Twitter / X"
+                name="social_twitter"
+                defaultValue={sponsor?.social_twitter}
+                placeholder="https://x.com/…"
               />
             </div>
-
-            <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-resa-text/60">
-                Description (EN)
-              </label>
-              <textarea
-                name="description_en"
-                defaultValue={sponsor?.description_en ?? ''}
-                rows={3}
-                placeholder="Ex : Main partner of the 2027 season."
-                className="w-full resize-y rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[13px] leading-relaxed text-resa-navy placeholder:text-resa-text/30 outline-none transition focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
-              />
+            <div className="mt-1 text-[10px] text-resa-text/40">
+              Tous les champs sont optionnels. Seuls ceux remplis apparaîtront sur la page dédiée.
             </div>
           </div>
         </section>
 
-        {/* Section 5 : Paramètres */}
+        {/* Section 7 : Site web & paramètres */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
           <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-emerald-500/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-emerald-500" />
-            <h2 className="text-sm font-bold text-resa-navy">Paramètres</h2>
+            <h2 className="text-sm font-bold text-resa-navy">Site web & paramètres</h2>
           </header>
 
           <div className="space-y-4 p-5">
+            <Field
+              label="Site web"
+              name="website_url"
+              type="url"
+              defaultValue={sponsor?.website_url}
+              placeholder="https://exemple.ci"
+            />
+
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-resa-text/60">
                 Ordre d'affichage
@@ -237,7 +367,7 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
                   Partenaire actif
                 </div>
                 <div className="text-[11px] text-resa-text/50">
-                  Un partenaire inactif n'apparaît pas sur la page publique Sponsors.
+                  Un partenaire inactif n'apparaît pas sur le site public.
                 </div>
               </div>
             </label>
@@ -251,21 +381,23 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/5 pt-4">
-          <Link
-            href="/admin/sponsors"
-            className="rounded-full border border-black/5 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-resa-text/60 transition hover:bg-resa-gray"
-          >
-            Annuler
-          </Link>
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-full bg-resa-red px-6 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:opacity-60"
-          >
-            {pending ? 'Enregistrement…' : isEdit ? 'Enregistrer' : 'Créer le partenaire'}
-          </button>
+        {/* Barre sticky actions */}
+        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-black/5 bg-white/95 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur md:left-60 md:px-8">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
+            <Link
+              href="/admin/sponsors"
+              className="rounded-full border border-black/5 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-resa-text/60 transition hover:bg-resa-gray"
+            >
+              Annuler
+            </Link>
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-full bg-resa-red px-6 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:opacity-60"
+            >
+              {pending ? 'Enregistrement…' : isEdit ? 'Enregistrer' : 'Créer le partenaire'}
+            </button>
+          </div>
         </div>
       </form>
     </div>

@@ -5,6 +5,8 @@ import type { ReactNode, ChangeEvent } from 'react';
 import Link from 'next/link';
 import { saveCoach } from './actions';
 import ImageUpload from '@/components/admin/ImageUpload';
+import RatesEditor, { type RateItem } from '@/components/admin/RatesEditor';
+import AvailabilityEditor, { type AvailabilityItem } from '@/components/admin/AvailabilityEditor';
 
 // Résolution sans conflit du hook d'action
 const useActionState =
@@ -39,6 +41,13 @@ export default function CoachForm({ coach }: { coach?: any }) {
   const [career, setCareer] = React.useState<CareerItem[]>(
     Array.isArray(coach?.career) ? coach.career : []
   );
+
+  const [rates, setRates] = React.useState<RateItem[]>(
+  Array.isArray(coach?.rates) ? coach.rates : []
+);
+const [availability, setAvailability] = React.useState<AvailabilityItem[]>(
+  Array.isArray(coach?.availability) ? coach.availability : []
+);
 
   const addCareer = () =>
     setCareer([...career, { period: '', role_fr: '', role_en: '', club: '' }]);
@@ -76,6 +85,9 @@ export default function CoachForm({ coach }: { coach?: any }) {
         {isEdit && <input type="hidden" name="id" value={coach.id} />}
         <input type="hidden" name="photo_url" value={photoUrl} />
         <input type="hidden" name="career" value={JSON.stringify(career)} />
+
+        <input type="hidden" name="rates" value={JSON.stringify(rates)} />
+<input type="hidden" name="availability" value={JSON.stringify(availability)} />
 
         {/* ─── Section 1 : Identité ─── */}
         <Section title="Identité" accent="navy">
@@ -301,6 +313,16 @@ export default function CoachForm({ coach }: { coach?: any }) {
               + Ajouter une ligne
             </button>
           </div>
+        </Section>
+
+        {/* ─── Section 5bis : Tarifs ─── */}
+        <Section title="Tarifs du coach" accent="amber">
+          <RatesEditor value={rates} onChange={setRates} />
+        </Section>
+
+        {/* ─── Section 5ter : Disponibilités ─── */}
+        <Section title="Disponibilités hebdomadaires" accent="royal">
+          <AvailabilityEditor value={availability} onChange={setAvailability} />
         </Section>
 
         {/* ─── Section 6 : Contact & réseaux ─── */}

@@ -1,4 +1,5 @@
 import { createClient } from './supabase/server';
+import { getCurrentRegion, buildRegionFilter } from './regions-server';
 
 // ─── Saison active ──────────────────────────────────────────
 export async function getActiveSeason() {
@@ -100,17 +101,7 @@ export async function getStandings(seasonId: string, categoryId: string) {
   return data ?? [];
 }
 
-// ─── Actualités ─────────────────────────────────────────────
-export async function getNews(limit = 10) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('news')
-    .select('*')
-    .eq('is_published', true)
-    .order('published_at', { ascending: false })
-    .limit(limit);
-  return data ?? [];
-}
+ 
 
 // ─── Sponsors ───────────────────────────────────────────────
 export async function getSponsors() {
@@ -507,25 +498,39 @@ export async function getSentNotifications(limit = 50) {
 
 // ─── Coachs ─────────────────────────────────────────────────
 export async function getCoaches() {
+  const region = await getCurrentRegion();
+  const filter = buildRegionFilter(region);
+
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from('coaches')
     .select('*')
     .eq('is_active', true)
     .order('is_featured', { ascending: false })
     .order('display_order');
+
+  if (filter) query = query.or(filter);
+
+  const { data } = await query;
   return data ?? [];
 }
 
 export async function getFeaturedCoaches(limit = 3) {
+  const region = await getCurrentRegion();
+  const filter = buildRegionFilter(region);
+
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from('coaches')
     .select('*')
     .eq('is_active', true)
     .order('is_featured', { ascending: false })
     .order('display_order')
     .limit(limit);
+
+  if (filter) query = query.or(filter);
+
+  const { data } = await query;
   return data ?? [];
 }
 
@@ -542,12 +547,19 @@ export async function getCoachBySlug(slug: string) {
 
 // ─── Programmes de training ─────────────────────────────────
 export async function getTrainingPrograms() {
+  const region = await getCurrentRegion();
+  const filter = buildRegionFilter(region);
+
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from('training_programs')
     .select('*')
     .eq('is_active', true)
     .order('display_order');
+
+  if (filter) query = query.or(filter);
+
+  const { data } = await query;
   return data ?? [];
 }
 
@@ -609,5 +621,139 @@ export async function getCoachMedia(coachId: string) {
     .eq('coach_id', coachId)
     .eq('is_active', true)
     .order('display_order');
+  return data ?? [];
+}
+
+
+// ─── Actualités ─────────────────────────────────────────────
+export async function getNews(
+  limit = 10,
+  opts?: { storyType?: 'all' | 'standard' | 'player' | 'coach' }
+) {
+  const supabase = await createClient();
+  let query = supabase
+    .from('news')
+    .select('*')
+    .eq('is_published', true)
+    .order('published_at', { ascending: false })
+    .limit(limit);
+
+  const type = opts?.storyType ?? 'all';
+  if (type === 'standard') {
+    query = query.is('story_type', null);
+  } else if (type === 'player' || type === 'coach') {
+    query = query.eq('story_type', type);
+  }
+
+  const { data } = await query;
+  return data ?? [];
+}
+
+
+// ─── Sponsor par slug ───────────────────────────────────────
+export async function getSponsorBySlug(slug: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('sponsors')
+    .select('*')
+    .eq('slug', slug)
+    .eq('is_active', true)
+    .single();
+  return data;
+}
+
+
+
+
+// ═══════════════════════════════════════════════════════════
+// CAMPS & TRYOUTS
+// ═══════════════════════════════════════════════════════════
+
+// ─── Liste des camps (filtrable) ────────────────────────────
+export async function getCamps(opts?: {
+  type?: 'camp' | 'tryout' | 'all';
+  onlyUpcoming?: boolean;
+}) {
+  const region = await getCurrentRegion();
+  const filter = buildRegionFilter(region);
+
+  const supabase = await createClient();
+  let query = supabase
+    .from('camps')
+    .select('*')
+    .eq('is_active', true)
+    .order('date_start', { ascending: true });
+
+  const type = opts?.type ?? 'all';
+  if (type === 'camp' || type === 'tryout') {
+    query = query.eq('type', type);
+  }
+
+  if (opts?.onlyUpcoming) {
+    const today = new Date().toISOString().slice(0, 10);
+    query = query.gte('date_end', today);
+  }
+
+  if (filter) query = query.or(filter);
+
+  const { data } = await query;
+  return data ?? [];
+}
+
+// ─── Camp par slug ──────────────────────────────────────────
+export async function getCampBySlug(slug: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('camps')
+    .select('*')
+    .eq('slug', slug)
+    .eq('is_active', true)
+    .single();
+  return data;
+}
+
+// ─── Camp par id (admin) ────────────────────────────────────
+export async function getCampById(id: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('camps')
+    .select('*')
+    .eq('id', id)
+    .single();
+  return data;
+}
+
+// ─── Tous les camps (admin, y compris inactifs) ─────────────
+export async function getAllCampsAdmin() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('camps')
+    .select('*')
+    .order('date_start', { ascending: false });
+  return data ?? [];
+}
+
+// ─── Inscriptions d'un camp ─────────────────────────────────
+export async function getCampRegistrations(campId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('camp_registrations')
+    .select('*')
+    .eq('camp_id', campId)
+    .order('created_at', { ascending: false });
+  return data ?? [];
+}
+
+// ─── Toutes les inscriptions (admin global) ─────────────────
+export async function getAllCampRegistrations(limit = 200) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('camp_registrations')
+    .select(`
+      *,
+      camp:camps(id, title_fr, title_en, slug, date_start, type)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(limit);
   return data ?? [];
 }

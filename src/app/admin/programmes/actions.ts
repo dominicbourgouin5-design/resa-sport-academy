@@ -58,6 +58,14 @@ export async function saveProgram(
     return { error: 'Le slug, le titre FR et le titre EN sont obligatoires.' };
   }
 
+  // Parse rates (JSON)
+  let rates: any[] = [];
+  try {
+    rates = JSON.parse(String(formData.get('rates') ?? '[]'));
+  } catch {
+    rates = [];
+  }
+
   const payload: any = {
     slug,
     title_fr,
@@ -75,6 +83,7 @@ export async function saveProgram(
     price_en: String(formData.get('price_en') ?? '').trim() || null,
     highlights_fr: csv(formData.get('highlights_fr')),
     highlights_en: csv(formData.get('highlights_en')),
+    rates,                          // ← NOUVEAU
     region: String(formData.get('region') ?? 'both'),
     display_order: formData.get('display_order') ? Number(formData.get('display_order')) : 100,
     is_active: formData.get('is_active') === 'on'

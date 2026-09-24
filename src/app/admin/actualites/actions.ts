@@ -12,6 +12,7 @@ async function requireRole(allowed: string[]) {
   return profile;
 }
 
+// ─── Enregistrer (créer / modifier) un article ──────────────
 export async function saveNews(
   _prev: { error?: string; ok?: boolean } | null,
   formData: FormData
@@ -29,6 +30,11 @@ export async function saveNews(
   const cover_image_url = String(formData.get('cover_image_url') ?? '').trim() || null;
   const is_published = formData.get('is_published') === 'on';
 
+  // Type de contenu : standard / player / coach
+  const storyRaw = String(formData.get('story_type') ?? '').trim();
+  const story_type =
+    storyRaw === 'player' || storyRaw === 'coach' ? storyRaw : null;
+
   if (!slug || !title_fr || !body_fr) {
     return { error: 'Titre (FR), slug et corps (FR) sont obligatoires.' };
   }
@@ -37,6 +43,7 @@ export async function saveNews(
   const payload: any = {
     slug, title_fr, title_en, excerpt_fr, excerpt_en, body_fr, body_en,
     cover_image_url,
+    story_type,
     is_published,
     published_at: is_published ? new Date().toISOString() : null
   };
@@ -55,6 +62,7 @@ export async function saveNews(
   return { ok: true };
 }
 
+// ─── Publier / dépublier ────────────────────────────────────
 export async function toggleNewsPublished(id: string, current: boolean) {
   await requireRole(['admin', 'league_manager', 'content_editor']);
   const supabase = await createClient();
@@ -70,6 +78,7 @@ export async function toggleNewsPublished(id: string, current: boolean) {
   revalidatePath('/[locale]/actualites', 'layout');
 }
 
+// ─── Supprimer ──────────────────────────────────────────────
 export async function deleteNews(id: string) {
   await requireRole(['admin', 'league_manager', 'content_editor']);
   const supabase = await createClient();

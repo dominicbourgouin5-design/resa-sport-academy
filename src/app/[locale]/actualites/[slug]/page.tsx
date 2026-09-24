@@ -58,6 +58,22 @@ function ArticleContent({ article, locale }: { article: any; locale: string }) {
             {t('backToList')}
           </Link>
 
+          {/* Badge Story */}
+            {article.story_type && (
+              <div className="mb-3 anim-fade-up">
+                {article.story_type === 'player' && (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-resa-royal px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg">
+                    ⚽ Player Story
+                  </span>
+                )}
+                {article.story_type === 'coach' && (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg">
+                    🎓 Coach Story
+                  </span>
+                )}
+              </div>
+            )}
+
           {/* Date */}
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/85 backdrop-blur anim-fade-up">
             <span className="h-1.5 w-1.5 rounded-full bg-resa-red" />

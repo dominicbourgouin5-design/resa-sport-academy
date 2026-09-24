@@ -9,21 +9,28 @@ import ActionsMenu from './ActionsMenu';
 
 import { cn } from '@/lib/utils';
 
+type NavLink = {
+  href: string;
+  labelKey: string;
+  descKey?: string;
+  children?: NavLink[];
+};
+
 type NavItem = {
   href: string;
   labelKey: string;
-  children?: { href: string; labelKey: string; descKey?: string }[];
+  children?: NavLink[];
 };
 
 export default function Header() {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [openSub, setOpenSub] = useState<string | null>(null);
+  const [openKeys, setOpenKeys] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setMobileOpen(false);
-    setOpenSub(null);
+    setOpenKeys({});
   }, [pathname]);
 
   useEffect(() => {
@@ -33,33 +40,45 @@ export default function Header() {
     };
   }, [mobileOpen]);
 
-  // ─── Structure simplifiée : 5 items top-level ───
+  const toggleKey = (key: string) =>
+    setOpenKeys((o) => ({ ...o, [key]: !o[key] }));
+
+  // ─── Menu principal ───
   const links: NavItem[] = [
-    { href: '/',        labelKey: 'home' },
-    { href: '/resa',    labelKey: 'about' },
+    { href: '/',     labelKey: 'home' },
+    { href: '/resa', labelKey: 'about' },
     {
       href: '/programs',
       labelKey: 'ecosystem',
       children: [
-        { href: '/programs',         labelKey: 'allPrograms', descKey: 'subAllPrograms' },
-        { href: '/academy',          labelKey: 'academy',     descKey: 'subAcademy' },
-        { href: '/ligue',            labelKey: 'league',      descKey: 'subLeague' },
-        { href: '/private-training', labelKey: 'training',    descKey: 'subTraining' },
-        { href: '/coaches',          labelKey: 'coaches',     descKey: 'subCoaches' }
+        { href: '/programs', labelKey: 'allPrograms', descKey: 'subAllPrograms' },
+        { href: '/academy',  labelKey: 'academy',     descKey: 'subAcademy' },
+        {
+          href: '/ligue',
+          labelKey: 'leagueGroup',
+          descKey: 'subLeagueGroup',
+            children: [
+              { href: '/ligue',       labelKey: 'leaguePresentation', descKey: 'subLeaguePresentation' },
+              { href: '/ecoles',      labelKey: 'schools',            descKey: 'subSchools' },
+              { href: '/competition', labelKey: 'competition',        descKey: 'subCompetition' }
+            ]
+        },
+        { href: '/private-training', labelKey: 'training', descKey: 'subTraining' },
+        { href: '/coaches',          labelKey: 'coaches',  descKey: 'subCoaches' }
       ]
     },
     { href: '/roger-sampah', labelKey: 'coachRoger' },
-    { href: '/actualites', labelKey: 'news' },
-    { href: '/sponsors',   labelKey: 'partners' }
+    { href: '/actualites',   labelKey: 'news' },
+    { href: '/sponsors',     labelKey: 'partners' }
   ];
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href);
 
-const isGroupActive = (item: NavItem) =>
-  item.href === '/programs'
-    ? ['/programs', '/academy', '/ligue', '/private-training', '/coaches'].some((p) => pathname.startsWith(p))
-    : isActive(item.href);
+  const isGroupActive = (item: NavItem) =>
+    item.href === '/programs'
+      ? ['/programs', '/academy', '/ligue', '/competition', '/ecoles', '/private-training', '/coaches'].some((p) => pathname.startsWith(p))
+      : isActive(item.href);
 
   return (
     <>
@@ -83,19 +102,24 @@ const isGroupActive = (item: NavItem) =>
             </div>
           </Link>
 
-          {/* Nav desktop — 5 items */}
+          {/* Nav desktop */}
           <nav className="hidden items-center gap-1 lg:flex">
             {links.map((l) => (
-              <NavItemDesktop key={l.href} item={l} active={isGroupActive(l)} t={t} />
+              <NavItemDesktop
+                key={l.href}
+                item={l}
+                active={isGroupActive(l)}
+                t={t}
+                pathname={pathname}
+              />
             ))}
           </nav>
 
           {/* Actions */}
-        <div className="flex items-center gap-1.5 md:gap-2">
-          <LocaleRegionSelector />
-          <ActionsMenu />
+          <div className="flex items-center gap-1.5 md:gap-2">
+            <LocaleRegionSelector />
+            <ActionsMenu />
 
-            {/* CTA REGISTER — icône + texte */}
             <Link
               href="/inscriptions"
               className="hidden items-center gap-2 rounded-full bg-resa-red px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-white shadow-resa transition-all duration-300 hover:bg-red-700 hover:scale-[1.04] hover:shadow-resa-lg md:inline-flex xl:px-4"
@@ -106,7 +130,6 @@ const isGroupActive = (item: NavItem) =>
               <span>{t('register')}</span>
             </Link>
 
-            {/* Burger */}
             <button
               onClick={() => setMobileOpen(true)}
               aria-label={t('menu')}
@@ -120,7 +143,7 @@ const isGroupActive = (item: NavItem) =>
         </div>
       </header>
 
-      {/* ─── Menu mobile ─── */}
+      {/* ═══════════════ MENU MOBILE ═══════════════ */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
@@ -129,7 +152,6 @@ const isGroupActive = (item: NavItem) =>
           />
 
           <aside className="absolute right-0 top-0 flex h-full w-[88vw] max-w-sm flex-col bg-resa-navy text-white shadow-2xl anim-fade-left">
-            {/* Header drawer */}
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <span className="font-display text-xl font-black">
                 RESA<span className="text-resa-red">.</span>
@@ -145,12 +167,11 @@ const isGroupActive = (item: NavItem) =>
               </button>
             </div>
 
-            {/* Nav mobile */}
             <nav className="flex-1 overflow-y-auto px-5 py-6">
               <ul className="space-y-1">
                 {links.map((l) => {
                   const hasChildren = !!l.children?.length;
-                  const isSubOpen = openSub === l.href;
+                  const isOpen = !!openKeys[l.href];
                   const active = isGroupActive(l);
 
                   return (
@@ -158,7 +179,7 @@ const isGroupActive = (item: NavItem) =>
                       {hasChildren ? (
                         <>
                           <button
-                            onClick={() => setOpenSub(isSubOpen ? null : l.href)}
+                            onClick={() => toggleKey(l.href)}
                             className={cn(
                               'flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-sm font-semibold transition',
                               active
@@ -172,24 +193,64 @@ const isGroupActive = (item: NavItem) =>
                               fill="none"
                               stroke="currentColor"
                               strokeWidth="2"
-                              className={cn('h-4 w-4 transition-transform duration-300', isSubOpen && 'rotate-180')}
+                              className={cn('h-4 w-4 transition-transform duration-300', isOpen && 'rotate-180')}
                             >
                               <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                           </button>
 
-                          {isSubOpen && (
+                          {isOpen && (
                             <ul className="mt-1 ml-3 space-y-0.5 border-l border-white/10 pl-3">
-                              {l.children!.map((c) => (
-                                <li key={c.labelKey}>
-                                  <Link
-                                    href={c.href as any}
-                                    className="block rounded-lg px-3 py-2 text-sm text-white/60 transition hover:bg-white/5 hover:text-white"
-                                  >
-                                    {t(c.labelKey as any)}
-                                  </Link>
-                                </li>
-                              ))}
+                              {l.children!.map((c) => {
+                                const cHasChildren = !!c.children?.length;
+                                const cIsOpen = !!openKeys[c.href];
+
+                                return (
+                                  <li key={c.labelKey}>
+                                    {cHasChildren ? (
+                                      <>
+                                        <button
+                                          onClick={() => toggleKey(c.href)}
+                                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-white/70 transition hover:bg-white/5 hover:text-white"
+                                        >
+                                          <span>{t(c.labelKey as any)}</span>
+                                          <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            className={cn('h-3.5 w-3.5 transition-transform duration-300', cIsOpen && 'rotate-180')}
+                                          >
+                                            <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                                          </svg>
+                                        </button>
+
+                                        {cIsOpen && (
+                                          <ul className="mt-0.5 ml-3 space-y-0.5 border-l border-white/10 pl-3">
+                                            {c.children!.map((sc) => (
+                                              <li key={sc.href}>
+                                                <Link
+                                                  href={sc.href as any}
+                                                  className="block rounded-lg px-3 py-2 text-sm text-white/55 transition hover:bg-white/5 hover:text-white"
+                                                >
+                                                  {t(sc.labelKey as any)}
+                                                </Link>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <Link
+                                        href={c.href as any}
+                                        className="block rounded-lg px-3 py-2 text-sm text-white/70 transition hover:bg-white/5 hover:text-white"
+                                      >
+                                        {t(c.labelKey as any)}
+                                      </Link>
+                                    )}
+                                  </li>
+                                );
+                              })}
                             </ul>
                           )}
                         </>
@@ -212,7 +273,6 @@ const isGroupActive = (item: NavItem) =>
               </ul>
             </nav>
 
-            {/* Actions drawer */}
             <div className="space-y-2 border-t border-white/10 p-5">
               <Link
                 href="/inscriptions"
@@ -251,18 +311,34 @@ const isGroupActive = (item: NavItem) =>
   );
 }
 
-// ─── NavItem desktop avec dropdown ──────────────────────────
-// ─── NavItem desktop avec dropdown premium ──────────────────
+// ═══════════════════════════════════════════════════════════
+// NavItem desktop avec dropdown + accordéon vertical
+// ═══════════════════════════════════════════════════════════
 function NavItemDesktop({
-  item, active, t
+  item,
+  active,
+  t,
+  pathname
 }: {
-  item: NavItem; active: boolean; t: any;
+  item: NavItem;
+  active: boolean;
+  t: any;
+  pathname: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [openSubKey, setOpenSubKey] = useState<string | null>(null);
   const hasChildren = !!item.children?.length;
 
-  // Icônes SVG par route (mapping)
+  // ─── Icônes SVG par route ───
   const ICONS: Record<string, React.ReactNode> = {
+    '/programs': (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
     '/academy': (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M22 10v6M2 10l10-6 10 6-10 6z" />
@@ -275,18 +351,21 @@ function NavItemDesktop({
         <path d="M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z" />
       </svg>
     ),
-    '/private-training': (
+    '/competition': (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
         <path d="M12 6v6l4 2" />
       </svg>
     ),
-    '/programs': (
+    '/ecoles': (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
+        <path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01" />
+      </svg>
+    ),
+    '/private-training': (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 6v6l4 2" />
       </svg>
     ),
     '/coaches': (
@@ -302,83 +381,170 @@ function NavItemDesktop({
     <div
       className="relative"
       onMouseEnter={() => hasChildren && setOpen(true)}
-      onMouseLeave={() => hasChildren && setOpen(false)}
+      onMouseLeave={() => {
+        if (!hasChildren) return;
+        setOpen(false);
+        setOpenSubKey(null);
+      }}
     >
- {hasChildren ? (
-  <button
-    type="button"
-    onClick={() => setOpen((o) => !o)}
-    className={cn(
-      'group relative inline-flex items-center gap-1 rounded-full px-3 py-2 text-[13px] font-semibold transition-colors duration-300',
-      active ? 'text-white' : 'text-white/75 hover:text-white'
-    )}
-  >
-    <span className="relative inline-block">
-      {t(item.labelKey as any)}
-      <span
-        className={cn(
-          'absolute -bottom-1 left-0 h-px bg-resa-red transition-all duration-300',
-          active ? 'w-full' : 'w-0 group-hover:w-full'
-        )}
-      />
-    </span>
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      className={cn('h-2.5 w-2.5 transition-transform duration-300', open && 'rotate-180')}
-    >
-      <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  </button>
-) : (
-  <Link
-    href={item.href as any}
-    className={cn(
-      'group relative inline-flex items-center gap-1 rounded-full px-3 py-2 text-[13px] font-semibold transition-colors duration-300',
-      active ? 'text-white' : 'text-white/75 hover:text-white'
-    )}
-  >
-    <span className="relative inline-block">
-      {t(item.labelKey as any)}
-      <span
-        className={cn(
-          'absolute -bottom-1 left-0 h-px bg-resa-red transition-all duration-300',
-          active ? 'w-full' : 'w-0 group-hover:w-full'
-        )}
-      />
-    </span>
-  </Link>
-)}
+      {hasChildren ? (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className={cn(
+            'group relative inline-flex items-center gap-1 rounded-full px-3 py-2 text-[13px] font-semibold transition-colors duration-300',
+            active ? 'text-white' : 'text-white/75 hover:text-white'
+          )}
+        >
+          <span className="relative inline-block">
+            {t(item.labelKey as any)}
+            <span
+              className={cn(
+                'absolute -bottom-1 left-0 h-px bg-resa-red transition-all duration-300',
+                active ? 'w-full' : 'w-0 group-hover:w-full'
+              )}
+            />
+          </span>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            className={cn('h-2.5 w-2.5 transition-transform duration-300', open && 'rotate-180')}
+          >
+            <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      ) : (
+        <Link
+          href={item.href as any}
+          className={cn(
+            'group relative inline-flex items-center gap-1 rounded-full px-3 py-2 text-[13px] font-semibold transition-colors duration-300',
+            active ? 'text-white' : 'text-white/75 hover:text-white'
+          )}
+        >
+          <span className="relative inline-block">
+            {t(item.labelKey as any)}
+            <span
+              className={cn(
+                'absolute -bottom-1 left-0 h-px bg-resa-red transition-all duration-300',
+                active ? 'w-full' : 'w-0 group-hover:w-full'
+              )}
+            />
+          </span>
+        </Link>
+      )}
 
       {hasChildren && open && (
         <div className="absolute left-1/2 top-full w-80 -translate-x-1/2 pt-3">
           <div className="dropdown-panel dropdown-enter">
             <div className="relative py-2">
               {item.children!.map((c, i) => {
-                const isCurrent = typeof window !== 'undefined' && window.location.pathname.includes(c.href);
+                const isCurrent = pathname.startsWith(c.href);
+                const cHasChildren = !!c.children?.length;
+                const isSubOpen = openSubKey === c.labelKey;
+
                 return (
                   <div key={c.labelKey}>
                     {i > 0 && <div className="dropdown-divider" />}
-                    <Link
-                      href={c.href as any}
-                      className={cn('dropdown-item', isCurrent && 'is-active')}
-                    >
-                      <span className="dropdown-item-icon">
-                        {ICONS[c.href] ?? ICONS['/academy']}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[13px] font-semibold tracking-tight">
-                          {t(c.labelKey as any)}
-                        </div>
-                        {c.descKey && (
-                          <div className="mt-0.5 text-[11px] text-white/45">
-                            {t(c.descKey as any)}
+
+                    {cHasChildren ? (
+                      /* ─── Groupe avec accordéon vertical ─── */
+                      <div
+                        onMouseEnter={() => setOpenSubKey(c.labelKey)}
+                        onMouseLeave={() => setOpenSubKey(null)}
+                      >
+                        <button
+                          type="button"
+                          className={cn(
+                            'dropdown-item w-full',
+                            (isCurrent || isSubOpen) && 'is-active'
+                          )}
+                        >
+                          <span className="dropdown-item-icon">
+                            {ICONS[c.href] ?? ICONS['/academy']}
+                          </span>
+                          <div className="min-w-0 flex-1 text-left">
+                            <div className="text-[13px] font-semibold tracking-tight">
+                              {t(c.labelKey as any)}
+                            </div>
+                            {c.descKey && (
+                              <div className="mt-0.5 text-[11px] text-white/45">
+                                {t(c.descKey as any)}
+                              </div>
+                            )}
                           </div>
-                        )}
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            className={cn(
+                              'h-3 w-3 shrink-0 text-white/40 transition-transform duration-300',
+                              isSubOpen && 'rotate-180'
+                            )}
+                          >
+                            <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+
+                        {/* Accordéon vertical (sous-menu en dessous) */}
+                        <div
+                          className={cn(
+                            'grid overflow-hidden transition-all duration-300 ease-out',
+                            isSubOpen
+                              ? 'grid-rows-[1fr] opacity-100'
+                              : 'grid-rows-[0fr] opacity-0'
+                          )}
+                        >
+                          <div className="min-h-0">
+                            <ul className="mx-3 my-1 space-y-0.5 border-l-2 border-resa-red/40 pl-3">
+                              {c.children!.map((sc) => {
+                                const scIsCurrent = pathname.startsWith(sc.href);
+                                return (
+                                  <li key={sc.labelKey}>
+                                    <Link
+                                      href={sc.href as any}
+                                      className={cn(
+                                        'group/sub flex items-center gap-2 rounded-md px-3 py-2 text-[12px] transition',
+                                        scIsCurrent
+                                          ? 'bg-white/10 text-white'
+                                          : 'text-white/65 hover:bg-white/5 hover:text-white'
+                                      )}
+                                    >
+                                      <span className="h-1 w-1 rounded-full bg-resa-red opacity-60 group-hover/sub:opacity-100" />
+                                      <span className="flex-1 font-medium">
+                                        {t(sc.labelKey as any)}
+                                      </span>
+                                    </Link>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        </div>
                       </div>
-                    </Link>
+                    ) : (
+                      /* ─── Item simple ─── */
+                      <Link
+                        href={c.href as any}
+                        className={cn('dropdown-item', isCurrent && 'is-active')}
+                      >
+                        <span className="dropdown-item-icon">
+                          {ICONS[c.href] ?? ICONS['/academy']}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[13px] font-semibold tracking-tight">
+                            {t(c.labelKey as any)}
+                          </div>
+                          {c.descKey && (
+                            <div className="mt-0.5 text-[11px] text-white/45">
+                              {t(c.descKey as any)}
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    )}
                   </div>
                 );
               })}

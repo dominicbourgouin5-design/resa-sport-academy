@@ -14,6 +14,14 @@
     "bookCoach": "Book a Coach",
     "ecosystem": "Ecosystem",
     "allPrograms": "All programs",
+    "leagueGroup": "School League",
+    "subLeagueGroup": "Competition & schools",
+    "competition": "Competition",
+    "subCompetition": "Standings, schedule, results",
+    "schools": "Schools",
+    "subSchools": "Participating institutions",
+    "leaguePresentation": "Overview",
+    "subLeaguePresentation": "Format, categories and rules",  
     "subAllPrograms": "Overview",
     "contactTooltip": "Contact us",
     "coachRoger": "Coach Roger",
@@ -107,6 +115,13 @@
     "ctaText": "Whether you're a school, a player, a parent or a partner — there's a place for you in the RESA project.",
     "ctaPartner": "Become a partner"
   },
+
+  "campsHub": {
+  "badge": "Camps & Tryouts · USA & Africa",
+  "title": "Camps & Tryouts",
+  "subtitle": "Holiday camps and scouting sessions organized by RESA Sport Academy in the USA and Africa."
+},
+
   "academy": {
     "badge": "Training · Scouting · Performance",
     "title": "RESA Academy",

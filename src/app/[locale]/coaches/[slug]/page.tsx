@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import Reveal from '@/components/ui/Reveal';
 import { getCoachBySlug } from '@/lib/queries';
+import PublicRates from '@/components/ui/PublicRates';
+import PublicAvailability from '@/components/ui/PublicAvailability';
 
 export default async function CoachProfilePage({
   params
@@ -185,6 +187,27 @@ function CoachProfile({ coach }: { coach: any }) {
                 </article>
               </Reveal>
             )}
+
+
+            {/* ═══ TARIFS ═══ */}
+                {Array.isArray(coach.rates) && coach.rates.length > 0 && (
+                  <section className="bg-resa-gray py-14 md:py-16">
+                    <div className="mx-auto max-w-4xl px-4 md:px-6">
+                      <Reveal variant="up">
+                        <PublicRates rates={coach.rates} />
+                      </Reveal>
+                    </div>
+                  </section>
+                )}
+
+                {/* ═══ DISPONIBILITÉS ═══ */}
+                {Array.isArray(coach.availability) && coach.availability.length > 0 && (
+                  <section className="mx-auto max-w-4xl px-4 py-14 md:px-6 md:py-16">
+                    <Reveal variant="up">
+                      <PublicAvailability availability={coach.availability} />
+                    </Reveal>
+                  </section>
+                )}
           </div>
 
           {/* Sidebar */}

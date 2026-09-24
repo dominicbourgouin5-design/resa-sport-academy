@@ -42,7 +42,7 @@ function SponsorsContent({ sponsors, locale }: { sponsors: any[]; locale: string
   return (
     <>
       {/* ─── HERO ─── */}
-       <SponsorsHero count={sponsors.length} />
+      <SponsorsHero count={sponsors.length} />
 
       {/* ─── SPONSORS GROUPÉS PAR NIVEAU ─── */}
       {tiersOrder.map((tier) => {
@@ -63,7 +63,7 @@ function SponsorsContent({ sponsors, locale }: { sponsors: any[]; locale: string
           >
             <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
               <div className="mb-10 flex items-center gap-4">
-                <div className={`h-1 w-12 bg-gradient-to-r ${tierColors[tier]}`} />
+                <div className={`h-1 w-12 bg-linear-to-r ${tierColors[tier]}`} />
                 <div>
                   <h2 className={`font-display font-black text-resa-navy ${
                     isPremium ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'
@@ -71,7 +71,10 @@ function SponsorsContent({ sponsors, locale }: { sponsors: any[]; locale: string
                     {tierLabel}
                   </h2>
                   <div className="text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
-                    {list.length} {isFr ? (list.length > 1 ? 'partenaires' : 'partenaire') : (list.length > 1 ? 'partners' : 'partner')}
+                    {list.length}{' '}
+                    {isFr
+                      ? list.length > 1 ? 'partenaires' : 'partenaire'
+                      : list.length > 1 ? 'partners' : 'partner'}
                   </div>
                 </div>
               </div>
@@ -79,7 +82,12 @@ function SponsorsContent({ sponsors, locale }: { sponsors: any[]; locale: string
               <div className="-mx-3 flex flex-wrap">
                 {list.map((s) => (
                   <div key={s.id} className={`w-full px-3 pb-6 ${colsClass}`}>
-                    <SponsorCard sponsor={s} tierColor={tierColors[tier]} isPremium={isPremium} isFr={isFr} />
+                    <SponsorCard
+                      sponsor={s}
+                      tierColor={tierColors[tier]}
+                      isPremium={isPremium}
+                      isFr={isFr}
+                    />
                   </div>
                 ))}
               </div>
@@ -114,6 +122,9 @@ function SponsorsContent({ sponsors, locale }: { sponsors: any[]; locale: string
   );
 }
 
+// ═══════════════════════════════════════════════════════════
+// Card sponsor (avec lien vers page dédiée)
+// ═══════════════════════════════════════════════════════════
 function SponsorCard({
   sponsor,
   tierColor,
@@ -129,49 +140,50 @@ function SponsorCard({
   const nameSize = isPremium ? 'text-xl md:text-2xl' : 'text-lg';
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-300 hover:-translate-y-1 hover:shadow-resa-lg">
-      <div className={`h-1 w-full bg-gradient-to-r ${tierColor}`} />
+    <Link
+      href={`/sponsors/${sponsor.slug}` as any}
+      className="group block h-full"
+    >
+      <article className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-300 hover:-translate-y-1 hover:shadow-resa-lg">
+        <div className={`h-1 w-full bg-linear-to-r ${tierColor}`} />
 
-      <div className="flex flex-1 flex-col p-6">
-        {/* Logo : image réelle ou fallback initiale */}
-        {sponsor.logo_url ? (
-          <div
-            className={`mb-5 flex shrink-0 items-center justify-center rounded-xl border border-black/5 bg-white shadow-resa transition-transform duration-300 group-hover:scale-105 ${logoSize}`}
-          >
-            <img
-              src={sponsor.logo_url}
-              alt={sponsor.name}
-              className="h-full w-full rounded-xl object-contain p-2"
-            />
+        <div className="flex flex-1 flex-col p-6">
+          {/* Logo (image ou fallback initiale) */}
+          {sponsor.logo_url ? (
+            <div
+              className={`mb-5 flex shrink-0 items-center justify-center rounded-xl border border-black/5 bg-white shadow-resa transition-transform duration-300 group-hover:scale-105 ${logoSize}`}
+            >
+              <img
+                src={sponsor.logo_url}
+                alt={sponsor.name}
+                className="h-full w-full rounded-xl object-contain p-2"
+              />
+            </div>
+          ) : (
+            <div
+              className={`mb-5 grid shrink-0 place-items-center rounded-xl bg-linear-to-br from-resa-navy to-resa-royal font-display font-black text-white shadow-resa transition-transform duration-300 group-hover:scale-105 ${logoSize} ${isPremium ? 'text-3xl' : 'text-2xl'}`}
+            >
+              {sponsor.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+
+          <h3 className={`font-display font-black leading-tight text-resa-navy transition-colors duration-300 group-hover:text-resa-red ${nameSize}`}>
+            {sponsor.name}
+          </h3>
+
+          <p className="mt-3 flex-1 text-sm text-resa-text/65">
+            {isFr
+              ? sponsor.description_fr
+              : sponsor.description_en || sponsor.description_fr}
+          </p>
+
+          {/* Indicateur "voir plus" */}
+          <div className="mt-5 inline-flex items-center gap-1 text-xs font-bold text-resa-royal transition-colors group-hover:text-resa-red">
+            {isFr ? 'Voir le partenaire' : 'View partner'}
+            <span className="transition-transform duration-300 group-hover:translate-x-0.5">→</span>
           </div>
-        ) : (
-          <div
-            className={`mb-5 grid shrink-0 place-items-center rounded-xl bg-gradient-to-br from-resa-navy to-resa-royal font-display font-black text-white shadow-resa transition-transform duration-300 group-hover:scale-105 ${logoSize} ${isPremium ? 'text-3xl' : 'text-2xl'}`}
-          >
-            {sponsor.name.charAt(0).toUpperCase()}
-          </div>
-        )}
-
-        <h3 className={`font-display font-black leading-tight text-resa-navy transition-colors duration-300 group-hover:text-resa-red ${nameSize}`}>
-          {sponsor.name}
-        </h3>
-
-        <p className="mt-3 flex-1 text-sm text-resa-text/65">
-          {isFr ? sponsor.description_fr : (sponsor.description_en || sponsor.description_fr)}
-        </p>
-
-        {sponsor.website_url && (
-          <a
-            href={sponsor.website_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 inline-flex items-center gap-1 text-xs font-bold text-resa-royal transition-colors hover:text-resa-red"
-          >
-            {sponsor.website_url.replace(/^https?:\/\//, '')}
-            <span>↗</span>
-          </a>
-        )}
-      </div>
-    </article>
+        </div>
+      </article>
+    </Link>
   );
 }

@@ -10,6 +10,14 @@
     "news": "Actualités",
     "partners": "Partenaires",
     "contact": "Contact",
+    "leagueGroup": "Ligue Scolaire",
+    "subLeagueGroup": "Compétition & établissements",
+    "competition": "Compétition",
+    "subCompetition": "Classements, calendrier, résultats",
+    "schools": "Écoles",
+    "subSchools": "Établissements participants",
+    "leaguePresentation": "Présentation",
+    "subLeaguePresentation": "Format, catégories et règlement",
     "register": "S'inscrire",
     "bookCoach": "Réserver un coach",
     "contactTooltip": "Nous contacter",
@@ -37,6 +45,13 @@
     "whatsapp": "WhatsApp",
     "whatsappDesc": "Discussion directe"
   },
+
+  "campsHub": {
+  "badge": "Stages & Détections · USA & Afrique",
+  "title": "Camps & Tryouts",
+  "subtitle": "Stages de vacances et sessions de détection organisés par RESA Sport Academy aux États-Unis et en Afrique."
+  },
+
   "home": {
     "heroBadge": "Saison 2027 · Janvier — Juin",
     "heroTitle1": "Former.",

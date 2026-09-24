@@ -26,18 +26,18 @@ function CoachesContent({ coaches }: { coaches: any[] }) {
       <CoachesHero />
 
       {/* ─── GRILLE COACHS ─── */}
-      <section className="mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-20">
-        <Reveal variant="right">
-          <div className="mb-12 max-w-3xl">
-            <div className="mb-3 h-1 w-14 bg-resa-red" />
-            <h2 className="font-display text-3xl font-black text-resa-navy md:text-4xl">
-              {t('teamTitle')}
-            </h2>
-            <p className="mt-3 text-base text-resa-text/70">
-              {t('teamSubtitle')}
-            </p>
-          </div>
-        </Reveal>
+         <section className="mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-20">
+          <Reveal variant="right">
+            <div className="mb-12 max-w-3xl">
+              <div className="mb-3 h-1 w-14 bg-resa-red" />
+              <h2 className="font-display text-3xl font-black text-resa-navy md:text-4xl">
+                {t('teamTitle')}
+              </h2>
+              <p className="mt-3 text-base text-resa-text/70">
+                {t('teamSubtitle')}
+              </p>
+            </div>
+          </Reveal>
 
         {coaches.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-black/10 p-12 text-center text-resa-text/50">

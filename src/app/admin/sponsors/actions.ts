@@ -42,11 +42,29 @@ export async function saveSponsor(
 
   const supabase = await createClient();
 
-  const payload: any = {
-    slug, name, tier, website_url,
-    description_fr, description_en,
-    logo_url, sort_order, is_active
-  };
+const payload: any = {
+  name,
+  slug,
+  tier,
+  logo_url: String(formData.get('logo_url') ?? '').trim() || null,
+  website_url: String(formData.get('website_url') ?? '').trim() || null,
+  description_fr: String(formData.get('description_fr') ?? '').trim() || null,
+  description_en: String(formData.get('description_en') ?? '').trim() || null,
+
+  // ─── Nouveaux champs ───
+  long_description_fr: String(formData.get('long_description_fr') ?? '').trim() || null,
+  long_description_en: String(formData.get('long_description_en') ?? '').trim() || null,
+  sector_fr: String(formData.get('sector_fr') ?? '').trim() || null,
+  sector_en: String(formData.get('sector_en') ?? '').trim() || null,
+  since_year: formData.get('since_year') ? Number(formData.get('since_year')) : null,
+  social_linkedin: String(formData.get('social_linkedin') ?? '').trim() || null,
+  social_instagram: String(formData.get('social_instagram') ?? '').trim() || null,
+  social_facebook: String(formData.get('social_facebook') ?? '').trim() || null,
+  social_twitter: String(formData.get('social_twitter') ?? '').trim() || null,
+
+  sort_order: formData.get('sort_order') ? Number(formData.get('sort_order')) : 99,
+  is_active: formData.get('is_active') === 'on'
+};
 
   if (id) {
     const { error } = await supabase.from('sponsors').update(payload).eq('id', id);

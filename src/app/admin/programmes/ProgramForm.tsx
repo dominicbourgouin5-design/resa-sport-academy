@@ -1,8 +1,9 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { saveProgram } from './actions';
+import RatesEditor, { type RateItem } from '@/components/admin/RatesEditor';
 
 const ACCENTS = [
   { value: 'from-resa-navy to-resa-royal',      label: 'Navy → Royal (bleu)' },
@@ -17,6 +18,10 @@ const ACCENTS = [
 export default function ProgramForm({ program }: { program?: any }) {
   const [state, formAction, pending] = useActionState(saveProgram, null);
   const isEdit = !!program;
+
+  const [rates, setRates] = useState<RateItem[]>(
+    Array.isArray(program?.rates) ? program.rates : []
+  );
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -42,8 +47,9 @@ export default function ProgramForm({ program }: { program?: any }) {
         </p>
       </div>
 
-      <form action={formAction} className="space-y-6">
+      <form action={formAction} className="space-y-6 pb-32">
         {isEdit && <input type="hidden" name="id" value={program.id} />}
+        <input type="hidden" name="rates" value={JSON.stringify(rates)} />
 
         {/* Identité */}
         <Section title="Identité" accent="navy">
@@ -115,15 +121,15 @@ export default function ProgramForm({ program }: { program?: any }) {
             as="textarea"
             rows={6}
             hint="Utilisée sur la page détail. Sépare les paragraphes par une ligne vide."
-            />
-            <Field
+          />
+          <Field
             label="Long description (EN)"
             name="long_description_en"
             defaultValue={program?.long_description_en}
             as="textarea"
             rows={6}
             hint="Used on the detail page. Separate paragraphs with an empty line."
-            />
+          />
           <Field
             label="Short description (EN)"
             name="description_en"
@@ -174,18 +180,28 @@ export default function ProgramForm({ program }: { program?: any }) {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
-              label="Prix (FR)"
+              label="Prix (FR) — héritage"
               name="price_fr"
               defaultValue={program?.price_fr}
               placeholder="À partir de 25 000 FCFA"
             />
             <Field
-              label="Price (EN)"
+              label="Price (EN) — héritage"
               name="price_en"
               defaultValue={program?.price_en}
               placeholder="From $40"
             />
           </div>
+          <p className="text-[10px] italic text-resa-text/40">
+            ⚠️ Ces champs « héritage » ne sont utilisés qu'en l'absence de tarifs ci-dessous. Utilisez plutôt la section « Tarifs du programme » pour un affichage détaillé.
+          </p>
+        </Section>
+
+        {/* ═══════════════════════════════════════════════════ */}
+        {/* Tarifs                                              */}
+        {/* ═══════════════════════════════════════════════════ */}
+        <Section title="Tarifs du programme" accent="amber">
+          <RatesEditor value={rates} onChange={setRates} />
         </Section>
 
         {/* Publication */}
@@ -238,24 +254,27 @@ export default function ProgramForm({ program }: { program?: any }) {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/5 pt-4">
-          <Link
-            href="/admin/programmes"
-            className="rounded-full border border-black/5 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-resa-text/60 transition hover:bg-resa-gray"
-          >
-            Annuler
-          </Link>
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-full bg-resa-red px-6 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:opacity-60"
-          >
-            {pending
-              ? 'Enregistrement…'
-              : isEdit
-              ? 'Enregistrer'
-              : 'Créer le programme'}
-          </button>
+        {/* Barre sticky */}
+        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-black/5 bg-white/95 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur md:left-60 md:px-8">
+          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+            <Link
+              href="/admin/programmes"
+              className="rounded-full border border-black/5 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-resa-text/60 transition hover:bg-resa-gray"
+            >
+              Annuler
+            </Link>
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-full bg-resa-red px-6 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:opacity-60"
+            >
+              {pending
+                ? 'Enregistrement…'
+                : isEdit
+                ? 'Enregistrer'
+                : 'Créer le programme'}
+            </button>
+          </div>
         </div>
       </form>
     </div>
