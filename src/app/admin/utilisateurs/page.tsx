@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentProfile } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import Collapsible from '@/components/admin/Collapsible';
 import UsersTable from './UsersTable';
 
@@ -32,7 +33,6 @@ export default async function AdminUsersPage() {
 
   const list = (users ?? []) as any[];
 
-  // Grouper par rôle
   const byRole: Record<string, any[]> = {};
   for (const u of list) {
     const role = u.role ?? 'content_editor';
@@ -46,32 +46,25 @@ export default async function AdminUsersPage() {
     <div className="mx-auto max-w-6xl">
 
       {/* Header */}
-      <div className="mb-8">
-        <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
-          Administration
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
+            Administration
+          </div>
+          <h1 className="font-display text-3xl font-black text-resa-navy">
+            Utilisateurs & rôles
+          </h1>
+          <p className="mt-1 text-sm text-resa-text/50">
+            {total} compte(s) · {activeCount} actif(s)
+          </p>
         </div>
-        <h1 className="font-display text-3xl font-black text-resa-navy">
-          Utilisateurs & rôles
-        </h1>
-        <p className="mt-1 text-sm text-resa-text/50">
-          {total} compte(s) · {activeCount} actif(s)
-        </p>
-      </div>
 
-      {/* Info */}
-      <div className="mb-6 flex items-start gap-3 rounded-xl border border-resa-royal/20 bg-resa-royal/5 px-4 py-3">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-resa-royal text-sm text-white">
-          ℹ️
-        </span>
-        <div className="flex-1 text-[12px] text-resa-royal">
-          <div className="font-bold">
-            Créer un nouveau compte
-          </div>
-          <div className="mt-0.5 text-resa-royal/80">
-            Les comptes se créent depuis le tableau de bord Supabase → <strong>Authentication → Users</strong>.
-            Un profil est automatiquement généré à la création (rôle « Éditeur contenu » par défaut).
-          </div>
-        </div>
+        <Link
+          href="/admin/utilisateurs/nouveau"
+          className="inline-flex items-center gap-2 rounded-full bg-resa-red px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700"
+        >
+          + Nouveau compte
+        </Link>
       </div>
 
       {/* Collapsibles par rôle */}
@@ -96,6 +89,15 @@ export default async function AdminUsersPage() {
               </Collapsible>
             );
           })}
+
+        {total === 0 && (
+          <div className="rounded-xl border border-black/5 bg-white p-12 text-center shadow-sm">
+            <div className="mb-3 text-4xl">👤</div>
+            <p className="text-sm text-resa-text/60">
+              Aucun utilisateur enregistré.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

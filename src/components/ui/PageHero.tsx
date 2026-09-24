@@ -16,13 +16,11 @@ export default function PageHero({
   breadcrumb,
   overlay = 'medium'
 }: {
-  /** Liste des chemins d'images. 1 seule = image fixe. 2+ = slideshow. */
   slides: Slide[];
   title: string;
   subtitle?: string;
   badge?: string;
   breadcrumb?: { href: string; label: string }[];
-  /** 'light' | 'medium' | 'dark' — intensité de l'overlay */
   overlay?: 'light' | 'medium' | 'dark';
 }) {
   const [current, setCurrent] = useState(0);
@@ -37,10 +35,19 @@ export default function PageHero({
     return () => clearInterval(interval);
   }, [isSlideshow, slides.length]);
 
-  const overlayOpacity =
-    overlay === 'light' ? 'bg-resa-navy/55' :
-    overlay === 'dark'  ? 'bg-resa-navy/85' :
-                          'bg-resa-navy/70';
+  // Intensité de la couche de base
+  const baseOpacity =
+    overlay === 'light' ? 'bg-resa-navy/20' :
+    overlay === 'dark'  ? 'bg-resa-navy/45' :
+                          'bg-resa-navy/30';
+
+  // Dégradé horizontal : très sombre à gauche (texte), quasi transparent à droite (image)
+  const horizontalGradient =
+    overlay === 'light'
+      ? 'linear-gradient(90deg, rgba(6,21,48,0.82) 0%, rgba(6,21,48,0.55) 40%, rgba(6,21,48,0.15) 75%, rgba(6,21,48,0.05) 100%)'
+      : overlay === 'dark'
+      ? 'linear-gradient(90deg, rgba(6,21,48,0.98) 0%, rgba(6,21,48,0.88) 35%, rgba(6,21,48,0.60) 70%, rgba(6,21,48,0.35) 100%)'
+      : 'linear-gradient(90deg, rgba(6,21,48,0.92) 0%, rgba(6,21,48,0.72) 40%, rgba(6,21,48,0.30) 75%, rgba(6,21,48,0.10) 100%)';
 
   return (
     <section className="relative overflow-hidden bg-resa-navy text-white">
@@ -76,21 +83,29 @@ export default function PageHero({
         );
       })}
 
-      {/* Overlay navy uniforme */}
-      <div className={cn('absolute inset-0', overlayOpacity)} />
+      {/* Couche de base (uniforme, légère) */}
+      <div className={cn('absolute inset-0', baseOpacity)} />
 
-      {/* Dégradé vertical pour la lisibilité */}
-      <div className="absolute inset-0 bg-gradient-to-t from-resa-navy via-resa-navy/40 to-resa-navy/60" />
+      {/* Dégradé horizontal : sombre à gauche (lisibilité texte), clair à droite (image visible) */}
+      <div
+        className="absolute inset-0"
+        style={{ background: horizontalGradient }}
+      />
+
+      {/* Dégradé vertical léger : transition douce vers le contenu en bas */}
+      <div className="absolute inset-0 bg-gradient-to-t from-resa-navy via-transparent to-transparent" />
+
+      {/* Dégradé top léger : lisibilité de la navbar au-dessus */}
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-resa-navy/40 to-transparent" />
 
       {/* Grille discrète */}
-      <div className="absolute inset-0 bg-grid opacity-20" />
+      <div className="absolute inset-0 bg-grid opacity-15" />
 
-      {/* Halos décoratifs */}
+      {/* Halo décoratif */}
       <div className="pointer-events-none absolute -right-20 top-1/4 h-96 w-96 rounded-full bg-resa-red/10 blur-3xl anim-float" />
 
       {/* Contenu */}
       <div className="relative mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-20">
-        {/* Breadcrumb optionnel */}
         {breadcrumb && breadcrumb.length > 0 && (
           <div className="mb-4 text-[11px] text-white/50">
             {breadcrumb.map((b, i) => (
@@ -119,14 +134,13 @@ export default function PageHero({
           </h1>
 
           {subtitle && (
-            <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/80 md:text-lg anim-fade-up delay-200">
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/85 md:text-lg anim-fade-up delay-200">
               {subtitle}
             </p>
           )}
         </div>
       </div>
 
-      {/* Ligne gradient bas */}
       <div className="h-1 gradient-line" />
     </section>
   );

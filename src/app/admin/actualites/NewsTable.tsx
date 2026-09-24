@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { toggleNewsPublished, deleteNews } from './actions';
+import ConfirmModal from '@/components/admin/ConfirmModal';
 
 export default function NewsTable({ articles }: { articles: any[] }) {
   const [q, setQ] = useState('');
+  const [toDelete, setToDelete] = useState<any | null>(null);
 
   const filtered = articles.filter((a) => {
     const term = q.toLowerCase();
@@ -26,7 +28,6 @@ export default function NewsTable({ articles }: { articles: any[] }) {
 
   return (
     <>
-      {/* Recherche */}
       <div className="flex items-center gap-3 border-b border-black/5 px-5 py-3">
         <div className="relative flex-1">
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-resa-text/30">
@@ -45,7 +46,6 @@ export default function NewsTable({ articles }: { articles: any[] }) {
         </div>
       </div>
 
-      {/* Tableau */}
       {filtered.length === 0 ? (
         <p className="px-5 py-8 text-center text-xs italic text-resa-text/40">
           Aucun résultat.
@@ -117,7 +117,12 @@ export default function NewsTable({ articles }: { articles: any[] }) {
                       >
                         Modifier
                       </Link>
-                      <DeleteButton id={a.id} title={a.title_fr} />
+                      <button
+                        onClick={() => setToDelete(a)}
+                        className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-red-600 transition hover:border-red-200 hover:bg-red-50"
+                      >
+                        Suppr.
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -126,53 +131,20 @@ export default function NewsTable({ articles }: { articles: any[] }) {
           </table>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!toDelete}
+        onClose={() => setToDelete(null)}
+        onConfirm={async () => {
+          if (!toDelete) return;
+          await deleteNews(toDelete.id);
+          setToDelete(null);
+        }}
+        title="Supprimer cet article ?"
+        message={`L'article "${toDelete?.title_fr ?? ''}" sera définitivement supprimé. Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+        variant="danger"
+      />
     </>
-  );
-}
-
-function DeleteButton({ id, title }: { id: string; title: string }) {
-  const [confirming, setConfirming] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleDelete = async () => {
-    setLoading(true);
-    try {
-      await deleteNews(id);
-    } catch {
-      alert('Erreur lors de la suppression');
-      setLoading(false);
-      setConfirming(false);
-    }
-  };
-
-  if (!confirming) {
-    return (
-      <button
-        onClick={() => setConfirming(true)}
-        className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-red-600 transition hover:border-red-200 hover:bg-red-50"
-      >
-        Suppr.
-      </button>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-1">
-      <button
-        onClick={handleDelete}
-        disabled={loading}
-        className="rounded-lg bg-red-600 px-2 py-1 text-[10px] font-bold uppercase text-white disabled:opacity-50"
-        title={`Supprimer "${title}"`}
-      >
-        {loading ? '…' : 'OK'}
-      </button>
-      <button
-        onClick={() => setConfirming(false)}
-        disabled={loading}
-        className="rounded-lg border border-black/5 bg-white px-2 py-1 text-[10px] font-bold text-resa-text/60"
-      >
-        ✕
-      </button>
-    </div>
   );
 }

@@ -186,3 +186,192 @@ export function adminNewRegistrationNotification(data: {
     `)
   };
 }
+
+
+
+
+// ─── Email 4 : Confirmation réservation training (au parent) ─
+export function trainingRequestParentConfirmation(data: {
+  parentName: string;
+  programTitle?: string | null;
+  playerName?: string | null;
+  playerAge?: number | null;
+  region?: string | null;
+  availability?: string | null;
+}) {
+  const details: string[] = [];
+  if (data.programTitle) {
+    details.push(`<div><strong>Programme :</strong> ${data.programTitle}</div>`);
+  }
+  if (data.playerName) {
+    details.push(
+      `<div style="margin-top:6px;"><strong>Joueur :</strong> ${data.playerName}${
+        data.playerAge ? ` · ${data.playerAge} ans` : ''
+      }</div>`
+    );
+  }
+  if (data.region) {
+    const regionLabel = data.region === 'usa' ? '🇺🇸 USA' : '🇨🇮 Africa';
+    details.push(`<div style="margin-top:6px;"><strong>Région :</strong> ${regionLabel}</div>`);
+  }
+  if (data.availability) {
+    details.push(`<div style="margin-top:6px;"><strong>Disponibilités :</strong> ${data.availability}</div>`);
+  }
+
+  return {
+    subject: `✓ Votre demande de réservation — RESA Sport Academy`,
+    htmlContent: layout(`
+      <h1 style="font-size:24px;font-weight:900;color:#0A1F44;margin:0 0 16px;">
+        Bonjour ${data.parentName},
+      </h1>
+
+      <p>Nous avons bien reçu votre demande de réservation pour une séance de <strong>Private Training</strong>.</p>
+
+      ${
+        details.length > 0
+          ? `
+        <div style="background:#F4F6FA;border-left:4px solid #DC2626;padding:16px 20px;border-radius:8px;margin:24px 0;">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#DC2626;margin-bottom:8px;">
+            Récapitulatif
+          </div>
+          <div style="font-size:14px;line-height:1.7;">
+            ${details.join('')}
+          </div>
+        </div>
+      `
+          : ''
+      }
+
+      <p><strong>Prochaines étapes :</strong></p>
+      <ol style="padding-left:20px;margin:12px 0;">
+        <li>Notre équipe étudie votre demande</li>
+        <li>Nous vous recontactons sous <strong>24 h</strong> par email ou WhatsApp</li>
+        <li>Confirmation du créneau et du coach</li>
+        <li>Première séance sur le terrain 💪</li>
+      </ol>
+
+      <p style="margin-top:24px;">
+        Une question ? Contactez-nous directement sur WhatsApp ou par email à
+        <a href="mailto:contact@resasportacademy.ci" style="color:#DC2626;">contact@resasportacademy.ci</a>.
+      </p>
+
+      <div style="margin-top:32px;text-align:center;">
+        <a href="https://wa.me/2250700000000" style="display:inline-block;background:#25D366;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;">
+          💬 Nous contacter sur WhatsApp
+        </a>
+      </div>
+    `)
+  };
+}
+
+// ─── Email 5 : Notification admin nouvelle réservation ──────
+export function trainingRequestAdminNotification(data: {
+  parentName: string;
+  parentEmail: string;
+  parentPhone?: string | null;
+  programTitle?: string | null;
+  playerName?: string | null;
+  playerAge?: number | null;
+  playerLevel?: string | null;
+  region?: string | null;
+  preferredCoach?: string | null;
+  availability?: string | null;
+  message?: string | null;
+  requestId: string;
+}) {
+  const rows: string[] = [];
+  if (data.programTitle) {
+    rows.push(`<div><strong>Programme :</strong> ${data.programTitle}</div>`);
+  }
+  if (data.playerName || data.playerAge || data.playerLevel) {
+    rows.push(
+      `<div style="margin-top:6px;"><strong>Joueur :</strong> ${data.playerName ?? '—'}${
+        data.playerAge ? ` · ${data.playerAge} ans` : ''
+      }${data.playerLevel ? ` · ${data.playerLevel}` : ''}</div>`
+    );
+  }
+  if (data.region) {
+    rows.push(
+      `<div style="margin-top:6px;"><strong>Région :</strong> ${
+        data.region === 'usa' ? '🇺🇸 USA' : '🇨🇮 Africa'
+      }</div>`
+    );
+  }
+  if (data.preferredCoach) {
+    rows.push(`<div style="margin-top:6px;"><strong>Coach souhaité :</strong> ${data.preferredCoach}</div>`);
+  }
+  if (data.availability) {
+    rows.push(`<div style="margin-top:6px;"><strong>Disponibilités :</strong> ${data.availability}</div>`);
+  }
+
+  return {
+    subject: `📥 Nouvelle réservation training${data.programTitle ? ` — ${data.programTitle}` : ''}`,
+    htmlContent: layout(`
+      <h1 style="font-size:22px;font-weight:900;color:#0A1F44;margin:0 0 16px;">
+        Nouvelle demande de réservation
+      </h1>
+
+      <p style="color:#64748B;">
+        Une nouvelle demande de Private Training vient d'être soumise sur le site.
+      </p>
+
+      <!-- Contact parent -->
+      <div style="background:#F4F6FA;border-radius:12px;padding:20px;margin:24px 0;">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#DC2626;margin-bottom:12px;">
+          Contact parent / tuteur
+        </div>
+        <div style="font-size:14px;line-height:2;">
+          <div><strong>Nom :</strong> ${data.parentName}</div>
+          <div><strong>Email :</strong> <a href="mailto:${data.parentEmail}" style="color:#DC2626;">${data.parentEmail}</a></div>
+          ${
+            data.parentPhone
+              ? `<div><strong>Téléphone :</strong> <a href="tel:${data.parentPhone}" style="color:#DC2626;">${data.parentPhone}</a></div>`
+              : ''
+          }
+        </div>
+      </div>
+
+      <!-- Détails réservation -->
+      ${
+        rows.length > 0
+          ? `
+        <div style="background:#F4F6FA;border-radius:12px;padding:20px;margin:24px 0;">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#1E3A8A;margin-bottom:12px;">
+            Réservation
+          </div>
+          <div style="font-size:14px;line-height:1.7;">
+            ${rows.join('')}
+          </div>
+        </div>
+      `
+          : ''
+      }
+
+      <!-- Message -->
+      ${
+        data.message
+          ? `
+        <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:20px;margin:24px 0;">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#64748B;margin-bottom:8px;">
+            Message du parent
+          </div>
+          <div style="font-size:14px;line-height:1.7;color:#334155;white-space:pre-line;">
+            ${data.message}
+          </div>
+        </div>
+      `
+          : ''
+      }
+
+      <div style="margin-top:32px;text-align:center;">
+        <a href="https://resa-preview.cataria-systems.com/admin/demandes-training" style="display:inline-block;background:#0A1F44;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;">
+          Traiter la demande →
+        </a>
+      </div>
+
+      <div style="margin-top:20px;text-align:center;font-size:11px;color:#94A3B8;">
+        Référence : ${data.requestId.slice(0, 8).toUpperCase()}
+      </div>
+    `)
+  };
+}

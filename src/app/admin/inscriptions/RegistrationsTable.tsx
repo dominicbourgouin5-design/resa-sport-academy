@@ -1,9 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { updateRegistrationStatus, deleteRegistration } from './actions';
+import {
+  deleteRegistration,
+  updateRegistrationStatus
+} from './actions';
 import Dropdown from '@/components/admin/Dropdown';
-
+import RegistrationWizard from './RegistrationWizard';
+import ConfirmModal from '@/components/admin/ConfirmModal';
 
 type Status = 'pending' | 'reviewing' | 'approved' | 'rejected';
 
@@ -16,7 +20,12 @@ export default function RegistrationsTable({
 }) {
   const [q, setQ] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'school' | 'individual'>('all');
-  const [detail, setDetail] = useState<any>(null);
+
+  // Wizard
+  const [wizardRequest, setWizardRequest] = useState<any | null>(null);
+
+  // Confirm delete
+  const [toDelete, setToDelete] = useState<any | null>(null);
 
   const filtered = registrations.filter((r) => {
     const term = q.toLowerCase();
@@ -75,7 +84,7 @@ export default function RegistrationsTable({
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">            
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="border-b border-black/5 bg-resa-gray/40">
               <tr className="text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
                 <th className="px-5 py-2.5 text-left">Type</th>
@@ -131,7 +140,8 @@ export default function RegistrationsTable({
                           {r.player_first_name}
                           {r.player_birth_date && (
                             <span className="text-resa-text/50">
-                              {' '}({new Date(r.player_birth_date).getFullYear()})
+                              {' '}
+                              ({new Date(r.player_birth_date).getFullYear()})
                             </span>
                           )}
                         </div>
@@ -145,7 +155,9 @@ export default function RegistrationsTable({
                   <td className="hidden px-5 py-3 text-center lg:table-cell">
                     <div className="text-[11px] text-resa-text/60">
                       {new Date(r.created_at).toLocaleDateString('fr-FR', {
-                        day: '2-digit', month: 'short', year: 'numeric'
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
                       })}
                     </div>
                   </td>
@@ -153,12 +165,16 @@ export default function RegistrationsTable({
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-1.5">
                       <button
-                        onClick={() => setDetail(r)}
-                        className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-resa-navy transition hover:border-resa-navy/20 hover:bg-resa-gray"
+                        onClick={() => setWizardRequest(r)}
+                        className="rounded-lg bg-resa-navy px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-resa-royal"
                       >
-                        Voir
+                        Traiter
                       </button>
-                      <StatusMenu id={r.id} current={currentStatus} />
+                      <ActionsMenu
+                        registration={r}
+                        current={currentStatus}
+                        onDelete={() => setToDelete(r)}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -168,21 +184,42 @@ export default function RegistrationsTable({
         </div>
       )}
 
-      {/* Modal détail */}
-      {detail && (
-        <DetailModal
-          registration={detail}
-          onClose={() => setDetail(null)}
+      {/* Wizard */}
+      {wizardRequest && (
+        <RegistrationWizard
+          registration={wizardRequest}
+          onClose={() => setWizardRequest(null)}
         />
       )}
+
+      {/* Confirm delete */}
+      <ConfirmModal
+        open={!!toDelete}
+        onClose={() => setToDelete(null)}
+        onConfirm={async () => {
+          if (!toDelete) return;
+          await deleteRegistration(toDelete.id);
+          setToDelete(null);
+        }}
+        title="Supprimer cette inscription ?"
+        message={`L'inscription de "${toDelete?.contact_name ?? ''}" sera définitivement supprimée. Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+        variant="danger"
+      />
     </>
   );
 }
 
- 
-
-// ... (dans StatusMenu, remplace tout le contenu)
-function StatusMenu({ id, current }: { id: string; current: Status }) {
+// ─── Menu d'actions ─────────────────────────────────────────
+function ActionsMenu({
+  registration,
+  current,
+  onDelete
+}: {
+  registration: any;
+  current: Status;
+  onDelete: () => void;
+}) {
   const [loading, setLoading] = useState(false);
 
   const statuses: { value: Status; label: string; color: string }[] = [
@@ -195,7 +232,7 @@ function StatusMenu({ id, current }: { id: string; current: Status }) {
   const handleChange = async (status: Status) => {
     setLoading(true);
     try {
-      await updateRegistrationStatus(id, status);
+      await updateRegistrationStatus(registration.id, status);
     } catch {
       alert('Erreur lors du changement de statut');
     } finally {
@@ -206,237 +243,42 @@ function StatusMenu({ id, current }: { id: string; current: Status }) {
   return (
     <Dropdown
       align="right"
-      trigger={({ toggle }) => (
+      trigger={({ toggle }: { open: boolean; toggle: () => void }) => (
         <button
           onClick={toggle}
           disabled={loading}
-          className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-resa-royal transition hover:border-resa-royal/20 hover:bg-resa-gray disabled:opacity-50"
+          className="rounded-lg border border-black/5 bg-white px-2 py-1 text-[11px] font-bold text-resa-text/60 transition hover:border-resa-navy/20 hover:bg-resa-gray disabled:opacity-50"
+          aria-label="Plus d'actions"
         >
-          {loading ? '…' : 'Statut ▾'}
+          {loading ? '…' : '⋯'}
         </button>
       )}
     >
-      {statuses
-        .filter((s) => s.value !== current)
-        .map((s) => (
-          <button
-            key={s.value}
-            onClick={() => handleChange(s.value)}
-            className={`block w-full px-3 py-2 text-left text-[12px] font-medium transition hover:bg-resa-gray ${s.color}`}
-          >
-            {s.label}
-          </button>
-        ))}
-      <div className="border-t border-black/5">
-        <DeleteRegistrationButton id={id} />
-      </div>
+      <>
+        <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-resa-text/40">
+          Changer le statut
+        </div>
+        {statuses
+          .filter((s) => s.value !== current)
+          .map((s) => (
+            <button
+              key={s.value}
+              onClick={() => handleChange(s.value)}
+              className={`block w-full px-3 py-2 text-left text-[12px] font-medium transition hover:bg-resa-gray ${s.color}`}
+            >
+              {s.label}
+            </button>
+          ))}
+
+        <div className="border-t border-black/5" />
+
+        <button
+          onClick={onDelete}
+          className="block w-full px-3 py-2 text-left text-[12px] font-medium text-red-600 transition hover:bg-red-50"
+        >
+          🗑️ Supprimer
+        </button>
+      </>
     </Dropdown>
   );
-}
-
-// ─── Bouton supprimer ───────────────────────────────────────
-function DeleteRegistrationButton({ id }: { id: string }) {
-  const [confirming, setConfirming] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleDelete = async () => {
-    setLoading(true);
-    try {
-      await deleteRegistration(id);
-    } catch {
-      alert('Erreur lors de la suppression');
-      setLoading(false);
-      setConfirming(false);
-    }
-  };
-
-  if (!confirming) {
-    return (
-      <button
-        onClick={() => setConfirming(true)}
-        className="block w-full px-3 py-2 text-left text-[12px] font-medium text-red-600 transition hover:bg-red-50"
-      >
-        🗑️ Supprimer
-      </button>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-1 bg-red-50 p-2">
-      <button
-        onClick={handleDelete}
-        disabled={loading}
-        className="flex-1 rounded bg-red-600 px-2 py-1 text-[10px] font-bold uppercase text-white disabled:opacity-50"
-      >
-        {loading ? '…' : 'Confirmer'}
-      </button>
-      <button
-        onClick={() => setConfirming(false)}
-        disabled={loading}
-        className="rounded border border-black/5 bg-white px-2 py-1 text-[10px] font-bold text-resa-text/60"
-      >
-        ✕
-      </button>
-    </div>
-  );
-}
-
-// ─── Modal détail ───────────────────────────────────────────
-function DetailModal({
-  registration,
-  onClose
-}: {
-  registration: any;
-  onClose: () => void;
-}) {
-  const r = registration;
-  const isSchool = r.type === 'school';
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm anim-fade-in"
-        onClick={onClose}
-      />
-
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl anim-fade-up">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-black/5 px-6 py-4">
-          <div>
-            <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
-              {isSchool ? 'Inscription école' : 'Détection individuelle'}
-            </div>
-            <h2 className="font-display text-xl font-black text-resa-navy">
-              {isSchool ? r.school_name : r.player_first_name}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-resa-text/40 transition hover:bg-resa-gray"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Contenu */}
-        <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
-          {/* Contact */}
-          <section className="mb-5">
-            <h3 className="mb-3 text-[10px] font-black uppercase tracking-widest text-resa-text/40">
-              Contact
-            </h3>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              <Info label="Nom" value={r.contact_name} />
-              <Info label="Téléphone" value={r.contact_phone} href={`tel:${r.contact_phone}`} />
-              {r.contact_email && (
-                <Info label="Email" value={r.contact_email} href={`mailto:${r.contact_email}`} />
-              )}
-              <Info
-                label="Reçue le"
-                value={new Date(r.created_at).toLocaleDateString('fr-FR', {
-                  day: '2-digit', month: 'long', year: 'numeric'
-                })}
-              />
-            </dl>
-          </section>
-
-          {/* École */}
-          {isSchool && (
-            <section className="mb-5 border-t border-black/5 pt-5">
-              <h3 className="mb-3 text-[10px] font-black uppercase tracking-widest text-resa-text/40">
-                Établissement
-              </h3>
-              <dl className="grid gap-3 sm:grid-cols-2">
-                <Info label="Nom" value={r.school_name} />
-                <Info label="Ville" value={r.school_city} />
-                {r.category_codes?.length > 0 && (
-                  <div className="sm:col-span-2">
-                    <dt className="text-[10px] font-bold uppercase tracking-widest text-resa-text/40">
-                      Catégories souhaitées
-                    </dt>
-                    <dd className="mt-1 flex flex-wrap gap-1.5">
-                      {r.category_codes.map((c: string) => (
-                        <span
-                          key={c}
-                          className="rounded-md bg-resa-navy/5 px-2 py-0.5 text-[11px] font-bold text-resa-navy"
-                        >
-                          {c}
-                        </span>
-                      ))}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-            </section>
-          )}
-
-          {/* Joueur */}
-          {!isSchool && (
-            <section className="mb-5 border-t border-black/5 pt-5">
-              <h3 className="mb-3 text-[10px] font-black uppercase tracking-widest text-resa-text/40">
-                Joueur
-              </h3>
-              <dl className="grid gap-3 sm:grid-cols-2">
-                <Info label="Prénom" value={r.player_first_name} />
-                <Info
-                  label="Date de naissance"
-                  value={r.player_birth_date
-                    ? new Date(r.player_birth_date).toLocaleDateString('fr-FR')
-                    : '—'}
-                />
-                <Info label="Poste" value={r.player_position ?? '—'} />
-              </dl>
-            </section>
-          )}
-
-          {/* Message */}
-          {r.message && (
-            <section className="border-t border-black/5 pt-5">
-              <h3 className="mb-3 text-[10px] font-black uppercase tracking-widest text-resa-text/40">
-                Message du demandeur
-              </h3>
-              <div className="rounded-lg bg-resa-gray/50 p-4 text-[13px] leading-relaxed text-resa-text/80">
-                {r.message}
-              </div>
-            </section>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between gap-3 border-t border-black/5 bg-resa-gray/30 px-6 py-3">
-          <div className="text-[10px] uppercase tracking-widest text-resa-text/40">
-            ID : {r.id.slice(0, 8)}
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-full border border-black/5 bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-resa-text/60 transition hover:bg-resa-gray"
-          >
-            Fermer
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Info({ label, value, href }: { label: string; value: string; href?: string }) {
-  const content = (
-    <>
-      <dt className="text-[10px] font-bold uppercase tracking-widest text-resa-text/40">
-        {label}
-      </dt>
-      <dd className="mt-0.5 text-[13px] font-medium text-resa-navy">
-        {value}
-      </dd>
-    </>
-  );
-
-  if (href) {
-    return (
-      <a href={href} className="rounded-lg border border-black/5 bg-white p-3 transition hover:border-resa-navy/20 hover:bg-resa-gray/30">
-        {content}
-      </a>
-    );
-  }
-  return <div className="rounded-lg border border-black/5 bg-white p-3">{content}</div>;
 }

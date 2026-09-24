@@ -501,3 +501,113 @@ export async function getSentNotifications(limit = 50) {
     return [];
   }
 }
+
+
+
+
+// ─── Coachs ─────────────────────────────────────────────────
+export async function getCoaches() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('coaches')
+    .select('*')
+    .eq('is_active', true)
+    .order('is_featured', { ascending: false })
+    .order('display_order');
+  return data ?? [];
+}
+
+export async function getFeaturedCoaches(limit = 3) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('coaches')
+    .select('*')
+    .eq('is_active', true)
+    .order('is_featured', { ascending: false })
+    .order('display_order')
+    .limit(limit);
+  return data ?? [];
+}
+
+export async function getCoachBySlug(slug: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('coaches')
+    .select('*')
+    .eq('slug', slug)
+    .eq('is_active', true)
+    .single();
+  return data;
+}
+
+// ─── Programmes de training ─────────────────────────────────
+export async function getTrainingPrograms() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('training_programs')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order');
+  return data ?? [];
+}
+
+export async function getTrainingProgramBySlug(slug: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('training_programs')
+    .select('*')
+    .eq('slug', slug)
+    .eq('is_active', true)
+    .single();
+  return data;
+}
+
+
+
+// ─── Demandes de training ───────────────────────────────────
+export async function getTrainingRequests(limit = 100) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('training_requests')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  return data ?? [];
+}
+
+export async function getTrainingRequestById(id: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('training_requests')
+    .select('*')
+    .eq('id', id)
+    .single();
+  return data;
+}
+
+
+
+// ─── Témoignages d'un coach ─────────────────────────────────
+export async function getCoachTestimonials(coachId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('coach_testimonials')
+    .select('*')
+    .eq('coach_id', coachId)
+    .eq('is_active', true)
+    .order('is_featured', { ascending: false })
+    .order('display_order');
+  return data ?? [];
+}
+
+// ─── Médias d'un coach ──────────────────────────────────────
+export async function getCoachMedia(coachId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('coach_media')
+    .select('*')
+    .eq('coach_id', coachId)
+    .eq('is_active', true)
+    .order('display_order');
+  return data ?? [];
+}

@@ -1,10 +1,14 @@
 import { createClient } from './supabase/client';
 
 export type UploadFolder =
-  | 'covers'         // Images de couverture d'articles
-  | 'logos/schools'  // Logos d'écoles
-  | 'logos/teams'    // Logos d'équipes
-  | 'players';       // Photos de joueurs
+  | 'covers'
+  | 'logos/schools'
+  | 'logos/teams'
+  | 'players'
+  | 'videos'
+  | 'coaches'
+  | 'coaches/testimonials' 
+  | 'coaches/media';  
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 Mo
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];

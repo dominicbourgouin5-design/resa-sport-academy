@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { deleteSchool, toggleSchoolActive } from './actions';
+import ConfirmModal from '@/components/admin/ConfirmModal';
 
 export default function SchoolsTable({ schools }: { schools: any[] }) {
   const [q, setQ] = useState('');
+  const [toDelete, setToDelete] = useState<any | null>(null);
 
   const filtered = schools.filter((s) => {
     const term = q.toLowerCase();
@@ -46,14 +48,13 @@ export default function SchoolsTable({ schools }: { schools: any[] }) {
         </div>
       </div>
 
-      {/* Tableau */}
       {filtered.length === 0 ? (
         <p className="px-5 py-8 text-center text-xs italic text-resa-text/40">
           Aucun résultat.
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">            
+          <table className="w-full min-w-160 text-sm">
             <thead className="border-b border-black/5 bg-resa-gray/40">
               <tr className="text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
                 <th className="px-5 py-2.5 text-left">École</th>
@@ -136,7 +137,12 @@ export default function SchoolsTable({ schools }: { schools: any[] }) {
                         >
                           Modifier
                         </Link>
-                        <DeleteButton id={s.id} name={s.name} />
+                        <button
+                          onClick={() => setToDelete(s)}
+                          className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-red-600 transition hover:border-red-200 hover:bg-red-50"
+                        >
+                          Suppr.
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -146,54 +152,21 @@ export default function SchoolsTable({ schools }: { schools: any[] }) {
           </table>
         </div>
       )}
+
+      {/* Confirm delete */}
+      <ConfirmModal
+        open={!!toDelete}
+        onClose={() => setToDelete(null)}
+        onConfirm={async () => {
+          if (!toDelete) return;
+          await deleteSchool(toDelete.id);
+          setToDelete(null);
+        }}
+        title="Supprimer cette école ?"
+        message={`L'école "${toDelete?.name ?? ''}" sera définitivement supprimée, ainsi que toutes ses équipes et joueurs associés. Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+        variant="danger"
+      />
     </>
-  );
-}
-
-// ─── Bouton supprimer avec confirmation ─────────────────────
-function DeleteButton({ id, name }: { id: string; name: string }) {
-  const [confirming, setConfirming] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleDelete = async () => {
-    setLoading(true);
-    try {
-      await deleteSchool(id);
-    } catch {
-      alert('Erreur lors de la suppression');
-      setLoading(false);
-      setConfirming(false);
-    }
-  };
-
-  if (!confirming) {
-    return (
-      <button
-        onClick={() => setConfirming(true)}
-        className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-red-600 transition hover:border-red-200 hover:bg-red-50"
-      >
-        Suppr.
-      </button>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-1">
-      <button
-        onClick={handleDelete}
-        disabled={loading}
-        className="rounded-lg bg-red-600 px-2 py-1 text-[10px] font-bold uppercase text-white transition hover:bg-red-700 disabled:opacity-50"
-        title={`Confirmer la suppression de ${name}`}
-      >
-        {loading ? '…' : 'OK'}
-      </button>
-      <button
-        onClick={() => setConfirming(false)}
-        disabled={loading}
-        className="rounded-lg border border-black/5 bg-white px-2 py-1 text-[10px] font-bold text-resa-text/60 transition hover:bg-resa-gray"
-      >
-        ✕
-      </button>
-    </div>
   );
 }

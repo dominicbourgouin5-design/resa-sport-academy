@@ -51,12 +51,33 @@ const SECTIONS: Section[] = [
       {
         label: 'Inscriptions', icon: 'inbox',
         children: [{ href: '/admin/inscriptions', label: 'Demandes reçues' }]
+      },
+      {
+        label: 'Demandes training', icon: 'inbox',
+        children: [
+          { href: '/admin/demandes-training', label: 'Toutes les demandes' }
+        ]
       }
     ]
   },
   {
     label: 'Contenu',
     items: [
+
+         {
+            label: 'Coachs', icon: 'coach',
+            children: [
+              { href: '/admin/coachs',         label: 'Tous les coachs' },
+              { href: '/admin/coachs/nouveau', label: 'Ajouter un coach' }
+            ]
+          },
+          {
+            label: 'Programmes', icon: 'program',
+            children: [
+              { href: '/admin/programmes',         label: 'Tous les programmes' },
+              { href: '/admin/programmes/nouveau', label: 'Ajouter un programme' }
+            ]
+          },
       {
         label: 'Actualités', icon: 'news',
         children: [
@@ -281,7 +302,9 @@ function Icon({ name, active }: { name: string; active?: boolean }) {
     news:    <><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" /><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z" /></>,
     sponsor: <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />,
     users:   <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
-    audit:   <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" /></>
+    audit:   <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" /></>,
+    coach:   <><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-1a7 7 0 0 1 14 0v1M17 11l1.5 1.5M19.5 9.5 21 11" /></>,
+    program: <><path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z" /><path d="m9 12 2 2 4-4" /></>,
   };
 
   return (

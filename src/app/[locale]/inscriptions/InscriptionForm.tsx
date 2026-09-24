@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import React from 'react';
+import type { FormEvent, ReactNode, ChangeEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { WHATSAPP_URL, cn } from '@/lib/utils';
 import InscriptionsHero from './InscriptionsHero';
@@ -9,10 +10,10 @@ type Mode = 'school' | 'individual';
 
 export default function InscriptionForm({ categories }: { categories: any[] }) {
   const t = useTranslations('inscriptions');
-  const [mode, setMode] = useState<Mode>('school');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [mode, setMode] = React.useState<Mode>('school');
+  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
-  const [form, setForm] = useState({
+  const [form, setForm] = React.useState({
     contact_name: '',
     contact_phone: '',
     contact_email: '',
@@ -25,22 +26,21 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
     player_position: ''
   });
 
-  const update = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+  const update = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   const toggleCategory = (code: string) => {
-    setForm((f) => ({
+    setForm((f: any) => ({
       ...f,
       category_codes: f.category_codes.includes(code)
-        ? f.category_codes.filter((c) => c !== code)
+        ? f.category_codes.filter((c: string) => c !== code)
         : [...f.category_codes, code]
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setStatus('loading');
     try {
-      // Nettoie les champs vides ("" → undefined)
       const cleanForm = Object.fromEntries(
         Object.entries(form).map(([k, v]) => [
           k,
@@ -110,10 +110,8 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
   // ─── FORMULAIRE ────────────────────────────────────────────
   return (
     <>
-      {/* ─── HERO ─── */}
       <InscriptionsHero />
 
-      {/* ─── COMMENT ÇA MARCHE ─── */}
       <section className="border-b border-black/5 bg-resa-gray">
         <div className="mx-auto max-w-7xl px-4 py-10 md:px-6 md:py-12">
           <div className="mb-6">
@@ -131,13 +129,9 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
         </div>
       </section>
 
-      {/* ─── FORMULAIRE ─── */}
       <section className="mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-20">
         <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-
-          {/* Colonne formulaire */}
           <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-resa-lg md:p-10">
-            {/* Segmented control premium */}
             <div className="mb-8 inline-flex w-full max-w-md rounded-xl border border-black/10 bg-resa-gray p-1">
               {(['school', 'individual'] as Mode[]).map((m) => (
                 <button
@@ -156,7 +150,6 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
               ))}
             </div>
 
-            {/* Titre */}
             <div className="mb-8">
               <h2 className="font-display text-2xl font-black text-resa-navy md:text-3xl">
                 {mode === 'school' ? t('schoolTitle') : t('individualTitle')}
@@ -166,9 +159,7 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
               </p>
             </div>
 
-            {/* Formulaire */}
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Section 1 : Contact */}
               <FormSection label="1 · Vos coordonnées">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label={t('fieldContactName')} value={form.contact_name} onChange={(v) => update('contact_name', v)} required />
@@ -177,7 +168,6 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
                 <Field label={t('fieldContactEmail')} value={form.contact_email} onChange={(v) => update('contact_email', v)} type="email" />
               </FormSection>
 
-              {/* Section 2 : École OU enfant */}
               {mode === 'school' && (
                 <FormSection label="2 · Votre établissement">
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -256,18 +246,16 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
                 </FormSection>
               )}
 
-              {/* Section 3 : Message */}
               <FormSection label="3 · Message (facultatif)">
                 <textarea
                   value={form.message}
-                  onChange={(e) => update('message', e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => update('message', e.target.value)}
                   rows={3}
                   placeholder="Précisions, questions, contexte…"
                   className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-resa-text outline-none transition focus:border-resa-royal/50 focus:ring-2 focus:ring-resa-royal/10"
                 />
               </FormSection>
 
-              {/* Erreur */}
               {status === 'error' && (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   <strong className="font-bold">{t('errorTitle')}</strong>
@@ -275,7 +263,6 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
                 </div>
               )}
 
-              {/* Submit */}
               <div className="flex flex-wrap items-center justify-between gap-4 border-t border-black/5 pt-6">
                 <p className="text-xs text-resa-text/50">
                   Champs marqués <span className="text-resa-red">*</span> obligatoires
@@ -294,9 +281,7 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
             </form>
           </div>
 
-          {/* ASIDE */}
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-            {/* WhatsApp card */}
             <div className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa">
               <div className="bg-gradient-to-br from-[#25D366] to-[#128C7E] p-6 text-white">
                 <div className="mb-3 grid h-11 w-11 place-items-center rounded-full bg-white/20 backdrop-blur">
@@ -321,7 +306,6 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
               </div>
             </div>
 
-            {/* Trust card */}
             <div className="rounded-2xl border border-black/5 bg-resa-gray p-6">
               <div className="mb-3 flex items-center gap-2">
                 <div className="grid h-8 w-8 place-items-center rounded-lg bg-resa-navy text-white text-xs font-black">
@@ -350,7 +334,7 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
   );
 }
 
-// ─── Composants utilitaires ─────────────────────────────────
+// ─── Composants utilitaires typés ───────────────────────────
 
 function StepLight({ n, title, text }: { n: number; title: string; text: string }) {
   return (
@@ -366,7 +350,7 @@ function StepLight({ n, title, text }: { n: number; title: string; text: string 
   );
 }
 
-function FormSection({ label, children }: { label: string; children: React.ReactNode }) {
+function FormSection({ label, children }: { label: string; children?: ReactNode }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -380,7 +364,7 @@ function FormSection({ label, children }: { label: string; children: React.React
   );
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+function FieldLabel({ children }: { children?: ReactNode }) {
   return (
     <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-resa-text/60">
       {children}
@@ -406,7 +390,7 @@ function Field({
       <input
         type={type}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         required={required}
         className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-resa-text outline-none transition focus:border-resa-royal/50 focus:ring-2 focus:ring-resa-royal/10"
       />

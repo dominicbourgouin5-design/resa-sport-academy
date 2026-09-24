@@ -4,11 +4,13 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import ScoreModal from './ScoreModal';
 import { deleteMatch } from './actions';
+import ConfirmModal from '@/components/admin/ConfirmModal';
 
 export default function MatchesTable({ matches }: { matches: any[] }) {
   const [q, setQ] = useState('');
   const [catFilter, setCatFilter] = useState<string>('all');
   const [scoreModal, setScoreModal] = useState<any>(null);
+  const [toDelete, setToDelete] = useState<any | null>(null);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -55,9 +57,8 @@ export default function MatchesTable({ matches }: { matches: any[] }) {
 
   return (
     <>
-      {/* Barre de filtres */}
       <div className="flex flex-wrap items-center gap-3 border-b border-black/5 px-5 py-3">
-        <div className="relative min-w-[200px] flex-1">
+        <div className="relative min-w-50 flex-1">
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-resa-text/30">
             🔍
           </span>
@@ -103,14 +104,13 @@ export default function MatchesTable({ matches }: { matches: any[] }) {
         </div>
       </div>
 
-      {/* Tableau */}
       {filtered.length === 0 ? (
         <p className="px-5 py-8 text-center text-xs italic text-resa-text/40">
           Aucun résultat.
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">            
+          <table className="w-full min-w-160 text-sm">
             <thead className="border-b border-black/5 bg-resa-gray/40">
               <tr className="text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
                 <th className="px-5 py-2.5 text-left">Date</th>
@@ -161,27 +161,31 @@ export default function MatchesTable({ matches }: { matches: any[] }) {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-1.5">
-                      <Link
-                        href={`/admin/matchs/${m.id}/evenements`}
-                        className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-emerald-600 transition hover:border-emerald-200 hover:bg-emerald-50"
-                        title="Saisir les buts, cartons et MVP"
-                      >
-                        Événements
-                      </Link>
-                      <button
-                        onClick={() => setScoreModal(m)}
-                        className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-resa-royal transition hover:border-resa-royal/20 hover:bg-resa-gray"
-                      >
-                        Score
-                      </button>
-                      <Link
-                        href={`/admin/matchs/${m.id}`}
-                        className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-resa-navy transition hover:border-resa-navy/20 hover:bg-resa-gray"
-                      >
-                        Modifier
-                      </Link>
-                      <DeleteMatchButton id={m.id} />
-
+                        <Link
+                          href={`/admin/matchs/${m.id}/evenements`}
+                          className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-emerald-600 transition hover:border-emerald-200 hover:bg-emerald-50"
+                          title="Saisir les buts, cartons et MVP"
+                        >
+                          Événements
+                        </Link>
+                        <button
+                          onClick={() => setScoreModal(m)}
+                          className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-resa-royal transition hover:border-resa-royal/20 hover:bg-resa-gray"
+                        >
+                          Score
+                        </button>
+                        <Link
+                          href={`/admin/matchs/${m.id}`}
+                          className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-resa-navy transition hover:border-resa-navy/20 hover:bg-resa-gray"
+                        >
+                          Modifier
+                        </Link>
+                        <button
+                          onClick={() => setToDelete(m)}
+                          className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-red-600 transition hover:border-red-200 hover:bg-red-50"
+                        >
+                          Suppr.
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -195,52 +199,20 @@ export default function MatchesTable({ matches }: { matches: any[] }) {
       {scoreModal && (
         <ScoreModal match={scoreModal} onClose={() => setScoreModal(null)} />
       )}
+
+      <ConfirmModal
+        open={!!toDelete}
+        onClose={() => setToDelete(null)}
+        onConfirm={async () => {
+          if (!toDelete) return;
+          await deleteMatch(toDelete.id);
+          setToDelete(null);
+        }}
+        title="Supprimer ce match ?"
+        message="Ce match sera définitivement supprimé, ainsi que tous ses événements (buts, cartons, MVP). Cette action est irréversible."
+        confirmLabel="Supprimer"
+        variant="danger"
+      />
     </>
-  );
-}
-
-function DeleteMatchButton({ id }: { id: string }) {
-  const [confirming, setConfirming] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleDelete = async () => {
-    setLoading(true);
-    try {
-      await deleteMatch(id);
-    } catch {
-      alert('Erreur lors de la suppression');
-      setLoading(false);
-      setConfirming(false);
-    }
-  };
-
-  if (!confirming) {
-    return (
-      <button
-        onClick={() => setConfirming(true)}
-        className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-red-600 transition hover:border-red-200 hover:bg-red-50"
-      >
-        Suppr.
-      </button>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-1">
-      <button
-        onClick={handleDelete}
-        disabled={loading}
-        className="rounded-lg bg-red-600 px-2 py-1 text-[10px] font-bold uppercase text-white disabled:opacity-50"
-      >
-        {loading ? '…' : 'OK'}
-      </button>
-      <button
-        onClick={() => setConfirming(false)}
-        disabled={loading}
-        className="rounded-lg border border-black/5 bg-white px-2 py-1 text-[10px] font-bold text-resa-text/60"
-      >
-        ✕
-      </button>
-    </div>
   );
 }

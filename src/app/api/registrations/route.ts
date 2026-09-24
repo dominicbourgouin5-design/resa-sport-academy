@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { notifyAdmins } from '@/lib/notify-admins';
 
 // Client serveur sécurisé (utilise le service_role s'il existe, sinon la clé anon)
 function createServerClient() {
@@ -32,30 +33,24 @@ export async function POST(req: NextRequest) {
       school_name: body.school_name
     });
 
-    // Validation
     const type = body.type;
     if (!['school', 'individual'].includes(type)) {
-      console.error('[API /registrations] Type invalide:', type);
       return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
     }
 
     if (!body.contact_name || !body.contact_phone) {
-      console.error('[API /registrations] Champs obligatoires manquants');
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     if (type === 'school' && (!body.school_name || !body.school_city)) {
-      console.error('[API /registrations] Infos école manquantes');
       return NextResponse.json({ error: 'Missing school info' }, { status: 400 });
     }
 
     if (type === 'individual' && !body.player_first_name) {
-      console.error('[API /registrations] Infos joueur manquantes');
       return NextResponse.json({ error: 'Missing player info' }, { status: 400 });
     }
 
     const supabase = createServerClient();
-    console.log('[API /registrations] Insertion dans Supabase...');
 
     const { data, error } = await supabase
       .from('registrations')
@@ -83,21 +78,15 @@ export async function POST(req: NextRequest) {
 
     console.log('[API /registrations] ✅ Inscription créée avec succès, ID:', data.id);
 
-    // 📧 Envoi des emails
+    // ─── 1) Email de confirmation au demandeur ───
     try {
-      console.log('[API /registrations] Début envoi emails...');
-
       const { sendEmail } = await import('@/lib/email');
       const {
         schoolRegistrationConfirmation,
-        individualRegistrationConfirmation,
-        adminNewRegistrationNotification
+        individualRegistrationConfirmation
       } = await import('@/lib/email-templates');
 
-      // 1. Email de confirmation au demandeur
       if (body.contact_email) {
-        console.log('[API /registrations] Envoi confirmation à:', body.contact_email);
-
         const template = type === 'school'
           ? schoolRegistrationConfirmation({
               contactName: body.contact_name,
@@ -116,12 +105,17 @@ export async function POST(req: NextRequest) {
           htmlContent: template.htmlContent
         });
       }
+    } catch (emailErr: any) {
+      console.error('[API /registrations] ⚠️ Erreur email parent:', emailErr);
+    }
 
-      // 2. Notification admin
+    // ─── 2) Email de notification admin ───
+    try {
+      const { sendEmail } = await import('@/lib/email');
+      const { adminNewRegistrationNotification } = await import('@/lib/email-templates');
+
       const adminEmail = process.env.BREVO_SENDER_EMAIL;
       if (adminEmail) {
-        console.log('[API /registrations] Envoi notification admin à:', adminEmail);
-
         const adminTemplate = adminNewRegistrationNotification({
           type,
           contactName: body.contact_name,
@@ -138,7 +132,24 @@ export async function POST(req: NextRequest) {
         });
       }
     } catch (emailErr: any) {
-      console.error('[API /registrations] ⚠️ Erreur lors de l\'envoi de l\'email:', emailErr);
+      console.error('[API /registrations] ⚠️ Erreur email admin:', emailErr);
+    }
+
+    // ─── 3) Notification in-app aux admins ───
+    try {
+      const isSchool = type === 'school';
+      await notifyAdmins({
+        type: 'registration',
+        title: isSchool
+          ? `Nouvelle inscription école`
+          : `Nouvelle détection individuelle`,
+        body: isSchool
+          ? `${body.school_name} — ${body.contact_name}`
+          : `${body.player_first_name} — ${body.contact_name}`,
+        link: '/admin/inscriptions'
+      });
+    } catch (notifErr: any) {
+      console.error('[API /registrations] ⚠️ Erreur notif in-app:', notifErr);
     }
 
     return NextResponse.json({ ok: true, id: data.id });
