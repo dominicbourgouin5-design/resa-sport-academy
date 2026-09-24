@@ -15,21 +15,32 @@ import {
 export const dynamic = 'force-dynamic';
 
 export default async function PaymentReturnPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ locale: string; regId: string }>;
+  searchParams: Promise<{ status?: string; id?: string; close?: string }>;
 }) {
   const { locale, regId } = await params;
+  const { status: callbackStatus } = await searchParams;
   setRequestLocale(locale);
-  return <PaymentReturn regId={regId} locale={locale} />;
+  return (
+    <PaymentReturn
+      regId={regId}
+      locale={locale}
+      callbackStatus={callbackStatus ?? null}
+    />
+  );
 }
 
 async function PaymentReturn({
   regId,
-  locale
+  locale,
+  callbackStatus
 }: {
   regId: string;
   locale: string;
+  callbackStatus: string | null;
 }) {
   const isFr = locale === 'fr';
 
@@ -47,48 +58,85 @@ async function PaymentReturn({
   if (!reg) notFound();
 
   let finalStatus: 'paid' | 'failed' | 'pending' = 'pending';
+  let failureReason: 'declined' | 'canceled' | 'error' = 'declined';
 
-  // Vérification auprès de FedaPay
-  if (reg.payment_provider_id) {
-    try {
-      const tx = await getFedaPayTransaction(Number(reg.payment_provider_id));
+  // ═══════════════════════════════════════════════════════════
+  // 1) PRIORITÉ AU CALLBACK : si FedaPay nous dit "canceled"
+  //    → on fait confiance IMMÉDIATEMENT (sans attendre l'API)
+  // ═══════════════════════════════════════════════════════════
+  if (callbackStatus === 'canceled') {
+    // Vérifier qu'on n'a pas déjà traité (idempotence)
+    if (reg.payment_status !== 'failed') {
+      await supabase
+        .from('camp_registrations')
+        .update({ payment_status: 'failed' })
+        .eq('id', regId);
 
-      if (isPaidStatus(tx.status)) {
-        // ─── SUCCÈS ───
-        await supabase
-          .from('camp_registrations')
-          .update({
-            payment_status: 'paid',
-            payment_method: tx.mode ?? 'fedapay',
-            paid_at: new Date().toISOString(),
-            payment_reference: tx.reference ?? reg.payment_reference
-          })
-          .eq('id', regId);
+      await sendCampFailureEmails(regId, 'canceled');
+    }
+    finalStatus = 'failed';
+    failureReason = 'canceled';
+  } else if (callbackStatus === 'declined') {
+    if (reg.payment_status !== 'failed') {
+      await supabase
+        .from('camp_registrations')
+        .update({ payment_status: 'failed' })
+        .eq('id', regId);
 
-        await sendCampSuccessEmails(regId);
+      await sendCampFailureEmails(regId, 'declined');
+    }
+    finalStatus = 'failed';
+    failureReason = 'declined';
+  } else {
+    // ═══════════════════════════════════════════════════════════
+    // 2) PAS DE CALLBACK CLAIR → on interroge FedaPay
+    // ═══════════════════════════════════════════════════════════
+    if (reg.payment_provider_id) {
+      try {
+        const tx = await getFedaPayTransaction(Number(reg.payment_provider_id));
 
-        finalStatus = 'paid';
-      } else if (isFailedStatus(tx.status)) {
-        // ─── ÉCHEC ───
-        await supabase
-          .from('camp_registrations')
-          .update({ payment_status: 'failed' })
-          .eq('id', regId);
+        if (isPaidStatus(tx.status)) {
+          // ─── SUCCÈS ───
+          if (reg.payment_status !== 'paid') {
+            await supabase
+              .from('camp_registrations')
+              .update({
+                payment_status: 'paid',
+                payment_method: tx.mode ?? 'fedapay',
+                paid_at: new Date().toISOString(),
+                payment_reference: tx.reference ?? reg.payment_reference
+              })
+              .eq('id', regId);
 
-        const reason = tx.status === 'canceled' ? 'canceled' : 'declined';
-        await sendCampFailureEmails(regId, reason);
+            await sendCampSuccessEmails(regId);
+          }
+          finalStatus = 'paid';
+        } else if (isFailedStatus(tx.status)) {
+          // ─── ÉCHEC (confirmé par FedaPay) ───
+          if (reg.payment_status !== 'failed') {
+            await supabase
+              .from('camp_registrations')
+              .update({ payment_status: 'failed' })
+              .eq('id', regId);
 
-        finalStatus = 'failed';
-      } else {
+            const reason = tx.status === 'canceled' ? 'canceled' : 'declined';
+            await sendCampFailureEmails(regId, reason);
+          }
+          finalStatus = 'failed';
+          failureReason = tx.status === 'canceled' ? 'canceled' : 'declined';
+        } else {
+          // Statut pending confirmé par l'API
+          finalStatus = 'pending';
+        }
+      } catch (err) {
+        console.error('[PaymentReturn] FedaPay verify error:', err);
         finalStatus = 'pending';
       }
-    } catch (err) {
-      console.error('[PaymentReturn] FedaPay verify error:', err);
+    } else if (reg.payment_status === 'paid') {
+      finalStatus = 'paid';
+    } else if (reg.payment_status === 'failed') {
+      finalStatus = 'failed';
     }
-  } else if (reg.payment_status === 'paid') {
-    finalStatus = 'paid';
-  } else if (reg.payment_status === 'failed') {
-    finalStatus = 'failed';
   }
 
   const campTitle = isFr
@@ -98,10 +146,13 @@ async function PaymentReturn({
   const isSuccess = finalStatus === 'paid';
   const isFailed = finalStatus === 'failed';
 
+  // ─── Textes selon statut ───
   const title = isSuccess
     ? isFr ? 'Paiement confirmé !' : 'Payment confirmed!'
     : isFailed
-      ? isFr ? 'Paiement non abouti' : 'Payment failed'
+      ? failureReason === 'canceled'
+        ? isFr ? 'Paiement annulé' : 'Payment canceled'
+        : isFr ? 'Paiement non abouti' : 'Payment failed'
       : isFr ? 'Paiement en cours de vérification' : 'Payment being verified';
 
   const message = isSuccess
@@ -109,30 +160,30 @@ async function PaymentReturn({
       ? `Votre place pour "${campTitle}" est réservée. Un email de confirmation vient de vous être envoyé.`
       : `Your spot for "${campTitle}" is booked. A confirmation email has just been sent.`
     : isFailed
-      ? isFr
-        ? `Le paiement n'a pas abouti. Votre place n'est PAS réservée. Vous recevrez un email avec les options pour réessayer ou nous contacter.`
-        : `The payment did not go through. Your spot is NOT booked. You will receive an email with options to retry or contact us.`
+      ? failureReason === 'canceled'
+        ? isFr
+          ? `Vous avez annulé le paiement. Votre place n'est PAS réservée. Vous recevrez un email avec les options pour réessayer.`
+          : `You canceled the payment. Your spot is NOT booked. You will receive an email with options to retry.`
+        : isFr
+          ? `Le paiement n'a pas abouti. Votre place n'est PAS réservée. Vous recevrez un email avec les options pour réessayer ou nous contacter.`
+          : `The payment did not go through. Your spot is NOT booked. You will receive an email with options to retry or contact us.`
       : isFr
         ? 'Nous vérifions auprès de FedaPay. Patientez quelques instants ou consultez vos emails.'
         : 'We are verifying with FedaPay. Please wait or check your emails.';
 
+  // Icône & couleur
+  const icon = isSuccess ? '✓' : isFailed ? '✕' : '⏳';
+  const barColor = isSuccess ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-amber-500';
+  const iconBg = isSuccess ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-amber-500';
+
   return (
     <section className="mx-auto max-w-2xl px-4 py-20 md:px-6 md:py-28">
       <div className="overflow-hidden rounded-3xl border border-black/5 bg-white shadow-resa-lg">
-        <div
-          className={`h-2 ${
-            isSuccess ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-amber-500'
-          }`}
-        />
+        <div className={`h-2 ${barColor}`} />
 
         <div className="p-8 text-center md:p-12">
-          {/* Icône */}
-          <div
-            className={`mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full text-4xl text-white shadow-lg ${
-              isSuccess ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-amber-500'
-            }`}
-          >
-            {isSuccess ? '✓' : isFailed ? '✕' : '⏳'}
+          <div className={`mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full text-4xl text-white shadow-lg ${iconBg}`}>
+            {icon}
           </div>
 
           <h1 className="font-display text-2xl font-black text-resa-navy md:text-3xl">
@@ -143,7 +194,7 @@ async function PaymentReturn({
             {message}
           </p>
 
-          {/* Récap événement */}
+          {/* Récap */}
           {reg.camp && (
             <div className="mx-auto mt-8 max-w-md rounded-2xl border border-black/5 bg-resa-gray/40 p-5 text-left">
               <div className="text-[10px] font-black uppercase tracking-widest text-resa-text/40">
@@ -151,24 +202,16 @@ async function PaymentReturn({
               </div>
               <div className="mt-3 space-y-2 text-[13px]">
                 <div className="flex items-center justify-between">
-                  <span className="text-resa-text/60">
-                    {isFr ? 'Événement' : 'Event'}
-                  </span>
+                  <span className="text-resa-text/60">{isFr ? 'Événement' : 'Event'}</span>
                   <span className="font-semibold text-resa-navy">{campTitle}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-resa-text/60">
-                    {isFr ? 'Joueur' : 'Player'}
-                  </span>
-                  <span className="font-semibold text-resa-navy">
-                    {reg.player_name}
-                  </span>
+                  <span className="text-resa-text/60">{isFr ? 'Joueur' : 'Player'}</span>
+                  <span className="font-semibold text-resa-navy">{reg.player_name}</span>
                 </div>
                 {reg.camp.date_start && (
                   <div className="flex items-center justify-between">
-                    <span className="text-resa-text/60">
-                      {isFr ? 'Date' : 'Date'}
-                    </span>
+                    <span className="text-resa-text/60">{isFr ? 'Date' : 'Date'}</span>
                     <span className="font-semibold text-resa-navy">
                       {new Date(reg.camp.date_start).toLocaleDateString(
                         isFr ? 'fr-FR' : 'en-GB',
@@ -179,31 +222,17 @@ async function PaymentReturn({
                 )}
                 {reg.camp.price_amount && (
                   <div className="flex items-center justify-between border-t border-black/5 pt-2">
-                    <span className="text-resa-text/60">
-                      {isFr ? 'Montant' : 'Amount'}
-                    </span>
-                    <span
-                      className={`font-display font-black ${
-                        isSuccess ? 'text-emerald-600' : 'text-resa-red'
-                      }`}
-                    >
+                    <span className="text-resa-text/60">{isFr ? 'Montant' : 'Amount'}</span>
+                    <span className={`font-display font-black ${isSuccess ? 'text-emerald-600' : 'text-resa-red'}`}>
                       {reg.camp.price_amount.toLocaleString('fr-FR')} FCFA
                     </span>
                   </div>
                 )}
                 <div className="flex items-center justify-between border-t border-black/5 pt-2">
-                  <span className="text-resa-text/60">
-                    {isFr ? 'Statut' : 'Status'}
-                  </span>
-                  <span
-                    className={`font-display font-black uppercase text-[11px] ${
-                      isSuccess
-                        ? 'text-emerald-600'
-                        : isFailed
-                          ? 'text-red-600'
-                          : 'text-amber-600'
-                    }`}
-                  >
+                  <span className="text-resa-text/60">{isFr ? 'Statut' : 'Status'}</span>
+                  <span className={`font-display font-black uppercase text-[11px] ${
+                    isSuccess ? 'text-emerald-600' : isFailed ? 'text-red-600' : 'text-amber-600'
+                  }`}>
                     {isSuccess
                       ? isFr ? '✓ Payé' : '✓ Paid'
                       : isFailed
@@ -218,29 +247,18 @@ async function PaymentReturn({
           {/* Actions */}
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             {isSuccess && (
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 rounded-full bg-resa-navy px-6 py-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-resa-royal"
-              >
+              <Link href="/" className="inline-flex items-center gap-2 rounded-full bg-resa-navy px-6 py-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-resa-royal">
                 {isFr ? "Retour à l'accueil" : 'Back home'}
               </Link>
             )}
 
             {isFailed && reg.camp?.slug && (
-              <Link
-                href={`/camps/${reg.camp.slug}` as any}
-                className="inline-flex items-center gap-2 rounded-full bg-resa-red px-6 py-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-red-700"
-              >
+              <Link href={`/camps/${reg.camp.slug}` as any} className="inline-flex items-center gap-2 rounded-full bg-resa-red px-6 py-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-red-700">
                 {isFr ? 'Réessayer le paiement' : 'Try payment again'}
               </Link>
             )}
 
-            <a
-              href="https://wa.me/2250700000000"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-xs font-bold uppercase tracking-wide text-white transition hover:brightness-110"
-            >
+            <a href="https://wa.me/2250700000000" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-xs font-bold uppercase tracking-wide text-white transition hover:brightness-110">
               💬 {isFr ? "Contacter l'équipe" : 'Contact team'}
             </a>
           </div>
