@@ -45,19 +45,33 @@ function ProgramDetail({
   const hasGroupSize =
     program.group_size_min && program.group_size_max;
 
+  // Cascade image : image_url DB → image locale → gradient
+  const heroImage = program.image_url ?? `/images/programs/training/${program.slug}.jpg`;
+  const accent = program.accent ?? 'from-resa-navy to-resa-royal';
+
   return (
     <>
-      {/* ─── HERO ─── */}
+      {/* ─── HERO avec image en fond ─── */}
       <section className="relative overflow-hidden bg-resa-navy text-white">
-        <div className="absolute inset-0 bg-grid opacity-20" />
-        <div className="absolute inset-0 bg-halo opacity-60" />
-        <div
-          className={`pointer-events-none absolute -right-20 top-1/4 h-96 w-96 rounded-full bg-gradient-to-br ${
-            program.accent ?? 'from-resa-royal to-resa-navy'
-          } opacity-20 blur-3xl anim-float`}
+        {/* Fallback gradient */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${accent}`} />
+
+        {/* Image en fond */}
+        <img
+          src={heroImage}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
         />
 
-        <div className="relative mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-20">
+        {/* Overlay gradient navy pour lisibilité */}
+        <div className="absolute inset-0 bg-gradient-to-t from-resa-navy via-resa-navy/80 to-resa-navy/50" />
+        <div className="absolute inset-0 bg-grid opacity-15" />
+
+        {/* Halo décoratif */}
+        <div className={`pointer-events-none absolute -right-20 top-1/4 h-96 w-96 rounded-full bg-gradient-to-br ${accent} opacity-20 blur-3xl anim-float`} />
+
+        <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24">
           {/* Breadcrumb */}
           <div className="mb-6 text-[11px] text-white/50">
             <Link href="/private-training" className="transition hover:text-white">
@@ -68,22 +82,20 @@ function ProgramDetail({
           </div>
 
           <div className="flex flex-col items-start gap-6 md:flex-row md:items-center">
-            {/* Icône */}
+            {/* Icône badge */}
             <div
-              className={`grid h-24 w-24 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${
-                program.accent ?? 'from-resa-navy to-resa-royal'
-              } text-5xl shadow-resa-lg md:h-28 md:w-28 md:text-6xl`}
+              className={`grid h-24 w-24 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-5xl shadow-resa-lg backdrop-blur-md md:h-28 md:w-28 md:text-6xl`}
             >
               {program.icon ?? '⚽'}
             </div>
 
-            {/* Infos */}
+            {/* Titre + description */}
             <div className="flex-1">
-              <h1 className="font-display text-4xl font-black leading-tight md:text-5xl">
+              <h1 className="font-display text-4xl font-black leading-tight md:text-5xl lg:text-6xl">
                 {title}
               </h1>
               {description && (
-                <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/80 md:text-lg">
+                <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/85 md:text-lg">
                   {description}
                 </p>
               )}
@@ -96,9 +108,7 @@ function ProgramDetail({
       {/* ─── DÉTAILS ─── */}
       <section className="mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-20">
         <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
-          {/* Colonne principale */}
           <div className="space-y-8">
-            {/* Description longue */}
             {longDesc && (
               <Reveal variant="right">
                 <article>
@@ -115,7 +125,6 @@ function ProgramDetail({
               </Reveal>
             )}
 
-            {/* Points forts */}
             {highlights.length > 0 && (
               <Reveal variant="right" delay={100}>
                 <article>
@@ -141,9 +150,7 @@ function ProgramDetail({
             )}
           </div>
 
-          {/* Sidebar */}
           <aside className="space-y-6">
-            {/* Infos pratiques */}
             <Reveal variant="left">
               <article className="rounded-2xl border border-black/5 bg-white p-6 shadow-resa">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-resa-red">
@@ -184,7 +191,6 @@ function ProgramDetail({
               </article>
             </Reveal>
 
-            {/* CTA Réserver */}
             <Reveal variant="left" delay={100}>
               <article className="rounded-2xl bg-resa-navy p-6 text-white shadow-resa-lg">
                 <h3 className="font-display text-xl font-black">
@@ -231,6 +237,8 @@ function ProgramDetail({
               {others.map((p, i) => {
                 const oTitle = isFr ? p.title_fr : p.title_en;
                 const oDesc  = isFr ? p.description_fr : p.description_en;
+                const oImg   = p.image_url ?? `/images/programs/training/${p.slug}.jpg`;
+                const oAccent = p.accent ?? 'from-resa-navy to-resa-royal';
                 return (
                   <div key={p.id} className="w-full px-3 pb-6 md:w-1/3">
                     <Reveal variant="up" delay={i * 100}>
@@ -239,13 +247,22 @@ function ProgramDetail({
                         className="group block h-full"
                       >
                         <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg">
-                          <div
-                            className={`h-1.5 w-full bg-gradient-to-r ${
-                              p.accent ?? 'from-resa-navy to-resa-royal'
-                            }`}
-                          />
+                          {/* Image header */}
+                          <div className="relative h-40 overflow-hidden">
+                            <div className={`absolute inset-0 bg-gradient-to-br ${oAccent}`} />
+                            <img
+                              src={oImg}
+                              alt=""
+                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-resa-navy/80 via-transparent to-transparent" />
+                            <div className="absolute left-4 top-4 grid h-11 w-11 place-items-center rounded-xl border border-white/15 bg-white/10 text-2xl backdrop-blur-md">
+                              {p.icon ?? '⚽'}
+                            </div>
+                          </div>
+
                           <div className="flex flex-1 flex-col p-6">
-                            <div className="mb-3 text-4xl">{p.icon ?? '⚽'}</div>
                             <h3 className="font-display text-base font-black text-resa-navy transition-colors group-hover:text-resa-red">
                               {oTitle}
                             </h3>
