@@ -22,13 +22,15 @@ export default async function PaymentReturnPage({
   searchParams: Promise<{ status?: string; id?: string; close?: string }>;
 }) {
   const { locale, regId } = await params;
-  const { status: callbackStatus } = await searchParams;
+  const { status: callbackStatus, close: closeParam } = await searchParams;
   setRequestLocale(locale);
+
   return (
     <PaymentReturn
       regId={regId}
       locale={locale}
       callbackStatus={callbackStatus ?? null}
+      isClosed={closeParam === 'true' || closeParam === '1'}
     />
   );
 }
@@ -36,14 +38,15 @@ export default async function PaymentReturnPage({
 async function PaymentReturn({
   regId,
   locale,
-  callbackStatus
+  callbackStatus,
+  isClosed
 }: {
   regId: string;
   locale: string;
   callbackStatus: string | null;
+  isClosed: boolean;
 }) {
   const isFr = locale === 'fr';
-
   const supabase = createAdminClient();
 
   const { data: reg } = await supabase
@@ -61,42 +64,57 @@ async function PaymentReturn({
   let failureReason: 'declined' | 'canceled' | 'error' = 'declined';
 
   // ═══════════════════════════════════════════════════════════
-  // 1) PRIORITÉ AU CALLBACK : si FedaPay nous dit "canceled"
-  //    → on fait confiance IMMÉDIATEMENT (sans attendre l'API)
+  // 1) CAS D'ANNULATION DIRECTE (Bouton "Annuler" FedaPay)
+  //    FedaPay renvoie status=pending&close=true OU status=canceled
   // ═══════════════════════════════════════════════════════════
-  if (callbackStatus === 'canceled') {
-    // Vérifier qu'on n'a pas déjà traité (idempotence)
-    if (reg.payment_status !== 'failed') {
-      await supabase
-        .from('camp_registrations')
-        .update({ payment_status: 'failed' })
-        .eq('id', regId);
+  if (callbackStatus === 'canceled' || isClosed) {
+    if (reg.payment_status !== 'paid') {
+      if (reg.payment_status !== 'failed') {
+        await supabase
+          .from('camp_registrations')
+          .update({ payment_status: 'failed' })
+          .eq('id', regId);
 
-      await sendCampFailureEmails(regId, 'canceled');
+        await sendCampFailureEmails(regId, 'canceled');
+      }
+      finalStatus = 'failed';
+      failureReason = 'canceled';
+    } else {
+      finalStatus = 'paid';
     }
-    finalStatus = 'failed';
-    failureReason = 'canceled';
   } else if (callbackStatus === 'declined') {
-    if (reg.payment_status !== 'failed') {
-      await supabase
-        .from('camp_registrations')
-        .update({ payment_status: 'failed' })
-        .eq('id', regId);
+    // ═══════════════════════════════════════════════════════════
+    // 2) CAS DE REFUS EXPLICITE DANS L'URL
+    // ═══════════════════════════════════════════════════════════
+    if (reg.payment_status !== 'paid') {
+      if (reg.payment_status !== 'failed') {
+        await supabase
+          .from('camp_registrations')
+          .update({ payment_status: 'failed' })
+          .eq('id', regId);
 
-      await sendCampFailureEmails(regId, 'declined');
+        await sendCampFailureEmails(regId, 'declined');
+      }
+      finalStatus = 'failed';
+      failureReason = 'declined';
+    } else {
+      finalStatus = 'paid';
     }
-    finalStatus = 'failed';
-    failureReason = 'declined';
   } else {
     // ═══════════════════════════════════════════════════════════
-    // 2) PAS DE CALLBACK CLAIR → on interroge FedaPay
+    // 3) VÉRIFICATION : D'abord la base locale (déjà MAJ par webhook ?),
+    //    puis vérification auprès de l'API FedaPay
     // ═══════════════════════════════════════════════════════════
-    if (reg.payment_provider_id) {
+    if (reg.payment_status === 'paid') {
+      finalStatus = 'paid';
+    } else if (reg.payment_status === 'failed') {
+      finalStatus = 'failed';
+      failureReason = 'declined';
+    } else if (reg.payment_provider_id) {
       try {
         const tx = await getFedaPayTransaction(Number(reg.payment_provider_id));
 
         if (isPaidStatus(tx.status)) {
-          // ─── SUCCÈS ───
           if (reg.payment_status !== 'paid') {
             await supabase
               .from('camp_registrations')
@@ -112,7 +130,6 @@ async function PaymentReturn({
           }
           finalStatus = 'paid';
         } else if (isFailedStatus(tx.status)) {
-          // ─── ÉCHEC (confirmé par FedaPay) ───
           if (reg.payment_status !== 'failed') {
             await supabase
               .from('camp_registrations')
@@ -125,17 +142,12 @@ async function PaymentReturn({
           finalStatus = 'failed';
           failureReason = tx.status === 'canceled' ? 'canceled' : 'declined';
         } else {
-          // Statut pending confirmé par l'API
           finalStatus = 'pending';
         }
       } catch (err) {
         console.error('[PaymentReturn] FedaPay verify error:', err);
         finalStatus = 'pending';
       }
-    } else if (reg.payment_status === 'paid') {
-      finalStatus = 'paid';
-    } else if (reg.payment_status === 'failed') {
-      finalStatus = 'failed';
     }
   }
 
@@ -146,7 +158,6 @@ async function PaymentReturn({
   const isSuccess = finalStatus === 'paid';
   const isFailed = finalStatus === 'failed';
 
-  // ─── Textes selon statut ───
   const title = isSuccess
     ? isFr ? 'Paiement confirmé !' : 'Payment confirmed!'
     : isFailed
@@ -171,7 +182,6 @@ async function PaymentReturn({
         ? 'Nous vérifions auprès de FedaPay. Patientez quelques instants ou consultez vos emails.'
         : 'We are verifying with FedaPay. Please wait or check your emails.';
 
-  // Icône & couleur
   const icon = isSuccess ? '✓' : isFailed ? '✕' : '⏳';
   const barColor = isSuccess ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-amber-500';
   const iconBg = isSuccess ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-amber-500';
@@ -194,7 +204,6 @@ async function PaymentReturn({
             {message}
           </p>
 
-          {/* Récap */}
           {reg.camp && (
             <div className="mx-auto mt-8 max-w-md rounded-2xl border border-black/5 bg-resa-gray/40 p-5 text-left">
               <div className="text-[10px] font-black uppercase tracking-widest text-resa-text/40">
@@ -244,7 +253,6 @@ async function PaymentReturn({
             </div>
           )}
 
-          {/* Actions */}
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             {isSuccess && (
               <Link href="/" className="inline-flex items-center gap-2 rounded-full bg-resa-navy px-6 py-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-resa-royal">
