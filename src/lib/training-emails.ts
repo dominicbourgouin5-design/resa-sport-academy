@@ -292,3 +292,69 @@ ${contactButtons(`Paiement training - ${req.program_title ?? 'RESA'}`, "💬 Nou
 
   return { ok: true };
 }
+
+
+// ═══════════════════════════════════════════════════════════
+// EMAIL — Lien de paiement PayPal
+// ═══════════════════════════════════════════════════════════
+export async function sendTrainingPayPalLinkEmail(
+  requestId: string,
+  paymentUrl: string,
+  isResend = false
+): Promise<{ ok: boolean }> {
+  const supabase = createAdminClient();
+
+  const { data: req } = await supabase
+    .from('training_requests')
+    .select('*')
+    .eq('id', requestId)
+    .single();
+
+  if (!req) return { ok: false };
+
+  const adminEmail = process.env.BREVO_SENDER_EMAIL ?? 'contact@cataria-systems.com';
+  const amountLabel = req.payment_amount
+    ? `${Number(req.payment_amount).toLocaleString('fr-FR')} ${req.payment_currency ?? 'USD'}`
+    : '—';
+
+  const headline = isResend ? 'Nouveau lien de paiement PayPal 🔄' : "C'est calé ! 🎉";
+  const intro = isResend
+    ? `Voici un <strong>nouveau lien de paiement PayPal</strong> pour finaliser votre séance${req.program_title ? ` <strong>${req.program_title}</strong>` : ''}. <em>L'ancien lien n'est plus valable.</em>`
+    : `Bonne nouvelle : nous avons validé votre créneau pour la séance${req.program_title ? ` <strong>${req.program_title}</strong>` : ''}. Il ne reste plus qu'à finaliser le paiement pour bloquer définitivement la place${req.player_name ? ` de <strong>${req.player_name}</strong>` : ''}.`;
+
+  const subject = isResend
+    ? `🔄 Nouveau lien de paiement PayPal — ${req.program_title ?? 'Training RESA'}`
+    : `💳 Votre lien de paiement PayPal — ${req.program_title ?? 'Training RESA'}`;
+
+  const inner = `
+<h1 style="font-size:24px;font-weight:900;color:#0A1F44;margin:0 0 8px;">${headline}</h1>
+<p style="color:#64748B;margin:0 0 24px;font-size:14px;">Bonjour ${req.parent_name},</p>
+<p style="font-size:16px;">${intro}</p>
+<div style="background:#EFF6FF;border-left:4px solid #003087;padding:18px 22px;border-radius:10px;margin:28px 0;">
+  <div style="font-weight:800;color:#003087;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Récapitulatif</div>
+  ${req.program_title ? `<div><strong>Programme :</strong> ${req.program_title}</div>` : ''}
+  ${req.player_name ? `<div style="margin-top:6px;"><strong>Joueur :</strong> ${req.player_name}${req.player_age ? ` (${req.player_age} ans)` : ''}</div>` : ''}
+  <div style="margin-top:12px;font-size:20px;font-weight:900;color:#DC2626;">${amountLabel}</div>
+  <div style="margin-top:6px;font-size:11px;color:#64748B;">Moyen de paiement : PayPal (carte bancaire / compte PayPal)</div>
+</div>
+<p>Cliquez sur le bouton ci-dessous pour régler en toute sécurité via PayPal.</p>
+${contactButtons(`Paiement PayPal - ${req.program_title ?? 'RESA'}`, "💳 Payer avec PayPal", paymentUrl)}
+<p style="margin-top:24px;font-size:13px;color:#64748B;">
+  ⏱️ Le lien reste valable 24h. Passé ce délai, la place pourra être réattribuée.
+</p>
+<p style="margin-top:28px;">À très vite sur le terrain,<br/><strong>L'équipe RESA Sport Academy</strong> ⚽</p>`;
+
+  try {
+    await sendEmail({
+      to: [{ email: req.parent_email, name: req.parent_name }],
+      subject,
+      htmlContent: layout(inner),
+      replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
+    });
+    console.log(`[Training Emails] 📧 Email PayPal ${isResend ? '(renvoi) ' : ''}envoyé`);
+    return { ok: true };
+  } catch (err) {
+    console.error('[Training Emails] ⚠️ PayPal email échec:', err);
+    return { ok: false };
+  }
+}

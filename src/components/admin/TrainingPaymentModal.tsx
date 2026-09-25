@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react';
 import Modal from '@/components/admin/Modal';
 import {
   sendTrainingPaymentLink,
+  sendTrainingPayPalLink,
   getTrainingProgramRate
 } from '@/app/admin/demandes-training/actions';
+
+type Method = 'fedapay' | 'paypal';
 
 export default function TrainingPaymentModal({
   request,
@@ -14,6 +17,7 @@ export default function TrainingPaymentModal({
   request: any;
   onClose: () => void;
 }) {
+  const [method, setMethod] = useState<Method>('fedapay');
   const [amount, setAmount] = useState<string>(
     request.payment_amount ? String(request.payment_amount) : ''
   );
@@ -27,9 +31,16 @@ export default function TrainingPaymentModal({
   const isResend =
     request.payment_status === 'pending' || request.payment_status === 'failed';
 
-  // ═══════════════════════════════════════════════════════════
+  // Change devise auto selon méthode
+  useEffect(() => {
+    if (method === 'paypal' && currency === 'XOF') {
+      setCurrency('USD');
+    } else if (method === 'fedapay' && currency !== 'XOF') {
+      setCurrency('XOF');
+    }
+  }, [method]); // eslint-disable-line
+
   // Auto-charger le tarif depuis la DB si montant vide
-  // ═══════════════════════════════════════════════════════════
   useEffect(() => {
     const shouldFetch = !request.payment_amount && request.program_slug;
     if (!shouldFetch) return;
@@ -39,14 +50,10 @@ export default function TrainingPaymentModal({
 
     getTrainingProgramRate(request.program_slug)
       .then((rate) => {
-        if (!cancelled && rate && !amount) {
-          setAmount(String(rate));
-        }
+        if (!cancelled && rate && !amount) setAmount(String(rate));
       })
       .catch((err) => console.warn('[TrainingPaymentModal] rate lookup:', err))
-      .finally(() => {
-        if (!cancelled) setLoadingRate(false);
-      });
+      .finally(() => { if (!cancelled) setLoadingRate(false); });
 
     return () => { cancelled = true; };
   }, [request.program_slug, request.payment_amount]); // eslint-disable-line
@@ -62,7 +69,10 @@ export default function TrainingPaymentModal({
     setResult(null);
 
     try {
-      const res = await sendTrainingPaymentLink(request.id, num, currency);
+      const res = method === 'paypal'
+        ? await sendTrainingPayPalLink(request.id, num, currency)
+        : await sendTrainingPaymentLink(request.id, num, currency);
+
       if (res.error) {
         setResult({ ok: false, error: res.error });
         setSending(false);
@@ -81,14 +91,12 @@ export default function TrainingPaymentModal({
       <Modal open onClose={onClose}>
         <div className="absolute inset-0 bg-black/70 backdrop-blur-md anim-fade-in" onClick={onClose} aria-hidden="true" />
         <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.35)] anim-fade-up">
-          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-emerald-500 text-3xl text-white shadow-lg">
-            ✓
-          </div>
+          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-emerald-500 text-3xl text-white shadow-lg">✓</div>
           <h2 className="font-display text-2xl font-black text-resa-navy">
             {isResend ? 'Nouveau lien envoyé !' : 'Lien envoyé !'}
           </h2>
           <p className="mt-2 text-sm text-resa-text/60">
-            Le parent vient de recevoir un email avec le lien de paiement.
+            Le parent vient de recevoir un email {method === 'paypal' ? 'PayPal' : 'FedaPay'} avec le lien de paiement.
           </p>
         </div>
       </Modal>
@@ -99,7 +107,7 @@ export default function TrainingPaymentModal({
     <Modal open onClose={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md anim-fade-in" onClick={onClose} aria-hidden="true" />
       <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] anim-fade-up">
-        <div className="h-1 bg-gradient-to-r from-resa-red via-resa-royal to-resa-red" />
+        <div className="h-1 bg-linear-to-r from-resa-red via-resa-royal to-resa-red" />
 
         <div className="flex items-center justify-between border-b border-black/5 px-6 py-4">
           <div className="text-[10px] font-bold uppercase tracking-widest text-resa-red">
@@ -108,20 +116,16 @@ export default function TrainingPaymentModal({
           <button
             onClick={onClose}
             className="grid h-8 w-8 place-items-center rounded-full text-resa-text/40 transition hover:bg-resa-gray hover:text-resa-navy"
-            aria-label="Fermer"
           >
             ✕
           </button>
         </div>
 
         <div className="space-y-5 p-6">
+          {/* Destinataire */}
           <div className="rounded-lg border border-black/5 bg-resa-gray/40 px-4 py-3 text-sm">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
-              Destinataire
-            </div>
-            <div className="mt-1 font-semibold text-resa-navy">
-              {request.parent_name}
-            </div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-resa-text/50">Destinataire</div>
+            <div className="mt-1 font-semibold text-resa-navy">{request.parent_name}</div>
             <div className="text-xs text-resa-text/60">{request.parent_email}</div>
             {request.program_title && (
               <div className="mt-2 inline-flex rounded-full bg-resa-navy/5 px-2.5 py-0.5 text-[11px] font-semibold text-resa-navy">
@@ -130,6 +134,44 @@ export default function TrainingPaymentModal({
             )}
           </div>
 
+          {/* Choix méthode */}
+          <div>
+            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
+              Méthode de paiement *
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMethod('fedapay')}
+                className={`rounded-lg border-2 px-3 py-2.5 text-left transition ${
+                  method === 'fedapay'
+                    ? 'border-resa-red bg-resa-red/5'
+                    : 'border-black/10 bg-white hover:border-resa-navy/30'
+                }`}
+              >
+                <div className="text-[13px] font-bold text-resa-navy">📱 FedaPay</div>
+                <div className="mt-0.5 text-[10px] text-resa-text/55">
+                  Mobile Money · Carte
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMethod('paypal')}
+                className={`rounded-lg border-2 px-3 py-2.5 text-left transition ${
+                  method === 'paypal'
+                    ? 'border-resa-red bg-resa-red/5'
+                    : 'border-black/10 bg-white hover:border-resa-navy/30'
+                }`}
+              >
+                <div className="text-[13px] font-bold text-resa-navy">💳 PayPal</div>
+                <div className="mt-0.5 text-[10px] text-resa-text/55">
+                  International · Cartes
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Montant + devise */}
           <div>
             <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
               Montant à facturer *
@@ -140,8 +182,9 @@ export default function TrainingPaymentModal({
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="25000"
+                placeholder={method === 'paypal' ? '25.00' : '25000'}
                 min={1}
+                step={method === 'paypal' ? '0.01' : '1'}
                 className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[15px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
               />
               <select
@@ -149,13 +192,24 @@ export default function TrainingPaymentModal({
                 onChange={(e) => setCurrency(e.target.value)}
                 className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[13px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
               >
-                <option value="XOF">FCFA</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
+                {method === 'fedapay' ? (
+                  <>
+                    <option value="XOF">FCFA</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </>
+                )}
               </select>
             </div>
             <div className="mt-1.5 text-[10px] text-resa-text/40">
-              Le parent recevra un email avec un bouton « Payer maintenant ».
+              {method === 'paypal'
+                ? 'PayPal accepte USD et EUR uniquement. Conversion automatique.'
+                : 'Le parent recevra un email avec un bouton « Payer maintenant ».'}
             </div>
           </div>
 
@@ -165,7 +219,7 @@ export default function TrainingPaymentModal({
               {request.payment_link_sent_at && (
                 <> le {new Date(request.payment_link_sent_at).toLocaleDateString('fr-FR')}</>
               )}
-              . Un <strong>nouveau lien</strong> sera généré et remplacera l'ancien. L'email le précisera au parent.
+              . Un <strong>nouveau lien</strong> sera généré et remplacera l'ancien.
             </div>
           )}
 
@@ -189,7 +243,7 @@ export default function TrainingPaymentModal({
             disabled={sending || !amount}
             className="inline-flex items-center gap-2 rounded-full bg-resa-red px-6 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:opacity-50"
           >
-            {sending ? 'Envoi…' : isResend ? '🔄 Renvoyer le lien' : 'Envoyer le lien'}
+            {sending ? 'Envoi…' : isResend ? 'Renvoyer le lien' : 'Envoyer le lien'}
             {!sending && <span>→</span>}
           </button>
         </div>

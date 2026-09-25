@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendTrainingPayPalLinkEmail } from '@/lib/training-emails';
 import { getCurrentProfile } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
 import {
@@ -231,6 +232,76 @@ export async function sendTrainingPaymentLink(
     return { ok: true, payment_url: paymentUrl };
   } catch (err: any) {
     console.error('[Training Payment Link] Error:', err);
+    return { error: err.message ?? 'Erreur inconnue' };
+  }
+}
+
+
+
+// ═══════════════════════════════════════════════════════════
+// Envoyer un lien de paiement PayPal
+// ═══════════════════════════════════════════════════════════
+export async function sendTrainingPayPalLink(
+  requestId: string,
+  amount: number,
+  currency = 'USD'
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    await requireRole(['admin', 'league_manager']);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { error: 'Montant invalide.' };
+    }
+
+    const supabase = createAdminClient();
+    const { data: req } = await supabase
+      .from('training_requests')
+      .select('*')
+      .eq('id', requestId)
+      .single();
+
+    if (!req) return { error: 'Demande introuvable.' };
+    if (req.payment_status === 'paid') return { error: 'Déjà payée.' };
+
+    const { createPayPalOrder } = await import('@/lib/payments/paypal');
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    const returnUrl = `${siteUrl}/fr/paiement/paypal/training/${requestId}`;
+    const cancelUrl = `${siteUrl}/fr/paiement/paypal/training/${requestId}?cancelled=1`;
+
+    const order = await createPayPalOrder({
+      amount: Number(amount),
+      currency,
+      description: `Training — ${req.program_title ?? 'RESA'}`,
+      referenceId: requestId,
+      returnUrl,
+      cancelUrl
+    });
+
+    const isResend = req.payment_link_sent_at != null;
+
+    await supabase
+      .from('training_requests')
+      .update({
+        payment_status: 'pending',
+        payment_method: 'paypal',
+        payment_provider_id: order.id,
+        payment_token: order.id,
+        payment_reference: null,
+        payment_amount: Math.round(amount),
+        payment_currency: currency,
+        payment_link_sent_at: new Date().toISOString(),
+        failure_email_sent_at: null
+      })
+      .eq('id', requestId);
+
+    // Envoyer l'email avec le lien PayPal
+    await sendTrainingPayPalLinkEmail(requestId, order.approveUrl, isResend);
+
+    revalidatePath('/admin/demandes-training');
+    return { ok: true };
+  } catch (err: any) {
+    console.error('[Training PayPal Link] Error:', err);
     return { error: err.message ?? 'Erreur inconnue' };
   }
 }
