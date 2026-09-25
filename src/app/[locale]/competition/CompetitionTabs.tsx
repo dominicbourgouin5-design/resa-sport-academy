@@ -122,57 +122,85 @@ export default function CompetitionTabs({
               <p className="text-center text-resa-text/60">{t('noStandings')}</p>
             ) : (
               <div className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-black/5 bg-resa-gray text-[10px] font-bold uppercase tracking-widest text-resa-text/60">
-                      <th className="px-3 py-3 text-left md:px-5">{t('position')}</th>
-                      <th className="px-3 py-3 text-left md:px-5">{t('team')}</th>
-                      <th className="px-2 py-3 text-center">{t('played')}</th>
-                      <th className="hidden px-2 py-3 text-center sm:table-cell">{t('won')}</th>
-                      <th className="hidden px-2 py-3 text-center sm:table-cell">{t('drawn')}</th>
-                      <th className="hidden px-2 py-3 text-center sm:table-cell">{t('lost')}</th>
-                      <th className="hidden px-2 py-3 text-center md:table-cell">{t('goalsFor')}</th>
-                      <th className="hidden px-2 py-3 text-center md:table-cell">{t('goalsAgainst')}</th>
-                      <th className="px-2 py-3 text-center">{t('goalDiff')}</th>
-                      <th className="px-3 py-3 text-center font-black md:px-5">{t('points')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {standings.map((s: any, i: number) => (
-                      <tr key={s.id} className={cn(
-                        'border-b border-black/5 transition-colors last:border-0 hover:bg-resa-gray/60',
-                        i < 3 && 'bg-resa-royal/5'
-                      )}>
-                        <td className="px-3 py-4 md:px-5">
-                          <span className={cn(
-                            'grid h-7 w-7 place-items-center rounded-full text-xs font-black',
-                            i === 0 && 'bg-resa-gold text-white',
-                            i === 1 && 'bg-gray-400 text-white',
-                            i === 2 && 'bg-amber-700 text-white',
-                            i > 2 && 'bg-resa-gray text-resa-text/60'
-                          )}>
-                            {s.rank}
-                          </span>
-                        </td>
-                        <td className="px-3 py-4 font-semibold text-resa-navy md:px-5">
-                          <Link href={`/ecoles/${s.team?.school?.slug}`} className="hover:text-resa-red">
-                            {s.team?.school?.name ?? s.team?.name}
-                          </Link>
-                        </td>
-                        <td className="px-2 py-4 text-center">{s.played}</td>
-                        <td className="hidden px-2 py-4 text-center sm:table-cell">{s.won}</td>
-                        <td className="hidden px-2 py-4 text-center sm:table-cell">{s.drawn}</td>
-                        <td className="hidden px-2 py-4 text-center sm:table-cell">{s.lost}</td>
-                        <td className="hidden px-2 py-4 text-center md:table-cell">{s.goals_for}</td>
-                        <td className="hidden px-2 py-4 text-center md:table-cell">{s.goals_against}</td>
-                        <td className="px-2 py-4 text-center">{s.goal_diff > 0 ? `+${s.goal_diff}` : s.goal_diff}</td>
-                        <td className="px-3 py-4 text-center font-display text-lg font-black text-resa-navy md:px-5">
-                          {s.points}
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-160 text-sm">
+                    <thead>
+                      <tr className="border-b border-black/5 bg-resa-gray text-[10px] font-bold uppercase tracking-widest text-resa-text/60">
+                        <th className="px-3 py-3 text-left md:px-5">{t('position')}</th>
+                        <th className="px-3 py-3 text-left md:px-5">{t('team')}</th>
+                        <th className="px-2 py-3 text-center">{t('played')}</th>
+                        <th className="hidden px-2 py-3 text-center sm:table-cell">{t('won')}</th>
+                        <th className="hidden px-2 py-3 text-center sm:table-cell">{t('drawn')}</th>
+                        <th className="hidden px-2 py-3 text-center sm:table-cell">{t('lost')}</th>
+                        <th className="hidden px-2 py-3 text-center md:table-cell">{t('goalsFor')}</th>
+                        <th className="hidden px-2 py-3 text-center md:table-cell">{t('goalsAgainst')}</th>
+                        <th className="px-2 py-3 text-center">{t('goalDiff')}</th>
+                        <th className="px-2 py-3 text-center" title="Fair-Play : Carton jaune -1 · Carton rouge -3">
+                          FP
+                        </th>
+                        <th className="px-3 py-3 text-center font-black md:px-5">{t('points')}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {standings.map((s: any, i: number) => {
+                        const fp = s.fair_play_score ?? 0;
+                        const fpColor =
+                          fp >= 0
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : fp >= -3
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-red-100 text-red-700';
+                        return (
+                          <tr key={s.id} className={cn(
+                            'border-b border-black/5 transition-colors last:border-0 hover:bg-resa-gray/60',
+                            i < 3 && 'bg-resa-royal/5'
+                          )}>
+                            <td className="px-3 py-4 md:px-5">
+                              <span className={cn(
+                                'grid h-7 w-7 place-items-center rounded-full text-xs font-black',
+                                i === 0 && 'bg-resa-gold text-white',
+                                i === 1 && 'bg-gray-400 text-white',
+                                i === 2 && 'bg-amber-700 text-white',
+                                i > 2 && 'bg-resa-gray text-resa-text/60'
+                              )}>
+                                {s.rank}
+                              </span>
+                            </td>
+                            <td className="px-3 py-4 font-semibold text-resa-navy md:px-5">
+                              <Link href={`/ecoles/${s.team?.school?.slug}`} className="hover:text-resa-red">
+                                {s.team?.school?.name ?? s.team?.name}
+                              </Link>
+                            </td>
+                            <td className="px-2 py-4 text-center">{s.played}</td>
+                            <td className="hidden px-2 py-4 text-center sm:table-cell">{s.won}</td>
+                            <td className="hidden px-2 py-4 text-center sm:table-cell">{s.drawn}</td>
+                            <td className="hidden px-2 py-4 text-center sm:table-cell">{s.lost}</td>
+                            <td className="hidden px-2 py-4 text-center md:table-cell">{s.goals_for}</td>
+                            <td className="hidden px-2 py-4 text-center md:table-cell">{s.goals_against}</td>
+                            <td className="px-2 py-4 text-center">{s.goal_diff > 0 ? `+${s.goal_diff}` : s.goal_diff}</td>
+                            <td className="px-2 py-4 text-center">
+                              <span className={cn(
+                                'inline-flex min-w-[2rem] items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-bold',
+                                fpColor
+                              )}>
+                                {fp > 0 ? `+${fp}` : fp}
+                              </span>
+                            </td>
+                            <td className="px-3 py-4 text-center font-display text-lg font-black text-resa-navy md:px-5">
+                              {s.points}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Légende critères de départage */}
+                <div className="border-t border-black/5 bg-resa-gray/40 px-5 py-3 text-[10px] text-resa-text/50">
+                  <span className="font-bold uppercase tracking-widest">Départage :</span>{' '}
+                  Pts · H2H · Diff · BP · FP · Tirage
+                </div>
               </div>
             )}
           </div>

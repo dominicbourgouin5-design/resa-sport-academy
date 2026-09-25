@@ -83,3 +83,48 @@ export async function saveSchool(
   revalidatePath('/[locale]/ecoles', 'layout');
   redirect('/admin/ecoles');
 }
+
+
+
+// ═══════════════════════════════════════════════════════════
+// FORFAIT GÉNÉRAL — Règle des 3 forfaits
+// ═══════════════════════════════════════════════════════════
+export async function declareGeneralForfeit(
+  schoolId: string,
+  seasonId: string
+): Promise<{ ok?: boolean; matches_affected?: number; error?: string }> {
+  try {
+    await requireRole(['admin']);
+
+    const supabase = await createClient();
+
+    // Appel de la fonction SQL (SECURITY DEFINER)
+    const { data, error } = await supabase.rpc('declare_general_forfeit', {
+      p_school_id: schoolId,
+      p_season_id: seasonId
+    });
+
+    if (error) {
+      console.error('[Forfait général] RPC error:', error);
+      return { error: error.message };
+    }
+
+    // Le retour est un jsonb { ok, matches_affected, categories_recalculated }
+    const result: any = data;
+
+    if (!result?.ok) {
+      return { error: result?.error ?? 'Erreur lors du forfait général.' };
+    }
+
+    revalidatePath('/admin/ecoles');
+    revalidatePath('/[locale]/ecoles', 'layout');
+    revalidatePath('/[locale]/competition', 'layout');
+
+    return {
+      ok: true,
+      matches_affected: result.matches_affected ?? 0
+    };
+  } catch (err: any) {
+    return { error: err.message ?? 'Erreur inconnue' };
+  }
+}

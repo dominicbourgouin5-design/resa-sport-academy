@@ -444,7 +444,7 @@ function NavItemDesktop({
       )}
 
       {hasChildren && open && (
-        <div className="absolute left-1/2 top-full w-80 -translate-x-1/2 pt-3">
+        <div className="absolute left-1/2 top-full w-68 -translate-x-1/2 pt-2">
           <div className="dropdown-panel dropdown-enter">
             <div className="relative py-2">
               {item.children!.map((c, i) => {
@@ -471,16 +471,18 @@ function NavItemDesktop({
                           <span className="dropdown-item-icon">
                             {ICONS[c.href] ?? ICONS['/academy']}
                           </span>
+ 
                           <div className="min-w-0 flex-1 text-left">
-                            <div className="text-[13px] font-semibold tracking-tight">
+                            <div className="text-[12.5px] font-semibold tracking-tight">
                               {t(c.labelKey as any)}
                             </div>
                             {c.descKey && (
-                              <div className="mt-0.5 text-[11px] text-white/45">
+                              <div className="mt-0.5 text-[10px] text-white/45">
                                 {t(c.descKey as any)}
                               </div>
                             )}
                           </div>
+
                           <svg
                             viewBox="0 0 24 24"
                             fill="none"
@@ -511,8 +513,8 @@ function NavItemDesktop({
                                   <li key={sc.labelKey}>
                                     <Link
                                       href={sc.href as any}
-                                      className={cn(
-                                        'group/sub flex items-center gap-2 rounded-md px-3 py-2 text-[12px] transition',
+                                       className={cn(
+                                        'group/sub flex items-center gap-2 rounded-md px-2.5 py-1.5 text-[11.5px] transition',
                                         scIsCurrent
                                           ? 'bg-white/10 text-white'
                                           : 'text-white/65 hover:bg-white/5 hover:text-white'
@@ -538,16 +540,20 @@ function NavItemDesktop({
                         <span className="dropdown-item-icon">
                           {ICONS[c.href] ?? ICONS['/academy']}
                         </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[13px] font-semibold tracking-tight">
+                        
+                        
+                         <div className="min-w-0 flex-1">
+                          <div className="text-[12.5px] font-semibold tracking-tight">
                             {t(c.labelKey as any)}
                           </div>
                           {c.descKey && (
-                            <div className="mt-0.5 text-[11px] text-white/45">
+                            <div className="mt-0.5 text-[10px] text-white/45">
                               {t(c.descKey as any)}
                             </div>
                           )}
                         </div>
+
+
                       </Link>
                     )}
                   </div>
