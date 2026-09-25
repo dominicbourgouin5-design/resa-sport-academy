@@ -19,7 +19,7 @@ export type ReceiptData = {
   availability?: string;
 };
 
-// ⚠️ Nettoie les caractères hors WinAnsi (émojis, symboles spéciaux) pour éviter tout crash pdf-lib
+// ⚠️ Nettoie les caractères hors WinAnsi (émojis, symboles non supportés)
 function cleanText(text?: string | null): string {
   if (!text) return '';
   return text
@@ -29,8 +29,27 @@ function cleanText(text?: string | null): string {
     .trim();
 }
 
+// ⚠️ Découpe automatiquement un texte long en plusieurs lignes pour ne jamais dépasser maxWidth
+function wrapText(text: string, maxWidth: number, font: any, fontSize: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+    if (testWidth <= maxWidth) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  return lines.length > 0 ? lines : [text];
+}
+
 export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array> {
-  // Dynamic import pour éviter tout conflit de bundling Next.js
   const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
 
   const NAVY       = rgb(0.039, 0.122, 0.267);
@@ -43,7 +62,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const EMERALD    = rgb(0.063, 0.725, 0.506);
 
   const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595, 842]);
+  const page = pdf.addPage([595, 842]); // Format A4
 
   const helv = await pdf.embedFont(StandardFonts.Helvetica);
   const helvBold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -53,94 +72,95 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const margin = 40;
   let y = 842;
 
-  // Header navy
-  page.drawRectangle({ x: 0, y: y - 100, width, height: 100, color: NAVY });
-  page.drawRectangle({ x: 0, y: y - 104, width, height: 4, color: RED });
+  // ─── Header Navy ───
+  page.drawRectangle({ x: 0, y: y - 90, width, height: 90, color: NAVY });
+  page.drawRectangle({ x: 0, y: y - 94, width, height: 4, color: RED });
 
   page.drawText('RESA SPORT ACADEMY', {
-    x: margin, y: y - 55,
-    size: 22, font: helvBold, color: WHITE
+    x: margin, y: y - 50,
+    size: 20, font: helvBold, color: WHITE
   });
   page.drawText("LIGUE SCOLAIRE PRIMAIRE - COTE D'IVOIRE", {
-    x: margin, y: y - 75,
+    x: margin, y: y - 70,
     size: 9, font: helv, color: rgb(0.65, 0.72, 0.82)
   });
 
-  y -= 130;
+  y -= 125;
 
-  // Titre
-  page.drawText('RECU DE PAIEMENT', {
+  // ─── Titre & Référence ───
+  page.drawText('REÇU DE PAIEMENT', {
     x: margin, y,
-    size: 18, font: helvBold, color: NAVY
+    size: 16, font: helvBold, color: NAVY
   });
   page.drawText('Receipt', {
-    x: margin, y: y - 16,
-    size: 10, font: helvObl, color: GRAY_TEXT
+    x: margin, y: y - 14,
+    size: 9, font: helvObl, color: GRAY_TEXT
   });
 
   const dateStr = new Date(data.date).toLocaleDateString('fr-FR', {
     day: '2-digit', month: 'long', year: 'numeric'
   });
-  const refLabel = `N. ${cleanText(data.reference)}`;
-  const refWidth = helvBold.widthOfTextAtSize(refLabel, 10);
-  const dateWidth = helv.widthOfTextAtSize(dateStr, 10);
+  const refLabel = `N° ${cleanText(data.reference)}`;
+  const refWidth = helvBold.widthOfTextAtSize(refLabel, 9);
+  const dateWidth = helv.widthOfTextAtSize(dateStr, 9);
 
   page.drawText(refLabel, {
     x: width - margin - refWidth, y,
-    size: 10, font: helvBold, color: DARK_TEXT
+    size: 9, font: helvBold, color: DARK_TEXT
   });
   page.drawText(dateStr, {
-    x: width - margin - dateWidth, y: y - 16,
-    size: 10, font: helv, color: GRAY_TEXT
+    x: width - margin - dateWidth, y: y - 14,
+    size: 9, font: helv, color: GRAY_TEXT
   });
 
-  y -= 40;
+  y -= 35;
 
-  // Carte client
+  // ─── Carte Client ───
+  const clientCardHeight = data.clientPhone ? 80 : 66;
   page.drawRectangle({
-    x: margin, y: y - 85, width: width - margin * 2, height: 85,
+    x: margin, y: y - clientCardHeight, width: width - margin * 2, height: clientCardHeight,
     color: GRAY_BG
   });
-  page.drawRectangle({ x: margin, y: y - 85, width: 3, height: 85, color: RED });
+  page.drawRectangle({ x: margin, y: y - clientCardHeight, width: 3, height: clientCardHeight, color: RED });
 
-  let cardY = y - 20;
+  let cardY = y - 18;
   page.drawText('CLIENT', {
     x: margin + 16, y: cardY,
     size: 8, font: helvBold, color: RED
   });
 
-  cardY -= 18;
+  cardY -= 16;
   page.drawText(cleanText(data.clientName), {
     x: margin + 16, y: cardY,
-    size: 13, font: helvBold, color: DARK_TEXT
+    size: 12, font: helvBold, color: DARK_TEXT
   });
 
-  cardY -= 16;
+  cardY -= 14;
   page.drawText(cleanText(data.clientEmail), {
     x: margin + 16, y: cardY,
-    size: 10, font: helv, color: GRAY_TEXT
+    size: 9, font: helv, color: GRAY_TEXT
   });
 
   if (data.clientPhone) {
-    cardY -= 14;
+    cardY -= 13;
     page.drawText(cleanText(data.clientPhone), {
       x: margin + 16, y: cardY,
-      size: 10, font: helv, color: GRAY_TEXT
+      size: 9, font: helv, color: GRAY_TEXT
     });
   }
 
-  y -= 110;
+  y -= clientCardHeight + 25;
 
-  // Détails
-  page.drawText('DETAILS', {
+  // ─── Détails ───
+  page.drawText('DÉTAILS', {
     x: margin, y,
     size: 8, font: helvBold, color: RED
   });
-  y -= 20;
+  y -= 16;
 
   const rows: [string, string][] = [];
   if (data.type === 'camp') {
-    if (data.campTitle) rows.push(['Evenement', cleanText(data.campTitle)]);
+    if (data.campTitle) rows.push(['Événement', cleanText(data.campTitle)]);
     if (data.campDate) {
       const d = new Date(data.campDate).toLocaleDateString('fr-FR', {
         day: '2-digit', month: 'long', year: 'numeric'
@@ -163,70 +183,83 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
       rows.push(['Joueur', player]);
     }
     if (data.coach) rows.push(['Coach', cleanText(data.coach)]);
-    if (data.availability) rows.push(['Disponibilites', cleanText(data.availability)]);
+    if (data.availability) rows.push(['Disponibilités', cleanText(data.availability)]);
   }
   rows.push(['Moyen de paiement', 'Mobile Money / Carte (FedaPay)']);
 
-  for (const [label, value] of rows) {
+  const labelX = margin;
+  const valueX = margin + 130;
+  const maxValueWidth = width - margin - valueX; // ~385 px disponible pour le texte
+
+  for (const [label, rawVal] of rows) {
+    const value = cleanText(rawVal);
+    // Découpe multi-lignes si le texte est long
+    const lines = wrapText(value, maxValueWidth, helvBold, 9.5);
+
     page.drawText(label, {
-      x: margin, y,
-      size: 10, font: helv, color: GRAY_TEXT
+      x: labelX, y,
+      size: 9.5, font: helv, color: GRAY_TEXT
     });
-    page.drawText(value, {
-      x: margin + 140, y,
-      size: 10, font: helvBold, color: DARK_TEXT
-    });
-    y -= 18;
+
+    for (let i = 0; i < lines.length; i++) {
+      page.drawText(lines[i], {
+        x: valueX, y: y - (i * 13),
+        size: 9.5, font: helvBold, color: DARK_TEXT
+      });
+    }
+
+    // Descend selon le nombre de lignes générées
+    y -= Math.max(lines.length * 13, 15) + 5;
   }
 
-  y -= 20;
+  y -= 15;
 
-  // Box montant
-  const boxHeight = 80;
+  // ─── Box Montant Payé ───
+  const boxHeight = 70;
   page.drawRectangle({
     x: margin, y: y - boxHeight, width: width - margin * 2, height: boxHeight,
     color: GRAY_BG
   });
   page.drawRectangle({ x: margin, y: y - boxHeight, width: 3, height: boxHeight, color: EMERALD });
 
-  page.drawText('MONTANT PAYE', {
-    x: margin + 16, y: y - 20,
+  page.drawText('MONTANT PAYÉ', {
+    x: margin + 16, y: y - 18,
     size: 8, font: helvBold, color: EMERALD
   });
 
   const amountStr = `${data.amount.toLocaleString('fr-FR')} ${cleanText(data.currency)}`;
   page.drawText(amountStr, {
-    x: margin + 16, y: y - 48,
-    size: 26, font: helvBold, color: NAVY
+    x: margin + 16, y: y - 46,
+    size: 22, font: helvBold, color: NAVY
   });
 
-  // Remplacement du ✓ par du texte standard WinAnsi
-  page.drawText('PAYE', {
-    x: width - margin - 50, y: y - 48,
-    size: 12, font: helvBold, color: EMERALD
+  page.drawText('PAYÉ', {
+    x: width - margin - 50, y: y - 46,
+    size: 11, font: helvBold, color: EMERALD
   });
 
-  y -= boxHeight + 40;
+  y -= boxHeight + 30;
 
-  page.drawText('Ce recu est genere automatiquement et fait foi de votre paiement.', {
+  // ─── Mentions légales ───
+  page.drawText('Ce reçu est généré automatiquement et fait foi de votre paiement.', {
     x: margin, y,
-    size: 9, font: helvObl, color: GRAY_TEXT
+    size: 8.5, font: helvObl, color: GRAY_TEXT
   });
-  y -= 14;
-  page.drawText('Pour toute question, ecrivez-nous a contact@cataria-systems.com', {
+  y -= 12;
+  page.drawText('Pour toute question, écrivez-nous à contact@cataria-systems.com', {
     x: margin, y,
-    size: 9, font: helv, color: GRAY_TEXT
+    size: 8.5, font: helv, color: GRAY_TEXT
   });
 
-  // Footer (sans émoji ballon)
+  // ─── Footer Navy en bas de page ───
   page.drawRectangle({ x: 0, y: 0, width, height: 60, color: NAVY_DEEP });
-  page.drawText("RESA SPORT ACADEMY - Abidjan, Cote d'Ivoire", {
-    x: margin, y: 36,
+  page.drawText("RESA SPORT ACADEMY - Abidjan, Côte d'Ivoire", {
+    x: margin, y: 34,
     size: 9, font: helvBold, color: WHITE
   });
   page.drawText('Merci pour votre confiance', {
     x: margin, y: 20,
-    size: 9, font: helvBold, color: rgb(0.65, 0.72, 0.82)
+    size: 8.5, font: helv, color: rgb(0.65, 0.72, 0.82)
   });
 
   return await pdf.save();
