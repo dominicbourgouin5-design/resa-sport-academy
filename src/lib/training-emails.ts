@@ -1,13 +1,11 @@
 // src/lib/training-emails.ts
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendEmail } from '@/lib/email';
+import { sendEmail, type EmailAttachment } from '@/lib/email';
 import { notifyAdmins } from '@/lib/notify-admins';
+import { generateReceiptPDF, uint8ToBase64 } from '@/lib/pdf/receipt';
 
 const CONTACT_EMAIL = 'contact@cataria-systems.com';
 
-// ═══════════════════════════════════════════════════════════
-// Layout
-// ═══════════════════════════════════════════════════════════
 function layout(content: string): string {
   return `
 <!DOCTYPE html>
@@ -37,23 +35,27 @@ function layout(content: string): string {
 
 function contactButtons(mailSubject: string, primaryLabel: string, primaryUrl: string): string {
   const mailto = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(mailSubject)}`;
+  const primaryIsWhatsapp = primaryUrl.includes('wa.me');
+
   return `
 <div style="margin-top:28px;text-align:center;">
   <a href="${primaryUrl}" style="display:inline-block;background:#DC2626;color:#fff;padding:14px 30px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;">${primaryLabel}</a>
 </div>
 <div style="margin-top:14px;text-align:center;">
   <a href="${mailto}" style="display:inline-block;background:#0A1F44;color:#fff;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">✉️ Répondre par email</a>
-  &nbsp;
-  <a href="https://wa.me/2250700000000" style="display:inline-block;background:#25D366;color:#fff;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">💬 WhatsApp</a>
-</div>`;
+  ${primaryIsWhatsapp ? '' : `&nbsp;<a href="https://wa.me/2250700000000" style="display:inline-block;background:#25D366;color:#fff;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">💬 WhatsApp</a>`}
+</div>
+<p style="margin-top:14px;text-align:center;font-size:12px;color:#94A3B8;">Vous pouvez répondre directement à cet email ou nous joindre sur WhatsApp.</p>`;
 }
 
 // ═══════════════════════════════════════════════════════════
 // 1) EMAIL — Lien de paiement (envoyé par l'admin)
+// ⚠️ PAS de PDF ici : le parent n'a pas encore payé
 // ═══════════════════════════════════════════════════════════
 export async function sendTrainingPaymentLinkEmail(
   requestId: string,
-  paymentUrl: string
+  paymentUrl: string,
+  isResend = false
 ): Promise<{ ok: boolean }> {
   const supabase = createAdminClient();
 
@@ -70,13 +72,19 @@ export async function sendTrainingPaymentLinkEmail(
     ? `${Number(req.payment_amount).toLocaleString('fr-FR')} ${req.payment_currency ?? 'XOF'}`
     : '—';
 
+  const headline = isResend ? 'Nouveau lien de paiement 🔄' : "C'est calé ! 🎉";
+  const intro = isResend
+    ? `Voici un <strong>nouveau lien de paiement</strong> pour finaliser votre séance${req.program_title ? ` <strong>${req.program_title}</strong>` : ''}. <em>L'ancien lien n'est plus valable.</em>`
+    : `Bonne nouvelle : nous avons validé votre créneau pour la séance${req.program_title ? ` <strong>${req.program_title}</strong>` : ''}. Il ne reste plus qu'à finaliser le paiement pour bloquer définitivement la place${req.player_name ? ` de <strong>${req.player_name}</strong>` : ''}.`;
+
+  const subject = isResend
+    ? `🔄 Nouveau lien de paiement — ${req.program_title ?? 'Training RESA'}`
+    : `💳 Votre lien de paiement — ${req.program_title ?? 'Training RESA'}`;
+
   const inner = `
-<h1 style="font-size:24px;font-weight:900;color:#0A1F44;margin:0 0 8px;">C'est calé ! 🎉</h1>
+<h1 style="font-size:24px;font-weight:900;color:#0A1F44;margin:0 0 8px;">${headline}</h1>
 <p style="color:#64748B;margin:0 0 24px;font-size:14px;">Bonjour ${req.parent_name},</p>
-<p style="font-size:16px;">
-  Bonne nouvelle : nous avons validé votre créneau pour la séance${req.program_title ? ` <strong>${req.program_title}</strong>` : ''}.
-  Il ne reste plus qu'à finaliser le paiement pour bloquer définitivement la place${req.player_name ? ` de <strong>${req.player_name}</strong>` : ''}.
-</p>
+<p style="font-size:16px;">${intro}</p>
 <div style="background:#EFF6FF;border-left:4px solid #1E3A8A;padding:18px 22px;border-radius:10px;margin:28px 0;">
   <div style="font-weight:800;color:#1E3A8A;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Récapitulatif</div>
   ${req.program_title ? `<div><strong>Programme :</strong> ${req.program_title}</div>` : ''}
@@ -93,11 +101,11 @@ ${contactButtons(`Paiement training - ${req.program_title ?? 'RESA'}`, "💳 Pay
   try {
     await sendEmail({
       to: [{ email: req.parent_email, name: req.parent_name }],
-      subject: `💳 Votre lien de paiement — ${req.program_title ?? 'Training RESA'}`,
+      subject,
       htmlContent: layout(inner),
       replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
     });
-    console.log('[Training Emails] 📧 Email lien de paiement envoyé');
+    console.log(`[Training Emails] 📧 Email lien de paiement ${isResend ? '(renvoi) ' : ''}envoyé`);
     return { ok: true };
   } catch (err) {
     console.error('[Training Emails] ⚠️ Lien email échec:', err);
@@ -106,7 +114,7 @@ ${contactButtons(`Paiement training - ${req.program_title ?? 'RESA'}`, "💳 Pay
 }
 
 // ═══════════════════════════════════════════════════════════
-// 2) EMAIL — Succès final (après paiement validé)
+// 2) EMAIL — Succès final + Reçu PDF attaché
 // ═══════════════════════════════════════════════════════════
 export async function sendTrainingSuccessEmail(
   requestId: string
@@ -141,16 +149,60 @@ export async function sendTrainingSuccessEmail(
   <div style="margin-top:12px;"><strong>Montant payé :</strong> ${amountLabel}</div>
   ${req.payment_reference ? `<div style="margin-top:6px;font-size:11px;color:#64748B;">Réf. : ${req.payment_reference}</div>` : ''}
 </div>
+<p><strong>📄 Votre reçu de paiement est attaché à cet email</strong> — conservez-le précieusement.</p>
 <p>Notre équipe vous enverra sous peu les détails pratiques (adresse exacte, horaire précis, à apporter).</p>
 ${contactButtons(`Training confirmé - ${req.program_title ?? 'RESA'}`, "💬 Une question ? WhatsApp", "https://wa.me/2250700000000")}
 <p style="margin-top:28px;">À très vite sur le terrain,<br/><strong>L'équipe RESA Sport Academy</strong> ⚽</p>`;
+
+  // ─── Générer le PDF de reçu ───
+  let attachments: EmailAttachment[] | undefined;
+  try {
+    console.log('[Training Emails] 📄 Début de génération du reçu PDF...');
+
+    const pdfBytes = await generateReceiptPDF({
+      type: 'training',
+      reference: req.payment_reference ?? `RESA-${req.id.slice(0, 8).toUpperCase()}`,
+      date: req.paid_at ?? new Date().toISOString(),
+      amount: req.payment_amount ?? 0,
+      currency: req.payment_currency ?? 'XOF',
+      clientName: req.parent_name,
+      clientEmail: req.parent_email,
+      clientPhone: req.parent_phone ?? undefined,
+      programTitle: req.program_title ?? undefined,
+      playerName: req.player_name ?? undefined,
+      playerAge: req.player_age ?? undefined,
+      coach: req.preferred_coach ?? undefined,
+      availability: req.availability ?? undefined
+    });
+
+    console.log(`[Training Emails] 📄 PDF généré avec succès (${pdfBytes.byteLength} octets)`);
+
+    const base64Content = uint8ToBase64(pdfBytes);
+
+    // Nom de fichier propre (sans caractères accentués ni espaces bizarres)
+    const safeTitle = (req.program_title ?? 'training')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9_-]/g, '-')
+      .toLowerCase();
+
+    attachments = [{
+      name: `recu-${safeTitle}.pdf`,
+      content: base64Content
+    }];
+
+    console.log(`[Training Emails] 📎 Pièce jointe prête: recu-${safeTitle}.pdf (${base64Content.length} chars base64)`);
+  } catch (pdfErr) {
+    console.error('[Training Emails] ⚠️ Génération PDF échec critique:', pdfErr);
+  }
 
   try {
     await sendEmail({
       to: [{ email: req.parent_email, name: req.parent_name }],
       subject: `✅ Séance confirmée — ${req.program_title ?? 'Training RESA'}`,
       htmlContent: layout(inner),
-      replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
+      replyTo: { email: adminEmail, name: 'RESA Sport Academy' },
+      attachments
     });
 
     await notifyAdmins({
@@ -194,19 +246,20 @@ export async function sendTrainingPaymentFailedEmail(
   const isError = reason === 'error';
 
   const subject = isCanceled
-    ? `💬 Paiement annulé — on en reparle ?`
-    : `⚠️ Petit contretemps pour votre paiement`;
+    ? `💬 Paiement interrompu — on vous aide ?`
+    : `Le paiement n'a pas abouti — on peut vous aider`;
 
   const headline = isCanceled
-    ? 'Pas de souci, on comprend 💙'
+    ? 'Votre paiement a été interrompu 💙'
     : isError
       ? 'Un petit contretemps technique 😅'
       : "Le paiement n'a pas abouti";
-  const intro = isCanceled
-    ? `Vous avez commencé le paiement pour votre séance${req.program_title ? ` <strong>${req.program_title}</strong>` : ''} mais vous ne l'avez pas finalisé. <strong>Aucun débit n'a été effectué</strong>.`
-    : isError
-      ? `Une erreur technique est survenue pendant votre paiement. Rien n'a été débité.`
-      : `Votre paiement a été refusé par l'opérateur. Rien n'a été débité.`;
+
+  const intro = isError
+    ? `Une <strong>erreur technique</strong> est survenue pendant le paiement pour votre séance${req.program_title ? ` <strong>${req.program_title}</strong>` : ''}. Rien n'a été débité.`
+    : isCanceled
+      ? `Vous avez quitté la page de paiement avant de finaliser. Aucun débit n'a été effectué.`
+      : `Votre tentative de paiement n'a pas pu aboutir — cela peut arriver pour plusieurs raisons (solde, plafond, réseau) ou parce que le paiement a été interrompu. <strong>Aucun débit n'a été effectué.</strong>`;
 
   const inner = `
 <h1 style="font-size:24px;font-weight:900;color:#0A1F44;margin:0 0 8px;">${headline}</h1>
@@ -215,7 +268,7 @@ export async function sendTrainingPaymentFailedEmail(
 <p style="margin-top:20px;"><strong>Votre créneau n'est pas perdu.</strong> Vous pouvez :</p>
 <ul style="padding-left:20px;margin:16px 0;">
   <li>Réessayer depuis le lien que vous avez reçu</li>
-  <li>Répondre à cet email pour qu'on vous envoie un nouveau lien</li>
+  <li>Répondre à cet email pour qu'on vous renvoie un nouveau lien</li>
   <li>Nous joindre sur WhatsApp si le problème persiste</li>
 </ul>
 ${contactButtons(`Paiement training - ${req.program_title ?? 'RESA'}`, "💬 Nous contacter", "https://wa.me/2250700000000")}

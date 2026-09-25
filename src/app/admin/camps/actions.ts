@@ -136,3 +136,73 @@ export async function deleteCampRegistration(id: string) {
   if (error) throw new Error(error.message);
   revalidatePath('/admin/camps');
 }
+
+// ═══════════════════════════════════════════════════════════
+// Envoyer un email au parent d'une inscription camp
+// ═══════════════════════════════════════════════════════════
+export async function sendCampParentEmail(
+  registrationId: string,
+  subject: string,
+  message: string
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    await requireRole(['admin', 'league_manager']);
+
+    const supabase = await createClient();
+    const { data: reg } = await supabase
+      .from('camp_registrations')
+      .select('parent_name, parent_email, camp:camps(id, title_fr)')
+      .eq('id', registrationId)
+      .single();
+
+    if (!reg) return { error: 'Inscription introuvable.' };
+    if (!reg.parent_email) return { error: 'Aucun email parent disponible.' };
+
+    const campTitle = (reg.camp as any)?.title_fr ?? 'Camp RESA';
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F4F6FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F6FA;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(10,31,68,.08);">
+        <tr><td style="background:#0A1F44;padding:32px;text-align:center;">
+          <div style="color:#fff;font-size:20px;font-weight:900;letter-spacing:-0.5px;">RESA SPORT ACADEMY</div>
+          <div style="color:rgba(255,255,255,.5);font-size:10px;font-weight:700;letter-spacing:3px;margin-top:4px;text-transform:uppercase;">${campTitle}</div>
+        </td></tr>
+        <tr><td style="height:4px;background:linear-gradient(90deg,#DC2626,#1E3A8A,#DC2626);"></td></tr>
+        <tr><td style="padding:40px 32px;color:#0F172A;font-size:15px;line-height:1.7;white-space:pre-line;">
+${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+        </td></tr>
+        <tr><td style="background:#F4F6FA;padding:24px 32px;text-align:center;color:#64748B;font-size:12px;line-height:1.6;">
+          <div style="font-weight:700;color:#0A1F44;margin-bottom:4px;">RESA Sport Academy</div>
+          <div>Abidjan, Côte d'Ivoire</div>
+          <div style="margin-top:12px;font-size:11px;">Vous pouvez répondre directement à cet email.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+    const adminEmail =
+      process.env.BREVO_SENDER_EMAIL ?? 'contact@cataria-systems.com';
+
+    const { sendEmail } = await import('@/lib/email');
+    const res = await sendEmail({
+      to: [{ email: reg.parent_email, name: reg.parent_name }],
+      subject,
+      htmlContent,
+      replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
+    });
+
+    if (!res.sent) return { error: res.error ?? "Erreur lors de l'envoi." };
+
+    revalidatePath('/admin/camps');
+    return { ok: true };
+  } catch (err: any) {
+    return { error: err.message ?? 'Erreur inconnue' };
+  }
+}

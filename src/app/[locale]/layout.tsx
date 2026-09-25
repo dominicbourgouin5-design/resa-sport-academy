@@ -4,9 +4,11 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 
 import { routing } from '@/i18n/routing';
+
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import WhatsAppButton from '@/components/layout/WhatsAppButton';
+import ServiceWorkerPublic from '@/components/ServiceWorkerPublic';
 
 import '../globals.css';
 
@@ -46,6 +48,7 @@ export default async function LocaleLayout({
     <html lang={locale}>
       <body className="min-h-screen antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
+          <ServiceWorkerPublic />
           <Header />
           <main>{children}</main>
           <Footer />

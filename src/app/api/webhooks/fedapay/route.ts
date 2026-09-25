@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   sendCampSuccessEmails,
@@ -58,6 +59,8 @@ export async function POST(req: NextRequest) {
           .eq('id', campReg.id);
 
         await sendCampSuccessEmails(campReg.id);
+        revalidatePath('/admin/camps');
+        revalidatePath('/admin/camps/' + campReg.camp_id + '/inscriptions');
         return NextResponse.json({ ok: true, action: 'camp_paid' });
       }
 
@@ -73,6 +76,8 @@ export async function POST(req: NextRequest) {
 
         const reason = tx.status === 'canceled' ? 'canceled' : 'declined';
         await sendCampFailureEmails(campReg.id, reason);
+        revalidatePath('/admin/camps');
+        revalidatePath('/admin/camps/' + campReg.camp_id + '/inscriptions');
         return NextResponse.json({ ok: true, action: 'camp_failed' });
       }
 
@@ -80,13 +85,39 @@ export async function POST(req: NextRequest) {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 2) Chercher un TRAINING
+    // 2) Chercher un TRAINING — par provider_id puis par metadata
     // ═══════════════════════════════════════════════════════════
-    const { data: trainingReq } = await supabase
+    let trainingReq: { id: string; payment_status: string } | null = null;
+
+    // 2a) Lookup classique par payment_provider_id
+    const { data: byProvider } = await supabase
       .from('training_requests')
       .select('id, payment_status')
       .eq('payment_provider_id', String(txId))
       .maybeSingle();
+
+    trainingReq = byProvider ?? null;
+
+    // 2b) Fallback : metadata.training_request_id envoyé par FedaPay
+    if (!trainingReq) {
+      const metaId =
+        body?.entity?.metadata?.training_request_id ??
+        body?.data?.metadata?.training_request_id ??
+        body?.metadata?.training_request_id;
+
+      if (metaId) {
+        const { data: byMeta } = await supabase
+          .from('training_requests')
+          .select('id, payment_status')
+          .eq('id', metaId)
+          .maybeSingle();
+
+        trainingReq = byMeta ?? null;
+        if (trainingReq) {
+          console.log('[FedaPay Webhook] Training matched by metadata:', metaId);
+        }
+      }
+    }
 
     if (trainingReq) {
       if (isPaidStatus(tx.status)) {
@@ -104,6 +135,7 @@ export async function POST(req: NextRequest) {
           .eq('id', trainingReq.id);
 
         await sendTrainingSuccessEmail(trainingReq.id);
+        revalidatePath('/admin/demandes-training');
         return NextResponse.json({ ok: true, action: 'training_paid' });
       }
 
@@ -119,6 +151,7 @@ export async function POST(req: NextRequest) {
 
         const reason = tx.status === 'canceled' ? 'canceled' : 'declined';
         await sendTrainingPaymentFailedEmail(trainingReq.id, reason);
+        revalidatePath('/admin/demandes-training');
         return NextResponse.json({ ok: true, action: 'training_failed' });
       }
 

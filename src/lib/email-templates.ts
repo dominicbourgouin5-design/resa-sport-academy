@@ -1,5 +1,5 @@
 // src/lib/email-templates.ts
-const CONTACT_EMAIL = 'contact@resasportacademy.ci';
+const CONTACT_EMAIL = 'contact@cataria-systems.com';
 
 function layout(content: string) {
   return `
@@ -44,14 +44,15 @@ function layout(content: string) {
 
 function contactButtons(mailSubject: string, primaryLabel: string, primaryUrl: string) {
   const mailto = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(mailSubject)}`;
+  const primaryIsWhatsapp = primaryUrl.includes('wa.me');
+
   return `
-<div style="margin-top:32px;text-align:center;">
+<div style="margin-top:28px;text-align:center;">
   <a href="${primaryUrl}" style="display:inline-block;background:#DC2626;color:#fff;padding:14px 30px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;">${primaryLabel}</a>
 </div>
 <div style="margin-top:14px;text-align:center;">
   <a href="${mailto}" style="display:inline-block;background:#0A1F44;color:#fff;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">✉️ Répondre par email</a>
-  &nbsp;
-  <a href="https://wa.me/2250700000000" style="display:inline-block;background:#25D366;color:#fff;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">💬 WhatsApp</a>
+  ${primaryIsWhatsapp ? '' : `&nbsp;<a href="https://wa.me/2250700000000" style="display:inline-block;background:#25D366;color:#fff;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">💬 WhatsApp</a>`}
 </div>
 <p style="margin-top:14px;text-align:center;font-size:12px;color:#94A3B8;">Vous pouvez répondre directement à cet email ou nous joindre sur WhatsApp.</p>`;
 }
@@ -237,6 +238,111 @@ export function trainingRequestAdminNotification(data: {
         <a href="https://resa-preview.cataria-systems.com/admin/demandes-training" style="display:inline-block;background:#0A1F44;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;">Traiter la demande →</a>
       </div>
       <div style="margin-top:20px;text-align:center;font-size:11px;color:#94A3B8;">Référence : ${data.requestId.slice(0, 8).toUpperCase()}</div>
+    `)
+  };
+}
+
+
+
+// ═══════════════════════════════════════════════════════════
+// DEMANDE GÉNÉRIQUE (partenariat, question, autre…)
+// ═══════════════════════════════════════════════════════════
+export function otherRequestParentConfirmation(data: {
+  parentName: string;
+  subject: string;
+}) {
+  return {
+    subject: `✉️ Bien reçu — ${data.subject} — RESA Sport Academy`,
+    htmlContent: layout(`
+      <h1 style="font-size:24px;font-weight:900;color:#0A1F44;margin:0 0 16px;">
+        Bonjour ${data.parentName} 👋
+      </h1>
+
+      <p style="font-size:16px;">
+        Merci pour votre message 🙏 Nous avons bien reçu votre demande concernant : <strong>${data.subject}</strong>.
+      </p>
+
+      <div style="background:#F4F6FA;border-left:4px solid #DC2626;padding:16px 20px;border-radius:8px;margin:24px 0;">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#DC2626;margin-bottom:8px;">
+          Récapitulatif
+        </div>
+        <div style="font-size:14px;">
+          <div><strong>Objet :</strong> ${data.subject}</div>
+        </div>
+      </div>
+
+      <p><strong>Et maintenant ?</strong> Rien à faire de votre côté 😊</p>
+      <ol style="padding-left:20px;margin:12px 0;">
+        <li>Notre équipe étudie votre demande</li>
+        <li>On vous recontacte sous <strong>24 h</strong> par email ou WhatsApp</li>
+      </ol>
+
+      <p style="margin-top:24px;">
+        Une question en attendant ? Répondez directement à cet email ou écrivez-nous sur WhatsApp.
+      </p>
+
+      ${contactButtons(`Question - ${data.subject}`, "Nous joindre", "https://wa.me/2250700000000")}
+
+      <p style="margin-top:32px;">À très vite,<br/><strong>L'équipe RESA Sport Academy</strong> ⚽</p>
+    `)
+  };
+}
+
+export function otherRequestAdminNotification(data: {
+  parentName: string;
+  parentEmail: string;
+  parentPhone?: string | null;
+  subject: string;
+  message?: string | null;
+  requestId: string;
+}) {
+  return {
+    subject: `📥 Nouvelle demande — ${data.subject}`,
+    htmlContent: layout(`
+      <h1 style="font-size:22px;font-weight:900;color:#0A1F44;margin:0 0 16px;">
+        📥 Nouvelle demande reçue
+      </h1>
+      <p style="color:#64748B;">
+        Une nouvelle demande générique vient d'arriver (partenariat, question, autre).
+      </p>
+
+      <div style="background:#F4F6FA;border-radius:12px;padding:20px;margin:24px 0;">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#DC2626;margin-bottom:12px;">
+          Objet
+        </div>
+        <div style="font-size:15px;font-weight:700;color:#0A1F44;">${data.subject}</div>
+      </div>
+
+      <div style="background:#F4F6FA;border-radius:12px;padding:20px;margin:24px 0;">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#DC2626;margin-bottom:12px;">
+          Contact
+        </div>
+        <div style="font-size:14px;line-height:2;">
+          <div><strong>Nom :</strong> ${data.parentName}</div>
+          <div><strong>Email :</strong> <a href="mailto:${data.parentEmail}" style="color:#DC2626;">${data.parentEmail}</a></div>
+          ${data.parentPhone ? `<div><strong>Téléphone :</strong> <a href="tel:${data.parentPhone}" style="color:#DC2626;">${data.parentPhone}</a></div>` : ''}
+        </div>
+      </div>
+
+      ${data.message ? `
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:20px;margin:24px 0;">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#64748B;margin-bottom:8px;">
+          Message
+        </div>
+        <div style="font-size:14px;line-height:1.7;color:#334155;white-space:pre-line;">
+          ${data.message}
+        </div>
+      </div>` : ''}
+
+      <div style="margin-top:32px;text-align:center;">
+        <a href="https://resa-preview.cataria-systems.com/admin/demandes-training" style="display:inline-block;background:#0A1F44;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;">
+          Traiter la demande →
+        </a>
+      </div>
+
+      <div style="margin-top:20px;text-align:center;font-size:11px;color:#94A3B8;">
+        Référence : ${data.requestId.slice(0, 8).toUpperCase()}
+      </div>
     `)
   };
 }

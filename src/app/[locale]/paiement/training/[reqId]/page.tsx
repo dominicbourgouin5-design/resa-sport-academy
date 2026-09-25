@@ -22,7 +22,7 @@ export default async function TrainingPaymentReturnPage({
   searchParams: Promise<{ status?: string; id?: string; close?: string }>;
 }) {
   const { locale, reqId } = await params;
-  const { status: callbackStatus, close: closeParam } = await searchParams;
+  const { status: callbackStatus, close: closeParam, id: urlTxId } = await searchParams;
   setRequestLocale(locale);
 
   return (
@@ -31,6 +31,7 @@ export default async function TrainingPaymentReturnPage({
       locale={locale}
       callbackStatus={callbackStatus ?? null}
       isClosed={closeParam === 'true' || closeParam === '1'}
+      urlTxId={urlTxId ?? null}
     />
   );
 }
@@ -39,12 +40,14 @@ async function PaymentReturn({
   reqId,
   locale,
   callbackStatus,
-  isClosed
+  isClosed,
+  urlTxId
 }: {
   reqId: string;
   locale: string;
   callbackStatus: string | null;
   isClosed: boolean;
+  urlTxId: string | null;
 }) {
   const isFr = locale === 'fr';
   const supabase = createAdminClient();
@@ -60,7 +63,9 @@ async function PaymentReturn({
   let finalStatus: 'paid' | 'failed' | 'pending' = 'pending';
   let failureReason: 'declined' | 'canceled' | 'error' = 'declined';
 
-  // 1) Callback direct (canceled ou close)
+  // ═══════════════════════════════════════════════════════════
+  // 1) CALLBACK DIRECT — canceled ou close
+  // ═══════════════════════════════════════════════════════════
   if (callbackStatus === 'canceled' || isClosed) {
     if (req.payment_status !== 'paid') {
       if (req.payment_status !== 'failed') {
@@ -76,6 +81,9 @@ async function PaymentReturn({
       finalStatus = 'paid';
     }
   } else if (callbackStatus === 'declined') {
+    // ═══════════════════════════════════════════════════════════
+    // 2) CALLBACK DIRECT — declined
+    // ═══════════════════════════════════════════════════════════
     if (req.payment_status !== 'paid') {
       if (req.payment_status !== 'failed') {
         await supabase
@@ -90,14 +98,19 @@ async function PaymentReturn({
       finalStatus = 'paid';
     }
   } else {
-    // 2) Priorité à la DB
+    // ═══════════════════════════════════════════════════════════
+    // 3) FALLBACK — DB puis API FedaPay
+    // ═══════════════════════════════════════════════════════════
     if (req.payment_status === 'paid') {
       finalStatus = 'paid';
     } else if (req.payment_status === 'failed') {
       finalStatus = 'failed';
-    } else if (req.payment_provider_id) {
+    } else if (urlTxId || req.payment_provider_id) {
       try {
-        const tx = await getFedaPayTransaction(Number(req.payment_provider_id));
+        // ⚠️ Priorité à l'ID de l'URL (transaction réellement payée)
+        const txId = urlTxId ?? req.payment_provider_id;
+        const tx = await getFedaPayTransaction(Number(txId));
+
         if (isPaidStatus(tx.status)) {
           if (req.payment_status !== 'paid') {
             await supabase
@@ -122,9 +135,12 @@ async function PaymentReturn({
           }
           finalStatus = 'failed';
           failureReason = tx.status === 'canceled' ? 'canceled' : 'declined';
+        } else {
+          finalStatus = 'pending';
         }
       } catch (err) {
         console.error('[Training PaymentReturn] verify error:', err);
+        finalStatus = 'pending';
       }
     }
   }

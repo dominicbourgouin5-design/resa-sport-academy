@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import RequestWizard from './RequestWizard';
 import TrainingPaymentModal from '@/components/admin/TrainingPaymentModal';
 import { deleteTrainingRequest } from '@/app/admin/demandes-training/actions';
@@ -8,6 +9,7 @@ import { deleteTrainingRequest } from '@/app/admin/demandes-training/actions';
 export default function TrainingRequestsTable({ requests }: { requests: any[] }) {
   const [openRequest, setOpenRequest] = useState<any | null>(null);
   const [paymentRequest, setPaymentRequest] = useState<any | null>(null);
+  const router = useRouter();
 
   if (requests.length === 0) {
     return (
@@ -20,7 +22,7 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
   return (
     <>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] text-sm">
+        <table className="w-full min-w-205 text-sm">
           <thead className="border-b border-black/5 bg-resa-gray/40">
             <tr className="text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
               <th className="px-5 py-2.5 text-left">Demandeur</th>
@@ -117,7 +119,10 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
       {openRequest && (
         <RequestWizard
           request={openRequest}
-          onClose={() => setOpenRequest(null)}
+          onClose={() => {
+            setOpenRequest(null);
+            router.refresh();
+          }}
         />
       )}
 
@@ -125,7 +130,10 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
       {paymentRequest && (
         <TrainingPaymentModal
           request={paymentRequest}
-          onClose={() => setPaymentRequest(null)}
+          onClose={() => {
+            setPaymentRequest(null);
+            router.refresh();
+          }}
         />
       )}
     </>
@@ -186,11 +194,13 @@ function PaymentBadge({
 function DeleteButton({ id, name }: { id: string; name: string }) {
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleDelete = async () => {
     setLoading(true);
     try {
       await deleteTrainingRequest(id);
+      router.refresh();
     } catch {
       alert('Erreur lors de la suppression');
       setLoading(false);

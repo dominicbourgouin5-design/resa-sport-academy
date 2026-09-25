@@ -2,6 +2,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email';
 import { notifyAdmins } from '@/lib/notify-admins';
+import { generateReceiptPDF, uint8ToBase64 } from '@/lib/pdf/receipt';
 
 const CONTACT_EMAIL = 'contact@cataria-systems.com';
 
@@ -35,14 +36,15 @@ ${emailFooter()}
 // Boutons d'action : WhatsApp + Email côte à côte
 function contactButtons(mailSubject: string, primaryLabel: string, primaryUrl: string): string {
   const mailto = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(mailSubject)}`;
+  const primaryIsWhatsapp = primaryUrl.includes('wa.me');
+
   return `
 <div style="margin-top:28px;text-align:center;">
   <a href="${primaryUrl}" style="display:inline-block;background:#DC2626;color:#fff;padding:14px 30px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;">${primaryLabel}</a>
 </div>
 <div style="margin-top:14px;text-align:center;">
   <a href="${mailto}" style="display:inline-block;background:#0A1F44;color:#fff;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">✉️ Répondre par email</a>
-  &nbsp;
-  <a href="https://wa.me/2250700000000" style="display:inline-block;background:#25D366;color:#fff;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">💬 WhatsApp</a>
+  ${primaryIsWhatsapp ? '' : `&nbsp;<a href="https://wa.me/2250700000000" style="display:inline-block;background:#25D366;color:#fff;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">💬 WhatsApp</a>`}
 </div>
 <p style="margin-top:14px;text-align:center;font-size:12px;color:#94A3B8;">
   Vous pouvez répondre directement à cet email ou nous joindre sur WhatsApp.
@@ -108,13 +110,44 @@ ${contactButtons(`Question - ${campTitle}`, "Voir les détails du camp", campUrl
       ? `🎉 C'est confirmé — ${reg.player_name} au ${campTitle} !`
       : `🙌 Bienvenue ${reg.parent_name} — ${campTitle}`;
 
+    // Générer le PDF si le paiement est confirmé
+    let attachments: { name: string; content: string }[] | undefined;
+    if (isPaid) {
+      try {
+        const pdfBytes = await generateReceiptPDF({
+          type: 'camp',
+          reference: reg.payment_reference ?? `RESA-${reg.id.slice(0, 8).toUpperCase()}`,
+          date: reg.paid_at ?? new Date().toISOString(),
+          amount: camp?.price_amount ?? 0,
+          currency: 'XOF',
+          clientName: reg.parent_name,
+          clientEmail: reg.parent_email,
+          clientPhone: reg.parent_phone ?? undefined,
+          campTitle,
+          campDate: camp?.date_start ?? undefined,
+          campLocation: camp?.location ?? undefined,
+          playerName: reg.player_name,
+          playerAge: reg.player_age ?? undefined
+        });
+        attachments = [{
+          name: `recu-${reg.player_name?.replace(/\s+/g, '-') ?? 'resa'}.pdf`,
+          content: uint8ToBase64(pdfBytes)
+        }];
+        console.log('[Camp Emails] 📄 Reçu PDF généré');
+      } catch (pdfErr) {
+        console.error('[Camp Emails] ⚠️ Génération PDF échec:', pdfErr);
+      }
+    }
+
     await sendEmail({
       to: [{ email: reg.parent_email, name: reg.parent_name }],
       subject,
       htmlContent: emailWrap(inner),
-      replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
+      replyTo: { email: adminEmail, name: 'RESA Sport Academy' },
+      attachments
     });
     console.log('[Camp Emails] 📧 Email succès parent envoyé');
+    
   } catch (err) {
     console.error('[Camp Emails] ⚠️ Email parent échec:', err);
   }

@@ -13,7 +13,7 @@ export default async function CampRegistrationsPage({
 
   const { data: camp } = await supabase
     .from('camps')
-    .select('id, title_fr, slug, date_start')
+    .select('id, title_fr, slug, date_start, location, price_fr, price_amount')
     .eq('id', id)
     .single();
 
@@ -46,7 +46,7 @@ export default async function CampRegistrationsPage({
         </p>
       </div>
 
-      <CampRegistrationsTable registrations={list} />
+      <CampRegistrationsTable registrations={list} camp={camp} />
     </div>
   );
 }

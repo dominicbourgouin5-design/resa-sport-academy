@@ -20,6 +20,34 @@ async function requireRole(allowed: string[]) {
   return profile;
 }
 
+// ═══════════════════════════════════════════════════════════
+// Récupérer le tarif par défaut d'un programme (depuis rates JSON)
+// ═══════════════════════════════════════════════════════════
+export async function getTrainingProgramRate(slug: string): Promise<number | null> {
+  if (!slug) return null;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('training_programs')
+    .select('rates')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (!data?.rates) return null;
+
+  const rates = Array.isArray(data.rates) ? data.rates : [];
+  for (const r of rates) {
+    if (r?.price_fr) {
+      // "25 000 FCFA" → 25000
+      const match = String(r.price_fr).match(/([\d\s]+)/);
+      if (match) {
+        const num = parseInt(match[1].replace(/\s/g, ''), 10);
+        if (Number.isFinite(num) && num > 0) return num;
+      }
+    }
+  }
+  return null;
+}
+
 // ─── Supprimer ──────────────────────────────────────────────
 export async function deleteTrainingRequest(id: string) {
   await requireRole(['admin', 'league_manager']);
@@ -127,7 +155,7 @@ export async function sendParentEmail(
 }
 
 // ═══════════════════════════════════════════════════════════
-// 4) NOUVEAU — Envoyer un lien de paiement (avec montant)
+// Envoyer / Renvoyer un lien de paiement
 // ═══════════════════════════════════════════════════════════
 export async function sendTrainingPaymentLink(
   requestId: string,
@@ -152,6 +180,7 @@ export async function sendTrainingPaymentLink(
     if (!req) return { error: 'Demande introuvable.' };
     if (req.payment_status === 'paid') return { error: 'Cette demande est déjà payée.' };
 
+    const isResend = req.payment_link_sent_at != null;
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
     const callbackUrl = `${siteUrl}/fr/paiement/training/${requestId}`;
 
@@ -159,7 +188,11 @@ export async function sendTrainingPaymentLink(
     const firstname = nameParts[0] || req.parent_name;
     const lastname = nameParts.slice(1).join(' ') || firstname;
 
-    // Créer transaction FedaPay
+    // ⚠️ Sandbox : momo_test fonctionne uniquement pour BJ.
+    // En production, remplacer par un vrai pays (ou collecter côté formulaire).
+    const isSandbox = (process.env.FEDAPAY_ENV ?? 'sandbox') !== 'live';
+    const country = isSandbox ? 'bj' : 'ci';
+
     const tx = await createFedaPayTransaction({
       amount: Math.round(amount),
       description: `Training — ${req.program_title ?? 'RESA'}`,
@@ -169,7 +202,7 @@ export async function sendTrainingPaymentLink(
         lastname,
         email: req.parent_email,
         phone: req.parent_phone || undefined,
-        country: 'ci'
+        country
       },
       currency,
       metadata: { training_request_id: requestId, type: 'training' }
@@ -178,7 +211,6 @@ export async function sendTrainingPaymentLink(
     const token = await generatePaymentToken(tx.id);
     const paymentUrl = buildPaymentUrl(token);
 
-    // Sauvegarder en DB
     await supabase
       .from('training_requests')
       .update({
@@ -189,13 +221,11 @@ export async function sendTrainingPaymentLink(
         payment_amount: Math.round(amount),
         payment_currency: currency,
         payment_link_sent_at: new Date().toISOString(),
-        // Réinitialise les compteurs d'email d'échec si renvoi
         failure_email_sent_at: null
       })
       .eq('id', requestId);
 
-    // Envoyer l'email avec le lien
-    await sendTrainingPaymentLinkEmail(requestId, paymentUrl);
+    await sendTrainingPaymentLinkEmail(requestId, paymentUrl, isResend);
 
     revalidatePath('/admin/demandes-training');
     return { ok: true, payment_url: paymentUrl };

@@ -1,7 +1,11 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import Collapsible from '@/components/admin/Collapsible';
 import TrainingRequestsTable from './TrainingRequestsTable';
+import TrainingRequestsRealtime from '@/components/admin/TrainingRequestsRealtime';
 
 
 export default async function AdminTrainingRequestsPage() {
@@ -22,7 +26,11 @@ export default async function AdminTrainingRequestsPage() {
   return (
     <div className="mx-auto max-w-6xl">
 
+      {/* Realtime auto-refresh */}
+      <TrainingRequestsRealtime />
+
       {/* Header */}
+
       <div className="mb-8">
         <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
           Private Training

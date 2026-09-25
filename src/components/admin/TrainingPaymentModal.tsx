@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Modal from '@/components/admin/Modal';
-import { sendTrainingPaymentLink } from '@/app/admin/demandes-training/actions';
+import {
+  sendTrainingPaymentLink,
+  getTrainingProgramRate
+} from '@/app/admin/demandes-training/actions';
 
 export default function TrainingPaymentModal({
   request,
@@ -17,11 +20,36 @@ export default function TrainingPaymentModal({
   const [currency, setCurrency] = useState<string>(
     request.payment_currency ?? 'XOF'
   );
+  const [loadingRate, setLoadingRate] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; error?: string } | null>(null);
 
   const isResend =
     request.payment_status === 'pending' || request.payment_status === 'failed';
+
+  // ═══════════════════════════════════════════════════════════
+  // Auto-charger le tarif depuis la DB si montant vide
+  // ═══════════════════════════════════════════════════════════
+  useEffect(() => {
+    const shouldFetch = !request.payment_amount && request.program_slug;
+    if (!shouldFetch) return;
+
+    let cancelled = false;
+    setLoadingRate(true);
+
+    getTrainingProgramRate(request.program_slug)
+      .then((rate) => {
+        if (!cancelled && rate && !amount) {
+          setAmount(String(rate));
+        }
+      })
+      .catch((err) => console.warn('[TrainingPaymentModal] rate lookup:', err))
+      .finally(() => {
+        if (!cancelled) setLoadingRate(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [request.program_slug, request.payment_amount]); // eslint-disable-line
 
   const handleSend = async () => {
     const num = Number(amount);
@@ -51,20 +79,16 @@ export default function TrainingPaymentModal({
   if (result?.ok) {
     return (
       <Modal open onClose={onClose}>
-        <div
-          className="absolute inset-0 bg-black/70 backdrop-blur-md anim-fade-in"
-          onClick={onClose}
-          aria-hidden="true"
-        />
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-md anim-fade-in" onClick={onClose} aria-hidden="true" />
         <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.35)] anim-fade-up">
           <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-emerald-500 text-3xl text-white shadow-lg">
             ✓
           </div>
           <h2 className="font-display text-2xl font-black text-resa-navy">
-            Lien envoyé !
+            {isResend ? 'Nouveau lien envoyé !' : 'Lien envoyé !'}
           </h2>
           <p className="mt-2 text-sm text-resa-text/60">
-            Le parent vient de recevoir l'email avec le lien de paiement.
+            Le parent vient de recevoir un email avec le lien de paiement.
           </p>
         </div>
       </Modal>
@@ -73,16 +97,10 @@ export default function TrainingPaymentModal({
 
   return (
     <Modal open onClose={onClose}>
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-md anim-fade-in"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md anim-fade-in" onClick={onClose} aria-hidden="true" />
       <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] anim-fade-up">
-        {/* Barre rouge */}
         <div className="h-1 bg-gradient-to-r from-resa-red via-resa-royal to-resa-red" />
 
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-black/5 px-6 py-4">
           <div className="text-[10px] font-bold uppercase tracking-widest text-resa-red">
             {isResend ? 'Renvoyer un lien de paiement' : 'Envoyer un lien de paiement'}
@@ -97,7 +115,6 @@ export default function TrainingPaymentModal({
         </div>
 
         <div className="space-y-5 p-6">
-          {/* Infos request */}
           <div className="rounded-lg border border-black/5 bg-resa-gray/40 px-4 py-3 text-sm">
             <div className="text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
               Destinataire
@@ -113,10 +130,10 @@ export default function TrainingPaymentModal({
             )}
           </div>
 
-          {/* Montant + devise */}
           <div>
             <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
               Montant à facturer *
+              {loadingRate && <span className="ml-2 text-resa-text/40">⏳ chargement…</span>}
             </label>
             <div className="flex gap-2">
               <input
@@ -148,7 +165,7 @@ export default function TrainingPaymentModal({
               {request.payment_link_sent_at && (
                 <> le {new Date(request.payment_link_sent_at).toLocaleDateString('fr-FR')}</>
               )}
-              . Un nouveau lien sera généré et remplacera l'ancien.
+              . Un <strong>nouveau lien</strong> sera généré et remplacera l'ancien. L'email le précisera au parent.
             </div>
           )}
 
@@ -159,7 +176,6 @@ export default function TrainingPaymentModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between gap-3 border-t border-black/5 bg-resa-gray/40 px-6 py-4">
           <button
             onClick={onClose}
@@ -173,7 +189,7 @@ export default function TrainingPaymentModal({
             disabled={sending || !amount}
             className="inline-flex items-center gap-2 rounded-full bg-resa-red px-6 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:opacity-50"
           >
-            {sending ? 'Envoi…' : isResend ? 'Renvoyer le lien' : 'Envoyer le lien'}
+            {sending ? 'Envoi…' : isResend ? '🔄 Renvoyer le lien' : 'Envoyer le lien'}
             {!sending && <span>→</span>}
           </button>
         </div>

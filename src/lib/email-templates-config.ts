@@ -1,6 +1,7 @@
 // ─── Types de statuts séparés par domaine ───────────────────
 export type TrainingStatus = 'pending' | 'contacted' | 'booked' | 'cancelled';
 export type RegistrationStatus = 'pending' | 'reviewing' | 'approved' | 'rejected';
+export type CampStatus = 'new' | 'contacted' | 'confirmed' | 'cancelled';
 
 // ─── Types génériques ───────────────────────────────────────
 export type TrainingEmailTemplate = {
@@ -17,6 +18,14 @@ export type RegistrationEmailTemplate = {
   subject: string;
   body: string;
   targetStatus?: RegistrationStatus;
+};
+
+export type CampEmailTemplate = {
+  id: string;
+  label: string;
+  subject: string;
+  body: string;
+  targetStatus?: CampStatus;
 };
 
 // ─── Templates TRAINING (wizard admin → parent) ─────────────
@@ -169,6 +178,80 @@ Si vous souhaitez échanger, répondez directement à cet email.
 Bien à vous,
 L'équipe RESA Sport Academy ⚽`,
     targetStatus: 'rejected'
+  }
+];
+
+// ─── Templates CAMPS (wizard admin → parent) ────────────────
+export const CAMP_TEMPLATES: CampEmailTemplate[] = [
+  {
+    id: 'acknowledge',
+    label: '✓ Accusé de réception',
+    subject: "Bien reçu ! On s'occupe de vous 💙",
+    body: `Bonjour {{parent_name}},
+
+Un grand merci pour votre confiance 🙏
+
+Nous avons bien reçu l'inscription de {{player_line}} pour {{camp_title}} et nous en sommes vraiment ravis.
+
+Notre équipe vous recontacte sous 48h pour finaliser les derniers détails (paiement, organisation, infos pratiques).
+
+Une question ? Répondez directement à cet email — on vous répond avec plaisir.
+
+À très vite sur le terrain ⚽
+L'équipe RESA Sport Academy`,
+    targetStatus: 'contacted'
+  },
+  {
+    id: 'confirm',
+    label: '✅ Confirmation d\'inscription',
+    subject: "C'est confirmé — {{camp_title}} 🎉",
+    body: `Bonjour {{parent_name}},
+
+Excellente nouvelle : la place de {{player_line}} au {{camp_title}} est officiellement confirmée 🎉
+
+📅 Date : {{date_line}}
+📍 Lieu : {{location_line}}
+
+On a hâte de vous voir sur le terrain ! Vous recevrez 7 jours avant l'événement toutes les infos pratiques (programme, horaires exacts, à apporter).
+
+Une question ? Répondez directement à cet email.
+
+À très vite,
+L'équipe RESA Sport Academy`,
+    targetStatus: 'confirmed'
+  },
+  {
+    id: 'reminder_payment',
+    label: '💳 Rappel de paiement',
+    subject: 'Petit rappel — finalisez votre inscription 💳',
+    body: `Bonjour {{parent_name}},
+
+Petit rappel amical : la place de {{player_line}} au {{camp_title}} est encore en attente de paiement.
+
+📅 Date : {{date_line}}
+💰 Montant : {{amount_line}}
+
+Pour finaliser votre inscription, répondez à cet email ou contactez-nous sur WhatsApp — on vous enverra un lien de paiement sécurisé.
+
+Merci pour votre confiance,
+L'équipe RESA Sport Academy ⚽`
+    // Pas de targetStatus : action neutre
+  },
+  {
+    id: 'cancelled',
+    label: '✕ Annulation',
+    subject: 'Suite donnée à votre inscription',
+    body: `Bonjour {{parent_name}},
+
+Nous sommes sincèrement désolés : l'inscription de {{player_line}} au {{camp_title}} n'a malheureusement pas pu être maintenue cette fois-ci.
+
+Ce n'est qu'un au revoir — on serait ravis d'accueillir {{player_line}} sur une prochaine session.
+
+Si vous souhaitez échanger, répondez directement à cet email ou écrivez-nous sur WhatsApp.
+
+Bien à vous,
+L'équipe RESA Sport Academy ⚽`,
+    targetStatus: 'cancelled'
   }
 ];
 
