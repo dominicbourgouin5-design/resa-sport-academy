@@ -19,7 +19,15 @@ const COUNTRIES = [
   { code: 'us', label: '🇺🇸 États-Unis', dial: '+1' }
 ];
 
-export default function CampRegistrationForm({ camp }: { camp: any }) {
+type InitialValues = Record<string, string> | null;
+
+export default function CampRegistrationForm({
+  camp,
+  initialValues = null
+}: {
+  camp: any;
+  initialValues?: InitialValues;
+}) {
   const locale = useLocale();
   const isFr = locale === 'fr';
 
@@ -28,14 +36,14 @@ export default function CampRegistrationForm({ camp }: { camp: any }) {
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    parent_name: '',
-    parent_email: '',
-    parent_country: 'ci',   // ← NOUVEAU : Côte d'Ivoire par défaut
-    parent_phone: '',
-    player_name: '',
-    player_age: '',
-    player_birth_date: '',
-    notes: ''
+    parent_name: initialValues?.parent_name ?? '',
+    parent_email: initialValues?.parent_email ?? '',
+    parent_country: 'ci',
+    parent_phone: initialValues?.parent_phone ?? '',
+    player_name: initialValues?.player_name ?? '',
+    player_age: initialValues?.player_age ?? '',
+    player_birth_date: initialValues?.player_birth_date ?? '',
+    notes: initialValues?.notes ?? ''
   });
 
   const update = (k: string, v: string) =>
@@ -117,6 +125,20 @@ export default function CampRegistrationForm({ camp }: { camp: any }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa-lg">
       <div className="h-1 bg-linear-to-r from-resa-red via-resa-royal to-resa-red" />
+
+      {/* Bandeau "formulaire pré-rempli" (mode rebook) */}
+      {initialValues && (
+        <div className="border-b border-emerald-100 bg-emerald-50 px-6 py-3">
+          <div className="flex items-start gap-2 text-[12px] text-emerald-800">
+            <span className="mt-0.5">✓</span>
+            <span>
+              {isFr
+                ? 'Nous avons pré-rempli le formulaire avec les informations de votre inscription précédente. Vérifiez et finalisez le paiement.'
+                : 'We pre-filled the form with your previous registration details. Review and complete the payment.'}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="border-b border-black/5 px-6 py-5">
         <h3 className="font-display text-xl font-black text-resa-navy">
@@ -223,7 +245,7 @@ export default function CampRegistrationForm({ camp }: { camp: any }) {
               className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
             />
 
-            {/* ─── Sélecteur pays + téléphone ─── */}
+            {/* Sélecteur pays + téléphone */}
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-resa-text/60">
                 {isFr ? 'Pays' : 'Country'}

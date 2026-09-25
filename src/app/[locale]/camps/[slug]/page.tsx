@@ -4,21 +4,60 @@ import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import Reveal from '@/components/ui/Reveal';
 import { getCampBySlug } from '@/lib/queries';
+import { createAdminClient } from '@/lib/supabase/admin';
 import CampRegistrationForm from '@/components/CampRegistrationForm';
 
 export default async function CampDetailPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ locale: string; slug: string }>;
+  searchParams: Promise<{ rebook?: string }>;
 }) {
   const { locale, slug } = await params;
+  const { rebook } = await searchParams;
   setRequestLocale(locale);
   const camp = await getCampBySlug(slug);
   if (!camp) notFound();
-  return <CampDetail camp={camp} />;
+
+  // ─── Rebook : récupère l'inscription existante pour pré-remplir le formulaire
+  let initialValues: Record<string, string> | null = null;
+  if (rebook) {
+    try {
+      const supabase = createAdminClient();
+      const { data: reg } = await supabase
+        .from('camp_registrations')
+        .select('parent_name, parent_email, parent_phone, player_name, player_age, player_birth_date, notes')
+        .eq('id', rebook)
+        .eq('camp_id', camp.id)
+        .maybeSingle();
+
+      if (reg) {
+        initialValues = {
+          parent_name: reg.parent_name ?? '',
+          parent_email: reg.parent_email ?? '',
+          parent_phone: reg.parent_phone ?? '',
+          player_name: reg.player_name ?? '',
+          player_age: reg.player_age ? String(reg.player_age) : '',
+          player_birth_date: reg.player_birth_date ?? '',
+          notes: reg.notes ?? ''
+        };
+      }
+    } catch (err) {
+      console.warn('[CampDetailPage] rebook lookup failed:', err);
+    }
+  }
+
+  return <CampDetail camp={camp} initialValues={initialValues} />;
 }
 
-function CampDetail({ camp }: { camp: any }) {
+function CampDetail({
+  camp,
+  initialValues
+}: {
+  camp: any;
+  initialValues: Record<string, string> | null;
+}) {
   const locale = useLocale();
   const isFr = locale === 'fr';
 
@@ -48,9 +87,6 @@ function CampDetail({ camp }: { camp: any }) {
     cancelled: { label: isFr ? 'Annulé' : 'Cancelled', color: 'bg-red-500' }
   }[camp.status as string] ?? { label: camp.status, color: 'bg-gray-500' };
 
-  const canRegister = camp.status === 'open';
-
-  // Quick facts
   const facts = [
     { icon: '📅', label: isFr ? 'Date' : 'Date', value: dateStart + (dateEnd ? ` → ${dateEnd}` : '') },
     camp.time_start && {
@@ -159,7 +195,7 @@ function CampDetail({ camp }: { camp: any }) {
 
           {/* Colonne droite : formulaire */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
-            <CampRegistrationForm camp={camp} />
+            <CampRegistrationForm camp={camp} initialValues={initialValues} />
           </aside>
         </div>
       </section>

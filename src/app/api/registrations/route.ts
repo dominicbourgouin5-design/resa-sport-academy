@@ -78,6 +78,9 @@ export async function POST(req: NextRequest) {
 
     console.log('[API /registrations] ✅ Inscription créée avec succès, ID:', data.id);
 
+    const adminEmail =
+      process.env.BREVO_SENDER_EMAIL ?? 'contact@cataria-systems.com';
+
     // ─── 1) Email de confirmation au demandeur ───
     try {
       const { sendEmail } = await import('@/lib/email');
@@ -102,7 +105,8 @@ export async function POST(req: NextRequest) {
         await sendEmail({
           to: [{ email: body.contact_email, name: body.contact_name }],
           subject: template.subject,
-          htmlContent: template.htmlContent
+          htmlContent: template.htmlContent,
+          replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
         });
       }
     } catch (emailErr: any) {
@@ -114,7 +118,6 @@ export async function POST(req: NextRequest) {
       const { sendEmail } = await import('@/lib/email');
       const { adminNewRegistrationNotification } = await import('@/lib/email-templates');
 
-      const adminEmail = process.env.BREVO_SENDER_EMAIL;
       if (adminEmail) {
         const adminTemplate = adminNewRegistrationNotification({
           type,
@@ -128,7 +131,10 @@ export async function POST(req: NextRequest) {
         await sendEmail({
           to: [{ email: adminEmail, name: 'Administration RESA' }],
           subject: adminTemplate.subject,
-          htmlContent: adminTemplate.htmlContent
+          htmlContent: adminTemplate.htmlContent,
+          replyTo: body.contact_email
+            ? { email: body.contact_email, name: body.contact_name }
+            : undefined
         });
       }
     } catch (emailErr: any) {

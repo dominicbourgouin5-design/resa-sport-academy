@@ -24,14 +24,16 @@ export const TRAINING_TEMPLATES: TrainingEmailTemplate[] = [
   {
     id: 'acknowledge',
     label: '✓ Accusé de réception',
-    subject: 'Bien reçu ! On s\'occupe de vous 💙',
+    subject: "Bien reçu ! On s'occupe de vous 💙",
     body: `Bonjour {{parent_name}},
 
 Un grand merci pour votre confiance 🙏
 
 Nous avons bien reçu votre demande de réservation{{program_line}} et nous en sommes vraiment ravis.
 
-Notre équipe vous recontacte sous 24 heures pour caler ensemble le créneau, le coach et le lieu. D'ici là, n'hésitez pas à nous écrire si vous avez la moindre question.
+Notre équipe vous recontacte sous 24 heures pour caler ensemble le créneau, le coach et le lieu.
+
+Une question ? Répondez directement à cet email — on vous répond avec plaisir.
 
 À très vite sur le terrain ⚽
 L'équipe RESA Sport Academy`,
@@ -40,7 +42,7 @@ L'équipe RESA Sport Academy`,
   {
     id: 'confirm_slot',
     label: '📅 Confirmation de créneau',
-    subject: 'C\'est calé — votre séance RESA est confirmée 🎉',
+    subject: "C'est calé — votre séance RESA est confirmée 🎉",
     body: `Bonjour {{parent_name}},
 
 Excellente nouvelle : votre séance{{program_line}} est officiellement confirmée 🎉
@@ -52,13 +54,15 @@ Excellente nouvelle : votre séance{{program_line}} est officiellement confirmé
 
 On a hâte de vous voir fouler le terrain. N'oubliez pas la gourde et les crampons 😉
 
+Une question avant la séance ? Répondez directement à cet email.
+
 À très vite,
 L'équipe RESA Sport Academy`,
     targetStatus: 'booked'
   },
   {
     id: 'waitlist',
-    label: '⏳ Liste d\'attente',
+    label: "⏳ Liste d'attente",
     subject: 'Petite attente — on ne vous oublie pas 💙',
     body: `Bonjour {{parent_name}},
 
@@ -67,6 +71,8 @@ Merci pour votre patience 🙏
 Votre demande{{program_line}} est momentanément en liste d'attente — les créneaux partent vite en ce moment.
 
 Bonne nouvelle : dès qu'une place se libère, vous êtes parmi les premiers prévenus. On vous recontacte sans faute.
+
+Une question en attendant ? Répondez directement à cet email.
 
 Merci encore pour votre confiance,
 L'équipe RESA Sport Academy ⚽`,
@@ -80,7 +86,9 @@ L'équipe RESA Sport Academy ⚽`,
 
 Nous sommes sincèrement désolés : votre demande{{program_line}} n'a malheureusement pas pu être honorée cette fois-ci.
 
-Ce n'est qu'un au revoir — on serait ravis de vous accueillir sur une prochaine session. Répondez à cet email ou écrivez-nous sur WhatsApp, on trouvera ensemble la meilleure option.
+Ce n'est qu'un au revoir — on serait ravis de vous accueillir sur une prochaine session.
+
+Répondez directement à cet email ou écrivez-nous sur WhatsApp, on trouvera ensemble la meilleure option.
 
 À très bientôt,
 L'équipe RESA Sport Academy ⚽`,
@@ -92,7 +100,7 @@ L'équipe RESA Sport Academy ⚽`,
 export const REGISTRATION_TEMPLATES: RegistrationEmailTemplate[] = [
   {
     id: 'reviewing',
-    label: '👀 En cours d\'examen',
+    label: "👀 En cours d'examen",
     subject: 'Bien reçu — on étudie votre dossier avec attention',
     body: `Bonjour {{parent_name}},
 
@@ -100,7 +108,9 @@ Merci beaucoup pour votre inscription 🙏
 
 Nous avons bien reçu votre demande{{school_or_player_line}} et nous en sommes vraiment heureux.
 
-Notre équipe prend le temps d'étudier votre dossier avec attention et revient vers vous très prochainement. D'ici là, on reste disponibles si vous avez la moindre question.
+Notre équipe prend le temps d'étudier votre dossier avec attention et revient vers vous très prochainement.
+
+Une question en attendant ? Répondez directement à cet email — on reste disponibles.
 
 À très vite,
 L'équipe RESA Sport Academy ⚽`,
@@ -118,13 +128,15 @@ Toute l'équipe est ravie de vous accueillir. Nous revenons vers vous très vite
 
 En attendant, préparez les crampons — ça va être une belle saison 💪
 
+Une question ? Répondez directement à cet email.
+
 Bienvenue dans la famille RESA,
 L'équipe RESA Sport Academy`,
     targetStatus: 'approved'
   },
   {
     id: 'waitlist',
-    label: '⏳ Liste d\'attente',
+    label: "⏳ Liste d'attente",
     subject: 'Petite attente — vous êtes sur la bonne liste 💙',
     body: `Bonjour {{parent_name}},
 
@@ -132,7 +144,9 @@ Merci pour votre patience 🙏
 
 Votre demande{{school_or_player_line}} a été placée en liste d'attente — les places sont limitées et partent vite.
 
-Bonne nouvelle : vous êtes bien enregistré, et nous vous recontacterons dès qu'une place se libère. Vous serez parmi les premiers prévenus.
+Bonne nouvelle : vous êtes bien enregistré, et nous vous recontacterons dès qu'une place se libère.
+
+Une question en attendant ? Répondez directement à cet email.
 
 Merci pour votre confiance,
 L'équipe RESA Sport Academy ⚽`,
@@ -149,6 +163,8 @@ Merci sincèrement pour l'intérêt que vous portez à RESA Sport Academy.
 Après étude attentive de votre dossier, nous ne sommes malheureusement pas en mesure de donner une suite favorable à votre demande{{school_or_player_line}} cette fois-ci. Nous en sommes désolés.
 
 Ce n'est pas un adieu : nous vous invitons à nous recontacter pour de prochaines sessions — les portes restent grandes ouvertes 🙏
+
+Si vous souhaitez échanger, répondez directement à cet email.
 
 Bien à vous,
 L'équipe RESA Sport Academy ⚽`,
