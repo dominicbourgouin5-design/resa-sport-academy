@@ -5,7 +5,6 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { capturePayPalOrder } from '@/lib/payments/paypal';
 import { sendCampSuccessEmails, sendCampFailureEmails } from '@/lib/camp-emails';
 import { sendTrainingSuccessEmail, sendTrainingPaymentFailedEmail } from '@/lib/training-emails';
-import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +27,9 @@ export default async function PayPalReturnPage({
   let itemTitle = type === 'camp' ? 'Camp RESA' : 'Training RESA';
   let amountLabel: string | null = null;
 
-  // ═══ Cas annulation explicite ═══
+  // ═══════════════════════════════════════════════════════════
+  // 1) CAS ANNULATION EXPLICITE
+  // ═══════════════════════════════════════════════════════════
   if (cancelled === '1') {
     status = 'failed';
     if (type === 'camp') {
@@ -43,7 +44,6 @@ export default async function PayPalReturnPage({
           .update({ payment_status: 'failed' })
           .eq('id', id);
         await sendCampFailureEmails(id, 'canceled');
-        revalidatePath('/admin/camps');
       }
       itemTitle = (reg?.camp as any)?.title_fr ?? 'Camp RESA';
     } else {
@@ -58,12 +58,13 @@ export default async function PayPalReturnPage({
           .update({ payment_status: 'failed' })
           .eq('id', id);
         await sendTrainingPaymentFailedEmail(id, 'canceled');
-        revalidatePath('/admin/demandes-training');
       }
       itemTitle = req?.program_title ?? 'Training RESA';
     }
   } else if (orderId) {
-    // ═══ Capture la commande PayPal ═══
+    // ═══════════════════════════════════════════════════════════
+    // 2) CAPTURE DE LA COMMANDE PAYPAL
+    // ═══════════════════════════════════════════════════════════
     try {
       const result = await capturePayPalOrder(orderId);
       reference = result.captureId ?? null;
@@ -86,7 +87,6 @@ export default async function PayPalReturnPage({
               })
               .eq('id', id);
             await sendCampSuccessEmails(id);
-            revalidatePath('/admin/camps');
           }
           itemTitle = (reg?.camp as any)?.title_fr ?? 'Camp RESA';
           amountLabel = reg?.camp?.price_amount
@@ -109,7 +109,6 @@ export default async function PayPalReturnPage({
               })
               .eq('id', id);
             await sendTrainingSuccessEmail(id);
-            revalidatePath('/admin/demandes-training');
           }
           itemTitle = req?.program_title ?? 'Training RESA';
           amountLabel = req?.payment_amount
@@ -145,17 +144,25 @@ export default async function PayPalReturnPage({
       ? isFr
         ? `Le paiement n'a pas abouti. Votre place n'est PAS réservée.`
         : `The payment did not go through. Your spot is NOT booked.`
-      : isFr ? 'Vérification en cours…' : 'Verifying…';
+      : isFr
+        ? 'Vérification en cours…'
+        : 'Verifying…';
 
   const icon = isSuccess ? '✓' : isFailed ? '✕' : '⏳';
-  const barColor = isSuccess ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-amber-500';
+  const barColor = isSuccess
+    ? 'bg-emerald-500'
+    : isFailed
+      ? 'bg-red-500'
+      : 'bg-amber-500';
 
   return (
     <section className="mx-auto max-w-2xl px-4 py-20 md:px-6 md:py-28">
       <div className="overflow-hidden rounded-3xl border border-black/5 bg-white shadow-resa-lg">
         <div className={`h-2 ${barColor}`} />
         <div className="p-8 text-center md:p-12">
-          <div className={`mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full text-4xl text-white shadow-lg ${barColor}`}>
+          <div
+            className={`mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full text-4xl text-white shadow-lg ${barColor}`}
+          >
             {icon}
           </div>
           <h1 className="font-display text-2xl font-black text-resa-navy md:text-3xl">
@@ -171,22 +178,38 @@ export default async function PayPalReturnPage({
             </div>
             <div className="mt-3 space-y-2 text-[13px]">
               <div className="flex items-center justify-between">
-                <span className="text-resa-text/60">{isFr ? 'Événement' : 'Event'}</span>
+                <span className="text-resa-text/60">
+                  {isFr ? 'Événement' : 'Event'}
+                </span>
                 <span className="font-semibold text-resa-navy">{itemTitle}</span>
               </div>
               {amountLabel && (
                 <div className="flex items-center justify-between border-t border-black/5 pt-2">
-                  <span className="text-resa-text/60">{isFr ? 'Montant' : 'Amount'}</span>
-                  <span className={`font-display font-black ${isSuccess ? 'text-emerald-600' : 'text-resa-red'}`}>
+                  <span className="text-resa-text/60">
+                    {isFr ? 'Montant' : 'Amount'}
+                  </span>
+                  <span
+                    className={`font-display font-black ${
+                      isSuccess ? 'text-emerald-600' : 'text-resa-red'
+                    }`}
+                  >
                     {amountLabel}
                   </span>
                 </div>
               )}
               <div className="flex items-center justify-between border-t border-black/5 pt-2">
-                <span className="text-resa-text/60">{isFr ? 'Statut' : 'Status'}</span>
-                <span className={`font-display font-black uppercase text-[11px] ${
-                  isSuccess ? 'text-emerald-600' : isFailed ? 'text-red-600' : 'text-amber-600'
-                }`}>
+                <span className="text-resa-text/60">
+                  {isFr ? 'Statut' : 'Status'}
+                </span>
+                <span
+                  className={`font-display font-black uppercase text-[11px] ${
+                    isSuccess
+                      ? 'text-emerald-600'
+                      : isFailed
+                        ? 'text-red-600'
+                        : 'text-amber-600'
+                  }`}
+                >
                   {isSuccess
                     ? isFr ? '✓ Payé' : '✓ Paid'
                     : isFailed
@@ -199,7 +222,10 @@ export default async function PayPalReturnPage({
 
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             {isSuccess && (
-              <Link href="/" className="inline-flex items-center gap-2 rounded-full bg-resa-navy px-6 py-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-resa-royal">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 rounded-full bg-resa-navy px-6 py-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-resa-royal"
+              >
                 {isFr ? "Retour à l'accueil" : 'Back home'}
               </Link>
             )}
