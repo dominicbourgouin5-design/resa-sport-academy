@@ -27,7 +27,7 @@ export default async function CampDetailPage({
       const supabase = createAdminClient();
       const { data: reg } = await supabase
         .from('camp_registrations')
-        .select('parent_name, parent_email, parent_phone, player_name, player_age, player_birth_date, notes')
+        .select('parent_name, parent_email, parent_phone, parent_country, player_name, player_age, player_birth_date, notes, payment_method')
         .eq('id', rebook)
         .eq('camp_id', camp.id)
         .maybeSingle();
@@ -37,10 +37,12 @@ export default async function CampDetailPage({
           parent_name: reg.parent_name ?? '',
           parent_email: reg.parent_email ?? '',
           parent_phone: reg.parent_phone ?? '',
+          parent_country: reg.parent_country ?? 'ci',
           player_name: reg.player_name ?? '',
           player_age: reg.player_age ? String(reg.player_age) : '',
           player_birth_date: reg.player_birth_date ?? '',
-          notes: reg.notes ?? ''
+          notes: reg.notes ?? '',
+          payment_choice: reg.payment_method === 'fedapay' ? 'online' : 'later'
         };
       }
     } catch (err) {
@@ -106,13 +108,8 @@ function CampDetail({
 
   return (
     <>
-      {/* HERO */}
       <section className="relative overflow-hidden bg-resa-navy text-white">
-        <img
-          src={image}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-linear-to-t from-resa-navy via-resa-navy/85 to-resa-navy/40" />
         <div className="absolute inset-0 bg-grid opacity-15" />
 
@@ -146,7 +143,6 @@ function CampDetail({
         <div className="h-1 gradient-line" />
       </section>
 
-      {/* QUICK FACTS */}
       {facts.length > 0 && (
         <section className="border-b border-black/5 bg-white">
           <div className="mx-auto max-w-7xl px-4 md:px-6">
@@ -171,10 +167,8 @@ function CampDetail({
         </section>
       )}
 
-      {/* CONTENU + INSCRIPTION */}
       <section className="mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-20">
         <div className="grid gap-10 lg:grid-cols-[1fr_420px] lg:gap-12">
-          {/* Colonne gauche : description */}
           <div>
             {longDesc && (
               <Reveal variant="up">
@@ -193,7 +187,6 @@ function CampDetail({
             )}
           </div>
 
-          {/* Colonne droite : formulaire */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <CampRegistrationForm camp={camp} initialValues={initialValues} />
           </aside>

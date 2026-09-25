@@ -5,7 +5,6 @@ import { useLocale } from 'next-intl';
 import { sendCampRegistration } from '@/app/[locale]/camps/actions';
 import { cn } from '@/lib/utils';
 
-// Liste des pays supportés par FedaPay (UEMOA + pays fréquents)
 const COUNTRIES = [
   { code: 'ci', label: '🇨🇮 Côte d\'Ivoire', dial: '+225' },
   { code: 'sn', label: '🇸🇳 Sénégal', dial: '+221' },
@@ -32,13 +31,15 @@ export default function CampRegistrationForm({
   const isFr = locale === 'fr';
 
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [paymentChoice, setPaymentChoice] = useState<'later' | 'online'>('later');
+  const [paymentChoice, setPaymentChoice] = useState<'later' | 'online'>(
+    initialValues?.payment_choice === 'online' ? 'online' : 'later'
+  );
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     parent_name: initialValues?.parent_name ?? '',
     parent_email: initialValues?.parent_email ?? '',
-    parent_country: 'ci',
+    parent_country: initialValues?.parent_country ?? 'ci',
     parent_phone: initialValues?.parent_phone ?? '',
     player_name: initialValues?.player_name ?? '',
     player_age: initialValues?.player_age ?? '',
@@ -83,6 +84,7 @@ export default function CampRegistrationForm({
 
   const reset = () => {
     setStatus('idle');
+    setPaymentChoice('later');
     setForm({
       parent_name: '',
       parent_email: '',
@@ -133,8 +135,8 @@ export default function CampRegistrationForm({
             <span className="mt-0.5">✓</span>
             <span>
               {isFr
-                ? 'Nous avons pré-rempli le formulaire avec les informations de votre inscription précédente. Vérifiez et finalisez le paiement.'
-                : 'We pre-filled the form with your previous registration details. Review and complete the payment.'}
+                ? 'Nous avons pré-rempli le formulaire avec vos choix précédents. Vérifiez, modifiez si besoin, puis validez.'
+                : 'We pre-filled the form with your previous choices. Review, adjust if needed, then confirm.'}
             </span>
           </div>
         </div>
@@ -245,7 +247,6 @@ export default function CampRegistrationForm({
               className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
             />
 
-            {/* Sélecteur pays + téléphone */}
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-resa-text/60">
                 {isFr ? 'Pays' : 'Country'}

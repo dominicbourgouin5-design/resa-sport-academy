@@ -21,7 +21,7 @@ export async function sendCampRegistration(payload: {
   parent_name: string;
   parent_email: string;
   parent_phone: string;
-  parent_country: string;   
+  parent_country: string;
   player_name: string;
   player_age: string;
   player_birth_date: string;
@@ -30,11 +30,11 @@ export async function sendCampRegistration(payload: {
   locale?: string;
 }): Promise<CampRegistrationResult> {
   try {
-        const {
-        camp_id, parent_name, parent_email, parent_phone, parent_country,
-        player_name, player_age, player_birth_date, notes,
-        payment_choice, locale = 'fr'
-        } = payload;
+    const {
+      camp_id, parent_name, parent_email, parent_phone, parent_country,
+      player_name, player_age, player_birth_date, notes,
+      payment_choice, locale = 'fr'
+    } = payload;
 
     if (!camp_id) return { error: 'Identifiant camp manquant.' };
     if (!parent_name || !parent_email || !player_name) {
@@ -54,7 +54,7 @@ export async function sendCampRegistration(payload: {
       return { error: campErr?.message ?? 'Camp introuvable.' };
     }
 
-    // 2) Insert registration
+    // 2) Insert registration — AJOUT de parent_country
     const { data: registration, error: insertErr } = await supabase
       .from('camp_registrations')
       .insert({
@@ -62,6 +62,7 @@ export async function sendCampRegistration(payload: {
         parent_name,
         parent_email,
         parent_phone: parent_phone || null,
+        parent_country: parent_country || 'ci',   // ← NOUVEAU
         player_name,
         player_age: player_age ? Number(player_age) : null,
         player_birth_date: player_birth_date || null,
@@ -92,18 +93,18 @@ export async function sendCampRegistration(payload: {
         const lastname = nameParts.slice(1).join(' ') || firstname;
 
         const tx = await createFedaPayTransaction({
-        amount: camp.price_amount,
-        description: `Inscription camp — ${camp.title_fr ?? 'RESA'}`,
-        callbackUrl,
-        customer: {
+          amount: camp.price_amount,
+          description: `Inscription camp — ${camp.title_fr ?? 'RESA'}`,
+          callbackUrl,
+          customer: {
             firstname,
             lastname,
             email: parent_email,
             phone: parent_phone || undefined,
-            country: parent_country || 'ci' 
-        },
-        currency: camp.currency ?? 'XOF',
-        metadata: { registration_id: regId, camp_slug: camp.slug }
+            country: parent_country || 'ci'
+          },
+          currency: camp.currency ?? 'XOF',
+          metadata: { registration_id: regId, camp_slug: camp.slug }
         });
 
         const token = await generatePaymentToken(tx.id);
@@ -121,8 +122,6 @@ export async function sendCampRegistration(payload: {
       } catch (err: any) {
         console.error('[Camp Reg] ❌ FedaPay error:', err);
 
-        // En cas d'erreur technique FedaPay : on marque "failed" et on
-        // envoie DIRECTEMENT les emails d'échec (pas de retour navigateur)
         await supabase
           .from('camp_registrations')
           .update({
@@ -141,8 +140,6 @@ export async function sendCampRegistration(payload: {
         };
       }
 
-      // ⚠️ IMPORTANT : pour "online", on n'envoie PAS les emails ici.
-      // Ils partiront après validation / échec du paiement.
       return { ok: true, payment_url, registration_id: regId };
     }
 
