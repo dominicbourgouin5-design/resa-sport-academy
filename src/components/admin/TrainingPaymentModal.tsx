@@ -17,8 +17,11 @@ export default function TrainingPaymentModal({
   request: any;
   onClose: () => void;
 }) {
-  const isAlreadyPaid = request.payment_status === 'paid' || !!request.paid_at;
-
+  const isAlreadyPaid =
+    request.payment_status === 'paid' ||
+    !!request.paid_at ||
+    !!request.success_email_sent_at;
+    
   const [method, setMethod] = useState<Method>('fedapay');
   const [amount, setAmount] = useState<string>(
     request.payment_amount ? String(request.payment_amount) : ''

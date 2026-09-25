@@ -35,8 +35,13 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
           </thead>
           <tbody className="divide-y divide-black/5">
             {requests.map((r) => {
+
               const showPaymentButton =
-                r.status === 'booked' && r.payment_status !== 'paid';
+                r.status === 'booked' &&
+                r.payment_status !== 'paid' &&
+                !r.paid_at &&
+                !r.success_email_sent_at;
+
               const isResend =
                 r.payment_status === 'pending' || r.payment_status === 'failed';
 
@@ -78,7 +83,19 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
 
                   {/* Statut paiement */}
                   <td className="hidden px-5 py-3 text-center lg:table-cell">
-                    <PaymentBadge status={r.payment_status} amount={r.payment_amount} currency={r.payment_currency} />
+
+
+                    <PaymentBadge
+                      status={
+                        r.paid_at || r.success_email_sent_at
+                          ? 'paid'
+                          : r.payment_status
+                      }
+                      amount={r.payment_amount}
+                      currency={r.payment_currency}
+                    />
+
+
                   </td>
 
                   <td className="hidden px-5 py-3 text-[12px] text-resa-text/60 xl:table-cell">

@@ -186,7 +186,11 @@ export async function sendTrainingPaymentLink(
     if (!req) return { error: 'Demande introuvable.' };
 
     // ⚠️ Double vérification : statut OU paid_at
-    if (req.payment_status === 'paid' || req.paid_at) {
+    if (
+      req.payment_status === 'paid' ||
+      req.paid_at ||
+      req.success_email_sent_at
+    ) {
       return { error: 'Cette demande est déjà payée. Aucun nouveau lien ne peut être envoyé.' };
     }
     if (req.payment_status === 'refunded') {
