@@ -5,6 +5,10 @@ import {
   sendCampFailureEmails
 } from '@/lib/camp-emails';
 import {
+  sendTrainingSuccessEmail,
+  sendTrainingPaymentFailedEmail
+} from '@/lib/training-emails';
+import {
   getFedaPayTransaction,
   isPaidStatus,
   isFailedStatus
@@ -28,58 +32,101 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminClient();
 
-    const { data: reg } = await supabase
+    // ═══════════════════════════════════════════════════════════
+    // 1) Chercher un CAMP
+    // ═══════════════════════════════════════════════════════════
+    const { data: campReg } = await supabase
       .from('camp_registrations')
       .select('id, payment_status, camp_id')
       .eq('payment_provider_id', String(txId))
-      .single();
+      .maybeSingle();
 
-    if (!reg) {
-      return NextResponse.json({ ok: true, ignored: 'no_registration' });
-    }
+    if (campReg) {
+      if (isPaidStatus(tx.status)) {
+        if (campReg.payment_status === 'paid') {
+          return NextResponse.json({ ok: true, ignored: 'camp_already_paid' });
+        }
 
-    // ─── CAS SUCCÈS ───
-    if (isPaidStatus(tx.status)) {
-      // Idempotence : déjà payé → skip total
-      if (reg.payment_status === 'paid') {
-        return NextResponse.json({ ok: true, ignored: 'already_paid' });
+        await supabase
+          .from('camp_registrations')
+          .update({
+            payment_status: 'paid',
+            payment_method: tx.mode ?? 'fedapay',
+            payment_reference: tx.reference ?? null,
+            paid_at: new Date().toISOString()
+          })
+          .eq('id', campReg.id);
+
+        await sendCampSuccessEmails(campReg.id);
+        return NextResponse.json({ ok: true, action: 'camp_paid' });
       }
 
-      await supabase
-        .from('camp_registrations')
-        .update({
-          payment_status: 'paid',
-          payment_method: tx.mode ?? 'fedapay',
-          payment_reference: tx.reference ?? null,
-          paid_at: new Date().toISOString()
-        })
-        .eq('id', reg.id);
+      if (isFailedStatus(tx.status)) {
+        if (campReg.payment_status === 'failed') {
+          return NextResponse.json({ ok: true, ignored: 'camp_already_failed' });
+        }
 
-      await sendCampSuccessEmails(reg.id);
+        await supabase
+          .from('camp_registrations')
+          .update({ payment_status: 'failed' })
+          .eq('id', campReg.id);
 
-      return NextResponse.json({ ok: true, action: 'paid' });
-    }
-
-    // ─── CAS ÉCHEC ───
-    if (isFailedStatus(tx.status)) {
-      // Idempotence : déjà marqué failed → skip
-      if (reg.payment_status === 'failed') {
-        return NextResponse.json({ ok: true, ignored: 'already_failed' });
+        const reason = tx.status === 'canceled' ? 'canceled' : 'declined';
+        await sendCampFailureEmails(campReg.id, reason);
+        return NextResponse.json({ ok: true, action: 'camp_failed' });
       }
 
-      await supabase
-        .from('camp_registrations')
-        .update({ payment_status: 'failed' })
-        .eq('id', reg.id);
-
-      const reason = tx.status === 'canceled' ? 'canceled' : 'declined';
-      await sendCampFailureEmails(reg.id, reason);
-
-      return NextResponse.json({ ok: true, action: 'failed' });
+      return NextResponse.json({ ok: true, ignored: `camp_${tx.status}` });
     }
 
-    // Autres statuts (pending, transferred, etc.) → rien
-    return NextResponse.json({ ok: true, ignored: tx.status });
+    // ═══════════════════════════════════════════════════════════
+    // 2) Chercher un TRAINING
+    // ═══════════════════════════════════════════════════════════
+    const { data: trainingReq } = await supabase
+      .from('training_requests')
+      .select('id, payment_status')
+      .eq('payment_provider_id', String(txId))
+      .maybeSingle();
+
+    if (trainingReq) {
+      if (isPaidStatus(tx.status)) {
+        if (trainingReq.payment_status === 'paid') {
+          return NextResponse.json({ ok: true, ignored: 'training_already_paid' });
+        }
+
+        await supabase
+          .from('training_requests')
+          .update({
+            payment_status: 'paid',
+            payment_reference: tx.reference ?? null,
+            paid_at: new Date().toISOString()
+          })
+          .eq('id', trainingReq.id);
+
+        await sendTrainingSuccessEmail(trainingReq.id);
+        return NextResponse.json({ ok: true, action: 'training_paid' });
+      }
+
+      if (isFailedStatus(tx.status)) {
+        if (trainingReq.payment_status === 'failed') {
+          return NextResponse.json({ ok: true, ignored: 'training_already_failed' });
+        }
+
+        await supabase
+          .from('training_requests')
+          .update({ payment_status: 'failed' })
+          .eq('id', trainingReq.id);
+
+        const reason = tx.status === 'canceled' ? 'canceled' : 'declined';
+        await sendTrainingPaymentFailedEmail(trainingReq.id, reason);
+        return NextResponse.json({ ok: true, action: 'training_failed' });
+      }
+
+      return NextResponse.json({ ok: true, ignored: `training_${tx.status}` });
+    }
+
+    // Aucune correspondance
+    return NextResponse.json({ ok: true, ignored: 'no_match' });
   } catch (err: any) {
     console.error('[FedaPay Webhook] Error:', err);
     return NextResponse.json({ ok: false, error: err.message });

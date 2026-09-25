@@ -1,8 +1,15 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getCurrentProfile } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
+import {
+  createFedaPayTransaction,
+  generatePaymentToken,
+  buildPaymentUrl
+} from '@/lib/payments/fedapay';
+import { sendTrainingPaymentLinkEmail } from '@/lib/training-emails';
 import { revalidatePath } from 'next/cache';
 
 async function requireRole(allowed: string[]) {
@@ -17,10 +24,7 @@ async function requireRole(allowed: string[]) {
 export async function deleteTrainingRequest(id: string) {
   await requireRole(['admin', 'league_manager']);
   const supabase = await createClient();
-  const { error } = await supabase
-    .from('training_requests')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('training_requests').delete().eq('id', id);
   if (error) throw new Error(error.message);
   revalidatePath('/admin/demandes-training');
 }
@@ -52,7 +56,7 @@ export async function saveTrainingRequestNotes(id: string, notes: string) {
   revalidatePath('/admin/demandes-training');
 }
 
-// ─── Envoyer un email au parent (manuellement, depuis l'admin) ───
+// ─── Envoyer un email manuel au parent ──────────────────────
 export async function sendParentEmail(
   requestId: string,
   subject: string,
@@ -70,35 +74,32 @@ export async function sendParentEmail(
 
     if (!request) return { error: 'Demande introuvable.' };
 
-    // Email HTML (garde la charte RESA)
     const htmlContent = `
 <!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
+<html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#F4F6FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F6FA;padding:40px 20px;">
     <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(10,31,68,.08);">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;">
         <tr><td style="background:#0A1F44;padding:32px;text-align:center;">
-          <div style="display:inline-block;background:#fff;border-radius:50%;padding:8px;margin-bottom:12px;">
-            <img src="https://resa-preview.cataria-systems.com/favicon-96x96.png" alt="RESA" width="40" height="40" style="display:block;">
-          </div>
-          <div style="color:#fff;font-size:20px;font-weight:900;letter-spacing:-0.5px;">RESA SPORT ACADEMY</div>
+          <div style="color:#fff;font-size:20px;font-weight:900;">RESA SPORT ACADEMY</div>
           <div style="color:rgba(255,255,255,.5);font-size:10px;font-weight:700;letter-spacing:3px;margin-top:4px;text-transform:uppercase;">Private Training</div>
         </td></tr>
         <tr><td style="height:4px;background:linear-gradient(90deg,#DC2626,#1E3A8A,#DC2626);"></td></tr>
         <tr><td style="padding:40px 32px;color:#0F172A;font-size:15px;line-height:1.7;white-space:pre-line;">
           ${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+
+          —
+          Une question ? Répondez directement à cet email, on reste disponibles.
         </td></tr>
-        <tr><td style="background:#F4F6FA;padding:24px 32px;text-align:center;color:#64748B;font-size:12px;line-height:1.6;">
-          <div style="font-weight:700;color:#0A1F44;margin-bottom:4px;">RESA Sport Academy</div>
+        <tr><td style="background:#F4F6FA;padding:24px 32px;text-align:center;color:#64748B;font-size:12px;">
+          <div style="font-weight:700;color:#0A1F44;">RESA Sport Academy</div>
           <div>Abidjan, Côte d'Ivoire</div>
         </td></tr>
       </table>
     </td></tr>
   </table>
-</body>
-</html>`;
+</body></html>`;
 
     const adminEmail = process.env.BREVO_SENDER_EMAIL ?? 'contact@cataria-systems.com';
 
@@ -109,11 +110,8 @@ export async function sendParentEmail(
       replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
     });
 
-    if (!res.sent) {
-      return { error: res.error ?? 'Erreur d\'envoi de l\'email' };
-    }
+    if (!res.sent) return { error: res.error ?? 'Erreur d\'envoi de l\'email' };
 
-    // Met à jour le statut si encore en attente
     if (request.status === 'pending') {
       await supabase
         .from('training_requests')
@@ -124,6 +122,85 @@ export async function sendParentEmail(
     revalidatePath('/admin/demandes-training');
     return { ok: true };
   } catch (err: any) {
+    return { error: err.message ?? 'Erreur inconnue' };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 4) NOUVEAU — Envoyer un lien de paiement (avec montant)
+// ═══════════════════════════════════════════════════════════
+export async function sendTrainingPaymentLink(
+  requestId: string,
+  amount: number,
+  currency = 'XOF'
+): Promise<{ ok?: boolean; error?: string; payment_url?: string }> {
+  try {
+    await requireRole(['admin', 'league_manager']);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { error: 'Montant invalide.' };
+    }
+
+    const supabase = createAdminClient();
+
+    const { data: req } = await supabase
+      .from('training_requests')
+      .select('*')
+      .eq('id', requestId)
+      .single();
+
+    if (!req) return { error: 'Demande introuvable.' };
+    if (req.payment_status === 'paid') return { error: 'Cette demande est déjà payée.' };
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    const callbackUrl = `${siteUrl}/fr/paiement/training/${requestId}`;
+
+    const nameParts = (req.parent_name as string).trim().split(' ');
+    const firstname = nameParts[0] || req.parent_name;
+    const lastname = nameParts.slice(1).join(' ') || firstname;
+
+    // Créer transaction FedaPay
+    const tx = await createFedaPayTransaction({
+      amount: Math.round(amount),
+      description: `Training — ${req.program_title ?? 'RESA'}`,
+      callbackUrl,
+      customer: {
+        firstname,
+        lastname,
+        email: req.parent_email,
+        phone: req.parent_phone || undefined,
+        country: 'ci'
+      },
+      currency,
+      metadata: { training_request_id: requestId, type: 'training' }
+    });
+
+    const token = await generatePaymentToken(tx.id);
+    const paymentUrl = buildPaymentUrl(token);
+
+    // Sauvegarder en DB
+    await supabase
+      .from('training_requests')
+      .update({
+        payment_status: 'pending',
+        payment_provider_id: String(tx.id),
+        payment_token: token,
+        payment_reference: tx.reference ?? null,
+        payment_amount: Math.round(amount),
+        payment_currency: currency,
+        payment_link_sent_at: new Date().toISOString(),
+        // Réinitialise les compteurs d'email d'échec si renvoi
+        failure_email_sent_at: null
+      })
+      .eq('id', requestId);
+
+    // Envoyer l'email avec le lien
+    await sendTrainingPaymentLinkEmail(requestId, paymentUrl);
+
+    revalidatePath('/admin/demandes-training');
+    return { ok: true, payment_url: paymentUrl };
+  } catch (err: any) {
+    console.error('[Training Payment Link] Error:', err);
     return { error: err.message ?? 'Erreur inconnue' };
   }
 }
