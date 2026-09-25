@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation';
 import Reveal from '@/components/ui/Reveal';
 import { getCampBySlug } from '@/lib/queries';
 import { createAdminClient } from '@/lib/supabase/admin';
-import CampRegistrationForm from '@/components/CampRegistrationForm';
+import CampRegistrationCard from '@/components/CampRegistrationCard';
 
 export default async function CampDetailPage({
   params,
@@ -187,9 +187,9 @@ function CampDetail({
             )}
           </div>
 
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <CampRegistrationForm camp={camp} initialValues={initialValues} />
-          </aside>
+            <aside className="lg:sticky lg:top-24 lg:self-start">
+            <CampRegistrationCard camp={camp} initialValues={initialValues} />
+            </aside>
         </div>
       </section>
     </>

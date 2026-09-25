@@ -22,14 +22,17 @@ type InitialValues = Record<string, string> | null;
 
 export default function CampRegistrationForm({
   camp,
-  initialValues = null
+  initialValues = null,
+  onClose
 }: {
   camp: any;
   initialValues?: InitialValues;
+  onClose?: () => void;
 }) {
   const locale = useLocale();
   const isFr = locale === 'fr';
 
+  const [step, setStep] = useState<1 | 2>(1);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [paymentChoice, setPaymentChoice] = useState<'later' | 'online'>(
     initialValues?.payment_choice === 'online' ? 'online' : 'later'
@@ -50,8 +53,18 @@ export default function CampRegistrationForm({
   const update = (k: string, v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  const hasPrice = !!camp.price_amount;
+
+  // ─── Validation étape 1 ───
+  const canGoStep2 =
+    form.parent_name.trim() !== '' &&
+    form.parent_email.trim() !== '' &&
+    /^\S+@\S+\.\S+$/.test(form.parent_email);
+
+  // ─── Soumission finale ───
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (status === 'loading') return;
     setStatus('loading');
     setError(null);
 
@@ -82,116 +95,102 @@ export default function CampRegistrationForm({
     }
   };
 
-  const reset = () => {
-    setStatus('idle');
-    setPaymentChoice('later');
-    setForm({
-      parent_name: '',
-      parent_email: '',
-      parent_country: 'ci',
-      parent_phone: '',
-      player_name: '',
-      player_age: '',
-      player_birth_date: '',
-      notes: ''
-    });
-  };
-
+  // ─── Écran de succès ───
   if (status === 'success') {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-resa">
-        <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-emerald-500 text-2xl text-white">
+      <div className="p-8 text-center sm:p-10">
+        <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-emerald-500 text-3xl text-white">
           ✓
         </div>
-        <h3 className="font-display text-xl font-black text-emerald-800">
+        <h3 className="font-display text-2xl font-black text-emerald-800">
           {isFr ? 'Inscription enregistrée !' : 'Registration recorded!'}
         </h3>
-        <p className="mt-2 text-sm text-emerald-700">
+        <p className="mx-auto mt-3 max-w-sm text-sm text-emerald-700">
           {isFr
             ? 'Notre équipe vous contactera sous 48h pour finaliser le paiement.'
             : 'Our team will contact you within 48h to finalize payment.'}
         </p>
-        <button
-          onClick={reset}
-          className="mt-4 rounded-full bg-emerald-500 px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-emerald-600"
-        >
-          {isFr ? 'Nouvelle inscription' : 'New registration'}
-        </button>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-6 rounded-full bg-emerald-500 px-6 py-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-emerald-600"
+          >
+            {isFr ? 'Fermer' : 'Close'}
+          </button>
+        )}
       </div>
     );
   }
 
-  const isClosed = camp.status !== 'open';
-  const hasPrice = !!camp.price_amount;
-
   return (
-    <div className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa-lg">
-      <div className="h-1 bg-linear-to-r from-resa-red via-resa-royal to-resa-red" />
+    <div className="relative">
+      {/* ─── Header + Progress ─── */}
+      <div className="border-b border-black/5 px-6 pb-4 pt-6 sm:px-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-1 w-10 bg-resa-red" />
+            <h2 className="mt-2 font-display text-xl font-black text-resa-navy">
+              {isFr ? 'Inscription' : 'Registration'}
+            </h2>
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] font-black uppercase tracking-widest text-resa-text/50">
+              {isFr ? 'Étape' : 'Step'}
+            </div>
+            <div className="font-display text-lg font-black text-resa-red">
+              {step}<span className="text-resa-text/30">/2</span>
+            </div>
+          </div>
+        </div>
 
-      {/* Bandeau "formulaire pré-rempli" (mode rebook) */}
-      {initialValues && (
-        <div className="border-b border-emerald-100 bg-emerald-50 px-6 py-3">
-          <div className="flex items-start gap-2 text-[12px] text-emerald-800">
+        {/* Progress bar */}
+        <div className="mt-4 flex gap-1.5">
+          <div className={cn('h-1.5 flex-1 rounded-full', step >= 1 ? 'bg-resa-red' : 'bg-resa-gray')} />
+          <div className={cn('h-1.5 flex-1 rounded-full', step >= 2 ? 'bg-resa-red' : 'bg-resa-gray')} />
+        </div>
+      </div>
+
+      {/* Bandeau rebook */}
+      {initialValues && step === 1 && (
+        <div className="border-b border-emerald-100 bg-emerald-50 px-6 py-2.5 sm:px-8">
+          <div className="flex items-start gap-2 text-[11px] text-emerald-800">
             <span className="mt-0.5">✓</span>
             <span>
               {isFr
-                ? 'Nous avons pré-rempli le formulaire avec vos choix précédents. Vérifiez, modifiez si besoin, puis validez.'
-                : 'We pre-filled the form with your previous choices. Review, adjust if needed, then confirm.'}
+                ? 'Vos choix précédents ont été pré-remplis. Vérifiez, modifiez si besoin.'
+                : 'Your previous choices have been pre-filled. Review, adjust if needed.'}
             </span>
           </div>
         </div>
       )}
 
-      <div className="border-b border-black/5 px-6 py-5">
-        <h3 className="font-display text-xl font-black text-resa-navy">
-          {isFr ? 'Inscription' : 'Registration'}
-        </h3>
-        <p className="mt-1 text-xs text-resa-text/60">
-          {isClosed
-            ? isFr
-              ? 'Les inscriptions sont fermées pour cet événement.'
-              : 'Registration is closed for this event.'
-            : isFr
-              ? 'Remplissez le formulaire ci-dessous.'
-              : 'Fill out the form below.'}
-        </p>
-      </div>
-
-      {isClosed ? (
-        <div className="p-6 text-center">
-          <div className="text-4xl">🚫</div>
-          <p className="mt-3 text-sm text-resa-text/60">
-            {isFr ? 'Les inscriptions sont clôturées.' : 'Registration is closed.'}
-          </p>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-5 p-6">
-          {/* Mode paiement */}
+      {/* ─── ÉTAPE 1 : Paiement + Coordonnées ─── */}
+      {step === 1 && (
+        <div className="space-y-5 p-6 sm:p-8">
           {hasPrice && (
             <div>
-              <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-resa-text/60">
+              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-resa-text/60">
                 {isFr ? 'Mode de paiement' : 'Payment method'}
               </label>
-              <div className="space-y-2">
+              <div className="grid gap-2 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => setPaymentChoice('later')}
                   className={cn(
-                    'flex w-full items-start gap-3 rounded-xl border-2 px-4 py-3 text-left transition',
+                    'flex items-start gap-2.5 rounded-xl border-2 px-3.5 py-3 text-left transition',
                     paymentChoice === 'later'
                       ? 'border-resa-red bg-resa-red/5'
                       : 'border-black/10 bg-white hover:border-resa-navy/30'
                   )}
                 >
-                  <span className="mt-0.5 text-lg">📝</span>
+                  <span className="mt-0.5 text-base">📝</span>
                   <div>
-                    <div className="text-[13px] font-bold text-resa-navy">
-                      {isFr ? 'Réserver sans payer' : 'Book without paying'}
+                    <div className="text-[12px] font-bold text-resa-navy">
+                      {isFr ? 'Sans payer' : 'Without paying'}
                     </div>
-                    <div className="mt-0.5 text-[11px] text-resa-text/55">
-                      {isFr
-                        ? 'Notre équipe vous contactera pour finaliser.'
-                        : 'Our team will contact you to finalize.'}
+                    <div className="mt-0.5 text-[10px] text-resa-text/55">
+                      {isFr ? 'On vous contacte.' : 'We contact you.'}
                     </div>
                   </div>
                 </button>
@@ -200,24 +199,24 @@ export default function CampRegistrationForm({
                   type="button"
                   onClick={() => setPaymentChoice('online')}
                   className={cn(
-                    'flex w-full items-start gap-3 rounded-xl border-2 px-4 py-3 text-left transition',
+                    'flex items-start gap-2.5 rounded-xl border-2 px-3.5 py-3 text-left transition',
                     paymentChoice === 'online'
                       ? 'border-resa-red bg-resa-red/5'
                       : 'border-black/10 bg-white hover:border-resa-navy/30'
                   )}
                 >
-                  <span className="mt-0.5 text-lg">💳</span>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 text-[13px] font-bold text-resa-navy">
-                      {isFr ? 'Payer en ligne' : 'Pay online'}
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700">
-                        {camp.price_fr ?? ''}
-                      </span>
+                  <span className="mt-0.5 text-base">💳</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-resa-navy">
+                      {isFr ? 'Payer' : 'Pay'}
+                      {camp.price_fr && (
+                        <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700">
+                          {camp.price_fr}
+                        </span>
+                      )}
                     </div>
-                    <div className="mt-0.5 text-[11px] text-resa-text/55">
-                      {isFr
-                        ? 'Wave · Orange Money · MTN MoMo · Carte'
-                        : 'Wave · Orange Money · MTN MoMo · Card'}
+                    <div className="mt-0.5 text-[10px] text-resa-text/55">
+                      {isFr ? 'Mobile Money · Carte' : 'Mobile Money · Card'}
                     </div>
                   </div>
                 </button>
@@ -225,95 +224,51 @@ export default function CampRegistrationForm({
             </div>
           )}
 
-          {/* Coordonnées */}
-          <div className="space-y-3">
-            <div className="text-[10px] font-black uppercase tracking-widest text-resa-red">
+          <div>
+            <div className="mb-2.5 text-[10px] font-black uppercase tracking-widest text-resa-red">
               {isFr ? 'Vos coordonnées' : 'Your details'}
             </div>
-            <input
-              type="text"
-              value={form.parent_name}
-              onChange={(e) => update('parent_name', e.target.value)}
-              required
-              placeholder={isFr ? 'Nom complet du parent *' : 'Parent full name *'}
-              className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
-            />
-            <input
-              type="email"
-              value={form.parent_email}
-              onChange={(e) => update('parent_email', e.target.value)}
-              required
-              placeholder="Email *"
-              className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
-            />
-
-            <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-resa-text/60">
-                {isFr ? 'Pays' : 'Country'}
-              </label>
-              <select
-                value={form.parent_country}
-                onChange={(e) => update('parent_country', e.target.value)}
-                className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
-              >
-                {COUNTRIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <input
-              type="tel"
-              value={form.parent_phone}
-              onChange={(e) => update('parent_phone', e.target.value)}
-              placeholder={
-                isFr
-                  ? `Téléphone (${COUNTRIES.find((c) => c.code === form.parent_country)?.dial ?? ''}…)`
-                  : `Phone (${COUNTRIES.find((c) => c.code === form.parent_country)?.dial ?? ''}…)`
-              }
-              className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
-            />
-          </div>
-
-          {/* Joueur */}
-          <div className="space-y-3">
-            <div className="text-[10px] font-black uppercase tracking-widest text-resa-red">
-              {isFr ? 'Le joueur' : 'The player'}
-            </div>
-            <input
-              type="text"
-              value={form.player_name}
-              onChange={(e) => update('player_name', e.target.value)}
-              required
-              placeholder={isFr ? "Prénom de l'enfant *" : "Child's first name *"}
-              className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
-            />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2.5">
               <input
-                type="number"
-                value={form.player_age}
-                onChange={(e) => update('player_age', e.target.value)}
-                placeholder={isFr ? 'Âge' : 'Age'}
+                type="text"
+                value={form.parent_name}
+                onChange={(e) => update('parent_name', e.target.value)}
+                placeholder={isFr ? 'Nom complet du parent *' : 'Parent full name *'}
                 className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
               />
               <input
-                type="date"
-                value={form.player_birth_date}
-                onChange={(e) => update('player_birth_date', e.target.value)}
+                type="email"
+                value={form.parent_email}
+                onChange={(e) => update('parent_email', e.target.value)}
+                placeholder="Email *"
                 className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
               />
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={form.parent_country}
+                  onChange={(e) => update('parent_country', e.target.value)}
+                  className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  value={form.parent_phone}
+                  onChange={(e) => update('parent_phone', e.target.value)}
+                  placeholder={
+                    isFr
+                      ? `${COUNTRIES.find((c) => c.code === form.parent_country)?.dial ?? ''}…`
+                      : `${COUNTRIES.find((c) => c.code === form.parent_country)?.dial ?? ''}…`
+                  }
+                  className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+                />
+              </div>
             </div>
           </div>
-
-          <textarea
-            value={form.notes}
-            onChange={(e) => update('notes', e.target.value)}
-            rows={3}
-            placeholder={isFr ? 'Notes, questions (optionnel)' : 'Notes, questions (optional)'}
-            className="w-full resize-y rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
-          />
 
           {error && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700">
@@ -322,16 +277,94 @@ export default function CampRegistrationForm({
           )}
 
           <button
-            type="submit"
-            disabled={status === 'loading'}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-resa-red px-6 py-3.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:opacity-60"
+            type="button"
+            disabled={!canGoStep2}
+            onClick={() => setStep(2)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-resa-red px-6 py-3.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {status === 'loading'
-              ? isFr ? 'Envoi…' : 'Sending…'
-              : paymentChoice === 'online' && hasPrice
-                ? isFr ? '💳 Payer et réserver' : '💳 Pay & reserve'
-                : isFr ? 'Réserver ma place' : 'Reserve my spot'}
+            {isFr ? 'Suivant' : 'Next'} →
           </button>
+
+          <a
+            href="https://wa.me/2250700000000"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-center text-[11px] text-resa-text/50 transition hover:text-resa-red"
+          >
+            💬 {isFr ? 'Besoin d\'aide ?' : 'Need help?'}
+          </a>
+        </div>
+      )}
+
+      {/* ─── ÉTAPE 2 : Joueur + Notes ─── */}
+      {step === 2 && (
+        <form onSubmit={handleSubmit} className="space-y-5 p-6 sm:p-8">
+          <div>
+            <div className="mb-2.5 text-[10px] font-black uppercase tracking-widest text-resa-red">
+              {isFr ? 'Le joueur' : 'The player'}
+            </div>
+            <div className="space-y-2.5">
+              <input
+                type="text"
+                value={form.player_name}
+                onChange={(e) => update('player_name', e.target.value)}
+                required
+                placeholder={isFr ? "Prénom de l'enfant *" : "Child's first name *"}
+                className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="number"
+                  value={form.player_age}
+                  onChange={(e) => update('player_age', e.target.value)}
+                  placeholder={isFr ? 'Âge' : 'Age'}
+                  className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+                />
+                <input
+                  type="date"
+                  value={form.player_birth_date}
+                  onChange={(e) => update('player_birth_date', e.target.value)}
+                  className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+                />
+              </div>
+            </div>
+          </div>
+
+          <textarea
+            value={form.notes}
+            onChange={(e) => update('notes', e.target.value)}
+            rows={3}
+            placeholder={isFr ? 'Notes, questions (optionnel)' : 'Notes, questions (optional)'}
+            className="w-full resize-none rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+          />
+
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700">
+              {error}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              disabled={status === 'loading'}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-resa-navy/10 bg-white px-6 py-3.5 text-xs font-bold uppercase tracking-wide text-resa-navy transition hover:border-resa-navy/30 disabled:opacity-50"
+            >
+              ← {isFr ? 'Retour' : 'Back'}
+            </button>
+            <button
+              type="submit"
+              disabled={status === 'loading' || !form.player_name.trim()}
+              className="inline-flex flex-[2] items-center justify-center gap-2 rounded-full bg-resa-red px-6 py-3.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {status === 'loading'
+                ? isFr ? 'Envoi…' : 'Sending…'
+                : paymentChoice === 'online' && hasPrice
+                  ? isFr ? '💳 Payer et réserver' : '💳 Pay & reserve'
+                  : isFr ? 'Réserver ma place' : 'Reserve my spot'}
+            </button>
+          </div>
         </form>
       )}
     </div>
