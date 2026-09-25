@@ -1,11 +1,13 @@
 {
-  "nav": {
+
+    "nav": {
     "home": "Home",
     "about": "About",
     "programs": "Programs",
     "academy": "Academy",
     "league": "School League",
     "training": "Private Training",
+    "camps": "Camps & Tryouts",
     "coaches": "Coaches",
     "news": "News",
     "partners": "Partners",
@@ -21,7 +23,7 @@
     "schools": "Schools",
     "subSchools": "Participating institutions",
     "leaguePresentation": "Overview",
-    "subLeaguePresentation": "Format, categories and rules",  
+    "subLeaguePresentation": "Format, categories and rules",
     "subAllPrograms": "Overview",
     "contactTooltip": "Contact us",
     "coachRoger": "Coach Roger",
@@ -35,6 +37,7 @@
     "subAcademy": "Programs & academies",
     "subLeague": "School competition",
     "subTraining": "Private sessions",
+    "subCamps": "Camps & scouting",
     "subCoaches": "Our team",
     "subNews": "All the latest",
     "subAbout": "Vision & mission",
@@ -45,6 +48,7 @@
     "whatsapp": "WhatsApp",
     "whatsappDesc": "Direct chat"
   },
+  
   "home": {
     "heroBadge": "2027 Season · January — June",
     "heroTitle1": "Train.",

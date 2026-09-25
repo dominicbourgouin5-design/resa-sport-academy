@@ -1,11 +1,12 @@
 {
-  "nav": {
+    "nav": {
     "home": "Accueil",
     "about": "À propos",
     "programs": "Programmes",
     "academy": "Academy",
     "league": "School League",
     "training": "Private Training",
+    "camps": "Camps & Tryouts",
     "coaches": "Coachs",
     "news": "Actualités",
     "partners": "Partenaires",
@@ -35,6 +36,7 @@
     "subAcademy": "Programmes & académies",
     "subLeague": "Compétition scolaire",
     "subTraining": "Entraînements privés",
+    "subCamps": "Stages & détections",
     "subCoaches": "Notre équipe",
     "subNews": "Toutes les actualités",
     "subAbout": "Vision & mission",

@@ -64,6 +64,7 @@ export default function Header() {
             ]
         },
         { href: '/private-training', labelKey: 'training', descKey: 'subTraining' },
+        { href: '/camps',            labelKey: 'camps',    descKey: 'subCamps' },
         { href: '/coaches',          labelKey: 'coaches',  descKey: 'subCoaches' }
       ]
     },
@@ -77,7 +78,7 @@ export default function Header() {
 
   const isGroupActive = (item: NavItem) =>
     item.href === '/programs'
-      ? ['/programs', '/academy', '/ligue', '/competition', '/ecoles', '/private-training', '/coaches'].some((p) => pathname.startsWith(p))
+      ? ['/programs', '/academy', '/ligue', '/competition', '/ecoles', '/private-training', '/camps', '/coaches'].some((p) => pathname.startsWith(p))
       : isActive(item.href);
 
   return (
@@ -368,6 +369,13 @@ function NavItemDesktop({
         <path d="M12 6v6l4 2" />
       </svg>
     ),
+    '/camps': (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 20h18" />
+        <path d="M6 20V8l6-4 6 4v12" />
+        <path d="M6 12h12M10 20v-4M14 20v-4" />
+      </svg>
+    ),
     '/coaches': (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -449,7 +457,6 @@ function NavItemDesktop({
                     {i > 0 && <div className="dropdown-divider" />}
 
                     {cHasChildren ? (
-                      /* ─── Groupe avec accordéon vertical ─── */
                       <div
                         onMouseEnter={() => setOpenSubKey(c.labelKey)}
                         onMouseLeave={() => setOpenSubKey(null)}
@@ -488,7 +495,6 @@ function NavItemDesktop({
                           </svg>
                         </button>
 
-                        {/* Accordéon vertical (sous-menu en dessous) */}
                         <div
                           className={cn(
                             'grid overflow-hidden transition-all duration-300 ease-out',
@@ -525,7 +531,6 @@ function NavItemDesktop({
                         </div>
                       </div>
                     ) : (
-                      /* ─── Item simple ─── */
                       <Link
                         href={c.href as any}
                         className={cn('dropdown-item', isCurrent && 'is-active')}
