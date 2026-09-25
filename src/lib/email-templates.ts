@@ -1,4 +1,177 @@
-// ─── Layout HTML commun ─────────────────────────────────────
+// src/lib/email-templates.ts
+
+// ─── Types de statuts séparés par domaine ───────────────────
+export type TrainingStatus = 'pending' | 'contacted' | 'booked' | 'cancelled';
+export type RegistrationStatus = 'pending' | 'reviewing' | 'approved' | 'rejected';
+
+// ─── Types génériques ───────────────────────────────────────
+export type TrainingEmailTemplate = {
+  id: string;
+  label: string;
+  subject: string;
+  body: string;
+  targetStatus?: TrainingStatus;
+};
+
+export type RegistrationEmailTemplate = {
+  id: string;
+  label: string;
+  subject: string;
+  body: string;
+  targetStatus?: RegistrationStatus;
+};
+
+// ─── Templates TRAINING (wizard admin → parent) ─────────────
+export const TRAINING_TEMPLATES: TrainingEmailTemplate[] = [
+  {
+    id: 'acknowledge',
+    label: '✓ Accusé de réception',
+    subject: 'Bien reçu ! On s\'occupe de vous 💙',
+    body: `Bonjour {{parent_name}},
+
+Un grand merci pour votre confiance 🙏
+
+Nous avons bien reçu votre demande de réservation{{program_line}} et nous en sommes vraiment ravis.
+
+Notre équipe vous recontacte sous 24 heures pour caler ensemble le créneau, le coach et le lieu. D'ici là, n'hésitez pas à nous écrire si vous avez la moindre question.
+
+À très vite sur le terrain ⚽
+L'équipe RESA Sport Academy`,
+    targetStatus: 'contacted'
+  },
+  {
+    id: 'confirm_slot',
+    label: '📅 Confirmation de créneau',
+    subject: 'C\'est calé — votre séance RESA est confirmée 🎉',
+    body: `Bonjour {{parent_name}},
+
+Excellente nouvelle : votre séance{{program_line}} est officiellement confirmée 🎉
+
+📅 Date : (à préciser)
+⏰ Heure : (à préciser)
+📍 Lieu : (à préciser)
+🧑‍🏫 Coach : {{preferred_coach}}
+
+On a hâte de vous voir fouler le terrain. N'oubliez pas la gourde et les crampons 😉
+
+À très vite,
+L'équipe RESA Sport Academy`,
+    targetStatus: 'booked'
+  },
+  {
+    id: 'waitlist',
+    label: '⏳ Liste d\'attente',
+    subject: 'Petite attente — on ne vous oublie pas 💙',
+    body: `Bonjour {{parent_name}},
+
+Merci pour votre patience 🙏
+
+Votre demande{{program_line}} est momentanément en liste d'attente — les créneaux partent vite en ce moment.
+
+Bonne nouvelle : dès qu'une place se libère, vous êtes parmi les premiers prévenus. On vous recontacte sans faute.
+
+Merci encore pour votre confiance,
+L'équipe RESA Sport Academy ⚽`,
+    targetStatus: 'pending'
+  },
+  {
+    id: 'cancelled',
+    label: '✕ Annulation',
+    subject: 'On en reparle quand vous voulez 💙',
+    body: `Bonjour {{parent_name}},
+
+Nous sommes sincèrement désolés : votre demande{{program_line}} n'a malheureusement pas pu être honorée cette fois-ci.
+
+Ce n'est qu'un au revoir — on serait ravis de vous accueillir sur une prochaine session. Répondez à cet email ou écrivez-nous sur WhatsApp, on trouvera ensemble la meilleure option.
+
+À très bientôt,
+L'équipe RESA Sport Academy ⚽`,
+    targetStatus: 'cancelled'
+  }
+];
+
+// ─── Templates INSCRIPTIONS (wizard admin → parent) ─────────
+export const REGISTRATION_TEMPLATES: RegistrationEmailTemplate[] = [
+  {
+    id: 'reviewing',
+    label: '👀 En cours d\'examen',
+    subject: 'Bien reçu — on étudie votre dossier avec attention',
+    body: `Bonjour {{parent_name}},
+
+Merci beaucoup pour votre inscription 🙏
+
+Nous avons bien reçu votre demande{{school_or_player_line}} et nous en sommes vraiment heureux.
+
+Notre équipe prend le temps d'étudier votre dossier avec attention et revient vers vous très prochainement. D'ici là, on reste disponibles si vous avez la moindre question.
+
+À très vite,
+L'équipe RESA Sport Academy ⚽`,
+    targetStatus: 'reviewing'
+  },
+  {
+    id: 'approved',
+    label: '✅ Inscription acceptée',
+    subject: 'Bienvenue dans la famille RESA ! 🎉',
+    body: `Bonjour {{parent_name}},
+
+Excellente nouvelle : votre demande{{school_or_player_line}} est acceptée ! 🎉
+
+Toute l'équipe est ravie de vous accueillir. Nous revenons vers vous très vite avec les étapes pratiques : calendrier, réunion d'information, règles de la ligue.
+
+En attendant, préparez les crampons — ça va être une belle saison 💪
+
+Bienvenue dans la famille RESA,
+L'équipe RESA Sport Academy`,
+    targetStatus: 'approved'
+  },
+  {
+    id: 'waitlist',
+    label: '⏳ Liste d\'attente',
+    subject: 'Petite attente — vous êtes sur la bonne liste 💙',
+    body: `Bonjour {{parent_name}},
+
+Merci pour votre patience 🙏
+
+Votre demande{{school_or_player_line}} a été placée en liste d'attente — les places sont limitées et partent vite.
+
+Bonne nouvelle : vous êtes bien enregistré, et nous vous recontacterons dès qu'une place se libère. Vous serez parmi les premiers prévenus.
+
+Merci pour votre confiance,
+L'équipe RESA Sport Academy ⚽`,
+    targetStatus: 'reviewing'
+  },
+  {
+    id: 'rejected',
+    label: '✕ Inscription refusée',
+    subject: 'Suite donnée à votre demande — merci pour votre confiance',
+    body: `Bonjour {{parent_name}},
+
+Merci sincèrement pour l'intérêt que vous portez à RESA Sport Academy.
+
+Après étude attentive de votre dossier, nous ne sommes malheureusement pas en mesure de donner une suite favorable à votre demande{{school_or_player_line}} cette fois-ci. Nous en sommes désolés.
+
+Ce n'est pas un adieu : nous vous invitons à nous recontacter pour de prochaines sessions — les portes restent grandes ouvertes 🙏
+
+Bien à vous,
+L'équipe RESA Sport Academy ⚽`,
+    targetStatus: 'rejected'
+  }
+];
+
+// ─── Remplace les {{vars}} dans un template ─────────────────
+export function fillTemplate(
+  body: string,
+  vars: Record<string, string | null | undefined>
+): string {
+  return body.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+    const v = vars[key];
+    return v ?? '';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// LAYOUT HTML COMMUN
+// ═══════════════════════════════════════════════════════════
 function layout(content: string) {
   return `
 <!DOCTYPE html>
@@ -12,7 +185,6 @@ function layout(content: string) {
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(10,31,68,.08);">
-          <!-- Header navy -->
           <tr>
             <td style="background:#0A1F44;padding:32px;text-align:center;">
               <div style="display:inline-block;background:#fff;border-radius:50%;padding:8px;margin-bottom:12px;">
@@ -26,15 +198,12 @@ function layout(content: string) {
               </div>
             </td>
           </tr>
-          <!-- Barre rouge -->
           <tr><td style="height:4px;background:linear-gradient(90deg,#DC2626,#1E3A8A,#DC2626);"></td></tr>
-          <!-- Contenu -->
           <tr>
             <td style="padding:40px 32px;color:#0F172A;font-size:15px;line-height:1.7;">
               ${content}
             </td>
           </tr>
-          <!-- Footer -->
           <tr>
             <td style="background:#F4F6FA;padding:24px 32px;text-align:center;color:#64748B;font-size:12px;line-height:1.6;">
               <div style="font-weight:700;color:#0A1F44;margin-bottom:4px;">RESA Sport Academy</div>
@@ -52,7 +221,9 @@ function layout(content: string) {
 </html>`;
 }
 
-// ─── Email 1 : Confirmation inscription école ──────────────
+// ═══════════════════════════════════════════════════════════
+// EMAIL 1 — Confirmation inscription école
+// ═══════════════════════════════════════════════════════════
 export function schoolRegistrationConfirmation(data: {
   contactName: string;
   schoolName: string;
@@ -61,13 +232,15 @@ export function schoolRegistrationConfirmation(data: {
   const categories = data.categories.join(', ') || 'U7, U9, U11';
 
   return {
-    subject: `✓ Votre demande d'inscription — ${data.schoolName}`,
+    subject: `🙌 Bienvenue ${data.schoolName} — RESA Sport Academy`,
     htmlContent: layout(`
       <h1 style="font-size:24px;font-weight:900;color:#0A1F44;margin:0 0 16px;">
-        Bonjour ${data.contactName},
+        Bonjour ${data.contactName} 👋
       </h1>
 
-      <p>Nous avons bien reçu votre demande d'inscription pour <strong>${data.schoolName}</strong>.</p>
+      <p style="font-size:16px;">
+        Quelle belle nouvelle ! Nous avons bien reçu votre demande d'inscription pour <strong>${data.schoolName}</strong> — et nous en sommes vraiment ravis 🙏
+      </p>
 
       <div style="background:#F4F6FA;border-left:4px solid #DC2626;padding:16px 20px;border-radius:8px;margin:24px 0;">
         <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#DC2626;margin-bottom:8px;">
@@ -79,41 +252,47 @@ export function schoolRegistrationConfirmation(data: {
         </div>
       </div>
 
-      <p><strong>Prochaines étapes :</strong></p>
+      <p><strong>Et maintenant ?</strong> Rien à faire de votre côté 😊</p>
       <ol style="padding-left:20px;margin:12px 0;">
-        <li>Notre équipe étudie votre dossier</li>
-        <li>Nous vous recontactons sous 48h par téléphone ou WhatsApp</li>
-        <li>Confirmation définitive de votre place</li>
+        <li>Notre équipe étudie votre dossier avec attention</li>
+        <li>Nous vous recontactons sous <strong>48 h</strong> par téléphone ou WhatsApp</li>
+        <li>On confirme ensemble la place de votre école 🎉</li>
       </ol>
 
       <p style="margin-top:24px;">
-        Pour toute question, contactez-nous sur WhatsApp ou par email à
+        Une question en attendant ? On est joignables sur WhatsApp ou par email à
         <a href="mailto:contact@resasportacademy.ci" style="color:#DC2626;">contact@resasportacademy.ci</a>.
       </p>
 
       <div style="margin-top:32px;text-align:center;">
         <a href="https://wa.me/2250700000000" style="display:inline-block;background:#25D366;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;">
-          💬 Nous contacter sur WhatsApp
+          💬 Parler à l'équipe sur WhatsApp
         </a>
       </div>
+
+      <p style="margin-top:32px;">À très vite,<br/><strong>L'équipe RESA Sport Academy</strong> ⚽</p>
     `)
   };
 }
 
-// ─── Email 2 : Confirmation détection individuelle ─────────
+// ═══════════════════════════════════════════════════════════
+// EMAIL 2 — Confirmation détection individuelle
+// ═══════════════════════════════════════════════════════════
 export function individualRegistrationConfirmation(data: {
   contactName: string;
   playerName: string;
   position?: string;
 }) {
   return {
-    subject: `✓ Inscription détection reçue — ${data.playerName}`,
+    subject: `🙌 Bienvenue ${data.playerName} — RESA Sport Academy`,
     htmlContent: layout(`
       <h1 style="font-size:24px;font-weight:900;color:#0A1F44;margin:0 0 16px;">
-        Bonjour ${data.contactName},
+        Bonjour ${data.contactName} 👋
       </h1>
 
-      <p>Nous avons bien reçu l'inscription de <strong>${data.playerName}</strong> pour les sessions de détection RESA Sport Academy.</p>
+      <p style="font-size:16px;">
+        Super nouvelle ! Nous avons bien reçu l'inscription de <strong>${data.playerName}</strong> pour les sessions de détection RESA Sport Academy 🙏
+      </p>
 
       <div style="background:#F4F6FA;border-left:4px solid #1E3A8A;padding:16px 20px;border-radius:8px;margin:24px 0;">
         <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#1E3A8A;margin-bottom:8px;">
@@ -125,18 +304,24 @@ export function individualRegistrationConfirmation(data: {
         </div>
       </div>
 
-      <p>Nous vous contacterons pour vous communiquer les dates et lieux des prochaines sessions.</p>
+      <p>
+        Nous vous contacterons très vite avec les <strong>dates et lieux</strong> des prochaines sessions. D'ici là, dites à ${data.playerName} de préparer ses crampons — ça va être top 💪
+      </p>
 
       <div style="margin-top:32px;text-align:center;">
         <a href="https://wa.me/2250700000000" style="display:inline-block;background:#25D366;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;">
-          💬 Nous contacter sur WhatsApp
+          💬 Une question ? WhatsApp
         </a>
       </div>
+
+      <p style="margin-top:32px;">À très vite,<br/><strong>L'équipe RESA Sport Academy</strong> ⚽</p>
     `)
   };
 }
 
-// ─── Email 3 : Notification admin ───────────────────────────
+// ═══════════════════════════════════════════════════════════
+// EMAIL 3 — Notification admin nouvelle inscription
+// ═══════════════════════════════════════════════════════════
 export function adminNewRegistrationNotification(data: {
   type: 'school' | 'individual';
   contactName: string;
@@ -151,11 +336,11 @@ export function adminNewRegistrationNotification(data: {
     subject: `📥 Nouvelle inscription ${isSchool ? 'école' : 'individuelle'} — ${isSchool ? data.schoolName : data.playerName}`,
     htmlContent: layout(`
       <h1 style="font-size:22px;font-weight:900;color:#0A1F44;margin:0 0 16px;">
-        Nouvelle inscription reçue
+        🎉 Nouvelle inscription reçue
       </h1>
 
       <p style="color:#64748B;">
-        Une nouvelle demande vient d'être soumise sur le site.
+        Bonne nouvelle, une nouvelle demande vient d'arriver sur le site. À traiter sous peu 💪
       </p>
 
       <div style="background:#F4F6FA;border-radius:12px;padding:20px;margin:24px 0;">
@@ -187,10 +372,9 @@ export function adminNewRegistrationNotification(data: {
   };
 }
 
-
-
-
-// ─── Email 4 : Confirmation réservation training (au parent) ─
+// ═══════════════════════════════════════════════════════════
+// EMAIL 4 — Confirmation réservation training (au parent)
+// ═══════════════════════════════════════════════════════════
 export function trainingRequestParentConfirmation(data: {
   parentName: string;
   programTitle?: string | null;
@@ -219,13 +403,15 @@ export function trainingRequestParentConfirmation(data: {
   }
 
   return {
-    subject: `✓ Votre demande de réservation — RESA Sport Academy`,
+    subject: `🙌 Bien reçu ${data.parentName} — on s'occupe de votre séance`,
     htmlContent: layout(`
       <h1 style="font-size:24px;font-weight:900;color:#0A1F44;margin:0 0 16px;">
-        Bonjour ${data.parentName},
+        Bonjour ${data.parentName} 👋
       </h1>
 
-      <p>Nous avons bien reçu votre demande de réservation pour une séance de <strong>Private Training</strong>.</p>
+      <p style="font-size:16px;">
+        Merci pour votre confiance 🙏 Nous avons bien reçu votre demande de réservation pour une séance de <strong>Private Training</strong>.
+      </p>
 
       ${
         details.length > 0
@@ -242,29 +428,33 @@ export function trainingRequestParentConfirmation(data: {
           : ''
       }
 
-      <p><strong>Prochaines étapes :</strong></p>
+      <p><strong>Et maintenant ?</strong> Rien à faire de votre côté 😊</p>
       <ol style="padding-left:20px;margin:12px 0;">
         <li>Notre équipe étudie votre demande</li>
-        <li>Nous vous recontactons sous <strong>24 h</strong> par email ou WhatsApp</li>
-        <li>Confirmation du créneau et du coach</li>
+        <li>On vous recontacte sous <strong>24 h</strong> par email ou WhatsApp</li>
+        <li>On cale ensemble le créneau et le coach</li>
         <li>Première séance sur le terrain 💪</li>
       </ol>
 
       <p style="margin-top:24px;">
-        Une question ? Contactez-nous directement sur WhatsApp ou par email à
-        <a href="mailto:contact@resasportacademy.ci" style="color:#DC2626;">contact@resasportacademy.ci</a>.
+        Une question ? Écrivez-nous sur WhatsApp ou par email à
+        <a href="mailto:contact@resasportacademy.ci" style="color:#DC2626;">contact@resasportacademy.ci</a>. On adore papoter avec les familles 😊
       </p>
 
       <div style="margin-top:32px;text-align:center;">
         <a href="https://wa.me/2250700000000" style="display:inline-block;background:#25D366;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;">
-          💬 Nous contacter sur WhatsApp
+          💬 Parler à l'équipe
         </a>
       </div>
+
+      <p style="margin-top:32px;">À très vite sur le terrain,<br/><strong>L'équipe RESA Sport Academy</strong> ⚽</p>
     `)
   };
 }
 
-// ─── Email 5 : Notification admin nouvelle réservation ──────
+// ═══════════════════════════════════════════════════════════
+// EMAIL 5 — Notification admin nouvelle réservation
+// ═══════════════════════════════════════════════════════════
 export function trainingRequestAdminNotification(data: {
   parentName: string;
   parentEmail: string;
@@ -308,14 +498,13 @@ export function trainingRequestAdminNotification(data: {
     subject: `📥 Nouvelle réservation training${data.programTitle ? ` — ${data.programTitle}` : ''}`,
     htmlContent: layout(`
       <h1 style="font-size:22px;font-weight:900;color:#0A1F44;margin:0 0 16px;">
-        Nouvelle demande de réservation
+        🎉 Nouvelle demande de réservation
       </h1>
 
       <p style="color:#64748B;">
-        Une nouvelle demande de Private Training vient d'être soumise sur le site.
+        Une nouvelle demande de Private Training vient d'arriver. À traiter avec le sourire 😊
       </p>
 
-      <!-- Contact parent -->
       <div style="background:#F4F6FA;border-radius:12px;padding:20px;margin:24px 0;">
         <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#DC2626;margin-bottom:12px;">
           Contact parent / tuteur
@@ -331,7 +520,6 @@ export function trainingRequestAdminNotification(data: {
         </div>
       </div>
 
-      <!-- Détails réservation -->
       ${
         rows.length > 0
           ? `
@@ -347,7 +535,6 @@ export function trainingRequestAdminNotification(data: {
           : ''
       }
 
-      <!-- Message -->
       ${
         data.message
           ? `

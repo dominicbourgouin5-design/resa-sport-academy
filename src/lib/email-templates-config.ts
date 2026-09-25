@@ -19,122 +19,139 @@ export type RegistrationEmailTemplate = {
   targetStatus?: RegistrationStatus;
 };
 
-// ─── Templates TRAINING ─────────────────────────────────────
+// ─── Templates TRAINING (wizard admin → parent) ─────────────
 export const TRAINING_TEMPLATES: TrainingEmailTemplate[] = [
   {
     id: 'acknowledge',
     label: '✓ Accusé de réception',
-    subject: 'Nous avons bien reçu votre demande — RESA',
+    subject: 'Bien reçu ! On s\'occupe de vous 💙',
     body: `Bonjour {{parent_name}},
 
-Nous avons bien reçu votre demande de réservation{{program_line}}.
+Un grand merci pour votre confiance 🙏
 
-Notre équipe revient vers vous sous 24 heures pour finaliser les détails (créneau, coach, lieu).
+Nous avons bien reçu votre demande de réservation{{program_line}} et nous en sommes vraiment ravis.
 
-À très bientôt,
+Notre équipe vous recontacte sous 24 heures pour caler ensemble le créneau, le coach et le lieu. D'ici là, n'hésitez pas à nous écrire si vous avez la moindre question.
+
+À très vite sur le terrain ⚽
 L'équipe RESA Sport Academy`,
     targetStatus: 'contacted'
   },
   {
     id: 'confirm_slot',
     label: '📅 Confirmation de créneau',
-    subject: 'Votre séance RESA est confirmée',
+    subject: 'C\'est calé — votre séance RESA est confirmée 🎉',
     body: `Bonjour {{parent_name}},
 
-Votre séance{{program_line}} est confirmée.
+Excellente nouvelle : votre séance{{program_line}} est officiellement confirmée 🎉
 
 📅 Date : (à préciser)
 ⏰ Heure : (à préciser)
 📍 Lieu : (à préciser)
 🧑‍🏫 Coach : {{preferred_coach}}
 
-Nous avons hâte de vous voir sur le terrain.
+On a hâte de vous voir fouler le terrain. N'oubliez pas la gourde et les crampons 😉
 
+À très vite,
 L'équipe RESA Sport Academy`,
     targetStatus: 'booked'
   },
   {
     id: 'waitlist',
     label: '⏳ Liste d\'attente',
-    subject: 'Votre demande est en liste d\'attente',
+    subject: 'Petite attente — on ne vous oublie pas 💙',
     body: `Bonjour {{parent_name}},
 
-Votre demande{{program_line}} est momentanément en liste d'attente.
+Merci pour votre patience 🙏
 
-Nous vous recontactons dès qu'un créneau se libère. Merci de votre patience.
+Votre demande{{program_line}} est momentanément en liste d'attente — les créneaux partent vite en ce moment.
 
-L'équipe RESA Sport Academy`,
+Bonne nouvelle : dès qu'une place se libère, vous êtes parmi les premiers prévenus. On vous recontacte sans faute.
+
+Merci encore pour votre confiance,
+L'équipe RESA Sport Academy ⚽`,
     targetStatus: 'pending'
   },
   {
     id: 'cancelled',
     label: '✕ Annulation',
-    subject: 'Annulation de votre demande de réservation',
+    subject: 'On en reparle quand vous voulez 💙',
     body: `Bonjour {{parent_name}},
 
-Nous sommes au regret de vous informer que votre demande{{program_line}} n'a pas pu être honorée.
+Nous sommes sincèrement désolés : votre demande{{program_line}} n'a malheureusement pas pu être honorée cette fois-ci.
 
-N'hésitez pas à nous contacter pour explorer d'autres options.
+Ce n'est qu'un au revoir — on serait ravis de vous accueillir sur une prochaine session. Répondez à cet email ou écrivez-nous sur WhatsApp, on trouvera ensemble la meilleure option.
 
-L'équipe RESA Sport Academy`,
+À très bientôt,
+L'équipe RESA Sport Academy ⚽`,
     targetStatus: 'cancelled'
   }
 ];
 
-// ─── Templates INSCRIPTIONS ─────────────────────────────────
+// ─── Templates INSCRIPTIONS (wizard admin → parent) ─────────
 export const REGISTRATION_TEMPLATES: RegistrationEmailTemplate[] = [
   {
     id: 'reviewing',
     label: '👀 En cours d\'examen',
-    subject: 'Votre inscription est en cours d\'examen',
+    subject: 'Bien reçu — on étudie votre dossier avec attention',
     body: `Bonjour {{parent_name}},
 
-Nous avons bien reçu votre demande{{school_or_player_line}}.
+Merci beaucoup pour votre inscription 🙏
 
-Notre équipe étudie actuellement votre dossier et revient vers vous très prochainement.
+Nous avons bien reçu votre demande{{school_or_player_line}} et nous en sommes vraiment heureux.
 
-L'équipe RESA Sport Academy`,
+Notre équipe prend le temps d'étudier votre dossier avec attention et revient vers vous très prochainement. D'ici là, on reste disponibles si vous avez la moindre question.
+
+À très vite,
+L'équipe RESA Sport Academy ⚽`,
     targetStatus: 'reviewing'
   },
   {
     id: 'approved',
     label: '✅ Inscription acceptée',
-    subject: 'Votre inscription est acceptée — RESA',
+    subject: 'Bienvenue dans la famille RESA ! 🎉',
     body: `Bonjour {{parent_name}},
 
-Excellente nouvelle : votre demande{{school_or_player_line}} est acceptée !
+Excellente nouvelle : votre demande{{school_or_player_line}} est acceptée ! 🎉
 
-Nous revenons vers vous très vite pour les étapes pratiques (calendrier, réunion, règles).
+Toute l'équipe est ravie de vous accueillir. Nous revenons vers vous très vite avec les étapes pratiques : calendrier, réunion d'information, règles de la ligue.
 
-Bienvenue dans la famille RESA.
+En attendant, préparez les crampons — ça va être une belle saison 💪
 
+Bienvenue dans la famille RESA,
 L'équipe RESA Sport Academy`,
     targetStatus: 'approved'
   },
   {
     id: 'waitlist',
     label: '⏳ Liste d\'attente',
-    subject: 'Votre inscription est en liste d\'attente',
+    subject: 'Petite attente — vous êtes sur la bonne liste 💙',
     body: `Bonjour {{parent_name}},
 
-Votre demande{{school_or_player_line}} a été placée en liste d'attente.
+Merci pour votre patience 🙏
 
-Nous vous recontacterons dès qu'une place se libère.
+Votre demande{{school_or_player_line}} a été placée en liste d'attente — les places sont limitées et partent vite.
 
-L'équipe RESA Sport Academy`,
+Bonne nouvelle : vous êtes bien enregistré, et nous vous recontacterons dès qu'une place se libère. Vous serez parmi les premiers prévenus.
+
+Merci pour votre confiance,
+L'équipe RESA Sport Academy ⚽`,
     targetStatus: 'reviewing'
   },
   {
     id: 'rejected',
     label: '✕ Inscription refusée',
-    subject: 'Suite donnée à votre inscription',
+    subject: 'Suite donnée à votre demande — merci pour votre confiance',
     body: `Bonjour {{parent_name}},
 
-Après étude de votre dossier, nous ne sommes malheureusement pas en mesure de donner une suite favorable à votre demande{{school_or_player_line}}.
+Merci sincèrement pour l'intérêt que vous portez à RESA Sport Academy.
 
-Nous vous remercions de votre intérêt et vous invitons à nous recontacter pour de prochaines sessions.
+Après étude attentive de votre dossier, nous ne sommes malheureusement pas en mesure de donner une suite favorable à votre demande{{school_or_player_line}} cette fois-ci. Nous en sommes désolés.
 
-L'équipe RESA Sport Academy`,
+Ce n'est pas un adieu : nous vous invitons à nous recontacter pour de prochaines sessions — les portes restent grandes ouvertes 🙏
+
+Bien à vous,
+L'équipe RESA Sport Academy ⚽`,
     targetStatus: 'rejected'
   }
 ];
