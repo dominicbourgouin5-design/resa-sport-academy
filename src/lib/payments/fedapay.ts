@@ -36,31 +36,46 @@ export type FedaPayTransaction = {
  * On retire les espaces, tirets, parenthèses, et le préfixe +225/00225.
  * On déduit le pays du préfixe (fallback : ci).
  */
-function parsePhone(rawPhone?: string): { number: string; country: string } | null {
+/**
+ * FedaPay attend : { number: "97000000", country: "bj" }
+ * Le pays est passé en paramètre depuis le formulaire utilisateur.
+ * Si aucun country fourni, on tente de détecter depuis le préfixe.
+ */
+function parsePhone(
+  rawPhone?: string,
+  userCountry?: string
+): { number: string; country: string } | null {
   if (!rawPhone) return null;
 
   const cleaned = rawPhone.replace(/[\s\-().]/g, '');
-  let country = 'ci'; // Côte d'Ivoire par défaut
 
-  // Détection pays par préfixe
-  if (cleaned.startsWith('+225') || cleaned.startsWith('00225')) {
-    country = 'ci';
-  } else if (cleaned.startsWith('+229') || cleaned.startsWith('00229')) {
-    country = 'bj';
-  } else if (cleaned.startsWith('+228') || cleaned.startsWith('00228')) {
-    country = 'tg';
-  } else if (cleaned.startsWith('+221') || cleaned.startsWith('00221')) {
-    country = 'sn';
-  } else if (cleaned.startsWith('+226') || cleaned.startsWith('00226')) {
-    country = 'bf';
-  } else if (cleaned.startsWith('+223') || cleaned.startsWith('00223')) {
-    country = 'ml';
-  } else if (cleaned.startsWith('+1')) {
-    country = 'us';
+  // Liste des pays supportés par FedaPay (UEMOA + pays fréquents)
+  const SUPPORTED = ['ci', 'bj', 'bf', 'ml', 'ne', 'sn', 'tg', 'gw', 'us', 'fr'];
+
+  // Si l'utilisateur a choisi un pays valide → on l'utilise
+  let country = userCountry && SUPPORTED.includes(userCountry.toLowerCase())
+    ? userCountry.toLowerCase()
+    : 'ci';
+
+  // Sinon on tente une détection automatique par préfixe
+  if (!userCountry) {
+    if (cleaned.startsWith('+225') || cleaned.startsWith('00225')) country = 'ci';
+    else if (cleaned.startsWith('+229') || cleaned.startsWith('00229')) country = 'bj';
+    else if (cleaned.startsWith('+226') || cleaned.startsWith('00226')) country = 'bf';
+    else if (cleaned.startsWith('+223') || cleaned.startsWith('00223')) country = 'ml';
+    else if (cleaned.startsWith('+227') || cleaned.startsWith('00227')) country = 'ne';
+    else if (cleaned.startsWith('+221') || cleaned.startsWith('00221')) country = 'sn';
+    else if (cleaned.startsWith('+228') || cleaned.startsWith('00228')) country = 'tg';
+    else if (cleaned.startsWith('+245') || cleaned.startsWith('00245')) country = 'gw';
+    else if (cleaned.startsWith('+1')) country = 'us';
+    else if (cleaned.startsWith('+33')) country = 'fr';
   }
 
-  // Retirer l'indicatif (+225, 00225, 225, etc.)
-  let number = cleaned.replace(/^(\+225|00225|225|\+229|00229|229|\+228|00228|228|\+221|00221|221|\+226|00226|226|\+223|00223|223|\+1|001)/, '');
+  // Retirer l'indicatif international du numéro
+  let number = cleaned.replace(
+    /^(\+225|00225|225|\+229|00229|229|\+226|00226|226|\+223|00223|223|\+227|00227|227|\+221|00221|221|\+228|00228|228|\+245|00245|245|\+1|001|\+33|0033|33)/,
+    ''
+  );
   number = number.replace(/\D/g, '');
 
   if (number.length < 6) return null;
@@ -122,11 +137,12 @@ export async function createFedaPayTransaction(params: {
     lastname: string;
     email: string;
     phone?: string;
+    country?: string;   // ← NOUVEAU
   };
   currency?: string;
   metadata?: Record<string, any>;
 }): Promise<FedaPayTransaction> {
-  const phone = parsePhone(params.customer.phone);
+  const phone = parsePhone(params.customer.phone, params.customer.country);
 
   const body = {
     description: params.description,
@@ -137,7 +153,6 @@ export async function createFedaPayTransaction(params: {
       firstname: params.customer.firstname,
       lastname: params.customer.lastname,
       email: params.customer.email,
-      // ─── Fix : phone_number = { number, country } ───
       ...(phone
         ? { phone_number: { number: phone.number, country: phone.country } }
         : {})

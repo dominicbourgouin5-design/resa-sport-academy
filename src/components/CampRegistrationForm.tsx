@@ -2,13 +2,25 @@
 
 import { useState } from 'react';
 import { useLocale } from 'next-intl';
-import { useRouter } from '@/i18n/navigation';
 import { sendCampRegistration } from '@/app/[locale]/camps/actions';
 import { cn } from '@/lib/utils';
 
+// Liste des pays supportés par FedaPay (UEMOA + pays fréquents)
+const COUNTRIES = [
+  { code: 'ci', label: '🇨🇮 Côte d\'Ivoire', dial: '+225' },
+  { code: 'sn', label: '🇸🇳 Sénégal', dial: '+221' },
+  { code: 'bj', label: '🇧🇯 Bénin', dial: '+229' },
+  { code: 'bf', label: '🇧🇫 Burkina Faso', dial: '+226' },
+  { code: 'ml', label: '🇲🇱 Mali', dial: '+223' },
+  { code: 'ne', label: '🇳🇪 Niger', dial: '+227' },
+  { code: 'tg', label: '🇹🇬 Togo', dial: '+228' },
+  { code: 'gw', label: '🇬🇼 Guinée-Bissau', dial: '+245' },
+  { code: 'fr', label: '🇫🇷 France', dial: '+33' },
+  { code: 'us', label: '🇺🇸 États-Unis', dial: '+1' }
+];
+
 export default function CampRegistrationForm({ camp }: { camp: any }) {
   const locale = useLocale();
-  const router = useRouter();
   const isFr = locale === 'fr';
 
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -18,6 +30,7 @@ export default function CampRegistrationForm({ camp }: { camp: any }) {
   const [form, setForm] = useState({
     parent_name: '',
     parent_email: '',
+    parent_country: 'ci',   // ← NOUVEAU : Côte d'Ivoire par défaut
     parent_phone: '',
     player_name: '',
     player_age: '',
@@ -48,13 +61,11 @@ export default function CampRegistrationForm({ camp }: { camp: any }) {
         return;
       }
 
-      // Si paiement en ligne → redirection FedaPay
       if (result.payment_url) {
         window.location.href = result.payment_url;
         return;
       }
 
-      // Sinon → succès simple
       setStatus('success');
     } catch (err: any) {
       setError(err.message ?? 'Erreur inconnue');
@@ -67,6 +78,7 @@ export default function CampRegistrationForm({ camp }: { camp: any }) {
     setForm({
       parent_name: '',
       parent_email: '',
+      parent_country: 'ci',
       parent_phone: '',
       player_name: '',
       player_age: '',
@@ -75,7 +87,6 @@ export default function CampRegistrationForm({ camp }: { camp: any }) {
     });
   };
 
-  // ─── Écran succès (sans paiement en ligne) ───
   if (status === 'success') {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-resa">
@@ -126,14 +137,12 @@ export default function CampRegistrationForm({ camp }: { camp: any }) {
         <div className="p-6 text-center">
           <div className="text-4xl">🚫</div>
           <p className="mt-3 text-sm text-resa-text/60">
-            {isFr
-              ? 'Les inscriptions sont clôturées.'
-              : 'Registration is closed.'}
+            {isFr ? 'Les inscriptions sont clôturées.' : 'Registration is closed.'}
           </p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5 p-6">
-          {/* Choix paiement */}
+          {/* Mode paiement */}
           {hasPrice && (
             <div>
               <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-resa-text/60">
@@ -192,7 +201,7 @@ export default function CampRegistrationForm({ camp }: { camp: any }) {
             </div>
           )}
 
-          {/* Parent */}
+          {/* Coordonnées */}
           <div className="space-y-3">
             <div className="text-[10px] font-black uppercase tracking-widest text-resa-red">
               {isFr ? 'Vos coordonnées' : 'Your details'}
@@ -213,11 +222,34 @@ export default function CampRegistrationForm({ camp }: { camp: any }) {
               placeholder="Email *"
               className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
             />
+
+            {/* ─── Sélecteur pays + téléphone ─── */}
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-resa-text/60">
+                {isFr ? 'Pays' : 'Country'}
+              </label>
+              <select
+                value={form.parent_country}
+                onChange={(e) => update('parent_country', e.target.value)}
+                className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+              >
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <input
               type="tel"
               value={form.parent_phone}
               onChange={(e) => update('parent_phone', e.target.value)}
-              placeholder={isFr ? 'Téléphone (WhatsApp)' : 'Phone (WhatsApp)'}
+              placeholder={
+                isFr
+                  ? `Téléphone (${COUNTRIES.find((c) => c.code === form.parent_country)?.dial ?? ''}…)`
+                  : `Phone (${COUNTRIES.find((c) => c.code === form.parent_country)?.dial ?? ''}…)`
+              }
               className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
             />
           </div>

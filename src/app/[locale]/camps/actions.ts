@@ -21,6 +21,7 @@ export async function sendCampRegistration(payload: {
   parent_name: string;
   parent_email: string;
   parent_phone: string;
+  parent_country: string;   
   player_name: string;
   player_age: string;
   player_birth_date: string;
@@ -29,11 +30,11 @@ export async function sendCampRegistration(payload: {
   locale?: string;
 }): Promise<CampRegistrationResult> {
   try {
-    const {
-      camp_id, parent_name, parent_email, parent_phone,
-      player_name, player_age, player_birth_date, notes,
-      payment_choice, locale = 'fr'
-    } = payload;
+        const {
+        camp_id, parent_name, parent_email, parent_phone, parent_country,
+        player_name, player_age, player_birth_date, notes,
+        payment_choice, locale = 'fr'
+        } = payload;
 
     if (!camp_id) return { error: 'Identifiant camp manquant.' };
     if (!parent_name || !parent_email || !player_name) {
@@ -91,17 +92,18 @@ export async function sendCampRegistration(payload: {
         const lastname = nameParts.slice(1).join(' ') || firstname;
 
         const tx = await createFedaPayTransaction({
-          amount: camp.price_amount,
-          description: `Inscription camp — ${camp.title_fr ?? 'RESA'}`,
-          callbackUrl,
-          customer: {
+        amount: camp.price_amount,
+        description: `Inscription camp — ${camp.title_fr ?? 'RESA'}`,
+        callbackUrl,
+        customer: {
             firstname,
             lastname,
             email: parent_email,
-            phone: parent_phone || undefined
-          },
-          currency: camp.currency ?? 'XOF',
-          metadata: { registration_id: regId, camp_slug: camp.slug }
+            phone: parent_phone || undefined,
+            country: parent_country || 'ci' 
+        },
+        currency: camp.currency ?? 'XOF',
+        metadata: { registration_id: regId, camp_slug: camp.slug }
         });
 
         const token = await generatePaymentToken(tx.id);
