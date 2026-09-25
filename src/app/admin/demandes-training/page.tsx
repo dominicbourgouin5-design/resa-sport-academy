@@ -7,7 +7,6 @@ import Collapsible from '@/components/admin/Collapsible';
 import TrainingRequestsTable from './TrainingRequestsTable';
 import TrainingRequestsRealtime from '@/components/admin/TrainingRequestsRealtime';
 
-
 export default async function AdminTrainingRequestsPage() {
   const supabase = await createClient();
 
@@ -30,7 +29,6 @@ export default async function AdminTrainingRequestsPage() {
       <TrainingRequestsRealtime />
 
       {/* Header */}
-
       <div className="mb-8">
         <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
           Private Training
@@ -51,7 +49,7 @@ export default async function AdminTrainingRequestsPage() {
         <StatCard label="Annulées"     value={cancelled.length} accent="red" />
       </div>
 
-      {/* Collapsibles */}
+      {/* Collapsibles — key unique par section = isolation state */}
       <div className="space-y-4">
         <Collapsible
           title="En attente"
@@ -61,7 +59,7 @@ export default async function AdminTrainingRequestsPage() {
           defaultOpen={true}
           badge={pending.length}
         >
-          <TrainingRequestsTable requests={pending} />
+          <TrainingRequestsTable key="pending" requests={pending} />
         </Collapsible>
 
         {contacted.length > 0 && (
@@ -73,7 +71,7 @@ export default async function AdminTrainingRequestsPage() {
             defaultOpen={false}
             badge={contacted.length}
           >
-            <TrainingRequestsTable requests={contacted} />
+            <TrainingRequestsTable key="contacted" requests={contacted} />
           </Collapsible>
         )}
 
@@ -86,7 +84,7 @@ export default async function AdminTrainingRequestsPage() {
             defaultOpen={false}
             badge={booked.length}
           >
-            <TrainingRequestsTable requests={booked} />
+            <TrainingRequestsTable key="booked" requests={booked} />
           </Collapsible>
         )}
 
@@ -99,7 +97,7 @@ export default async function AdminTrainingRequestsPage() {
             defaultOpen={false}
             badge={cancelled.length}
           >
-            <TrainingRequestsTable requests={cancelled} />
+            <TrainingRequestsTable key="cancelled" requests={cancelled} />
           </Collapsible>
         )}
       </div>

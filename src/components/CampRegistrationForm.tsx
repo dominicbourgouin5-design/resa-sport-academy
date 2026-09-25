@@ -19,6 +19,8 @@ const COUNTRIES = [
 ];
 
 type InitialValues = Record<string, string> | null;
+type PaymentMode = 'later' | 'online';
+type OnlineMethod = 'fedapay' | 'paypal';
 
 export default function CampRegistrationForm({
   camp,
@@ -34,10 +36,14 @@ export default function CampRegistrationForm({
 
   const [step, setStep] = useState<1 | 2>(1);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [paymentChoice, setPaymentChoice] = useState<'later' | 'online'>(
-    initialValues?.payment_choice === 'online' ? 'online' : 'later'
-  );
   const [error, setError] = useState<string | null>(null);
+
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>(
+    initialValues?.payment_mode === 'online' ? 'online' : 'later'
+  );
+  const [onlineMethod, setOnlineMethod] = useState<OnlineMethod>(
+    initialValues?.online_method === 'paypal' ? 'paypal' : 'fedapay'
+  );
 
   const [form, setForm] = useState({
     parent_name: initialValues?.parent_name ?? '',
@@ -54,26 +60,29 @@ export default function CampRegistrationForm({
     setForm((f) => ({ ...f, [k]: v }));
 
   const hasPrice = !!camp.price_amount;
+  const hasUsdPrice = !!camp.price_amount_usd;
+  const hasAnyOnlineOption = hasPrice || hasUsdPrice;
 
-  // ─── Validation étape 1 ───
   const canGoStep2 =
     form.parent_name.trim() !== '' &&
     form.parent_email.trim() !== '' &&
     /^\S+@\S+\.\S+$/.test(form.parent_email);
 
-  // ─── Soumission finale ───
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (status === 'loading') return;
     setStatus('loading');
     setError(null);
 
+    const finalMethod: 'later' | 'fedapay' | 'paypal' =
+      paymentMode === 'later' ? 'later' : onlineMethod;
+
     try {
       const result = await sendCampRegistration({
         camp_id: camp.id,
         camp_slug: camp.slug,
         ...form,
-        payment_choice: paymentChoice,
+        payment_method: finalMethod,
         locale
       });
 
@@ -95,7 +104,6 @@ export default function CampRegistrationForm({
     }
   };
 
-  // ─── Écran de succès ───
   if (status === 'success') {
     return (
       <div className="p-8 text-center sm:p-10">
@@ -125,7 +133,7 @@ export default function CampRegistrationForm({
 
   return (
     <div className="relative">
-      {/* ─── Header + Progress ─── */}
+      {/* Header + Progress */}
       <div className="border-b border-black/5 px-6 pb-4 pt-6 sm:px-8">
         <div className="flex items-center justify-between">
           <div>
@@ -143,32 +151,29 @@ export default function CampRegistrationForm({
             </div>
           </div>
         </div>
-
-        {/* Progress bar */}
         <div className="mt-4 flex gap-1.5">
           <div className={cn('h-1.5 flex-1 rounded-full', step >= 1 ? 'bg-resa-red' : 'bg-resa-gray')} />
           <div className={cn('h-1.5 flex-1 rounded-full', step >= 2 ? 'bg-resa-red' : 'bg-resa-gray')} />
         </div>
       </div>
 
-      {/* Bandeau rebook */}
       {initialValues && step === 1 && (
         <div className="border-b border-emerald-100 bg-emerald-50 px-6 py-2.5 sm:px-8">
           <div className="flex items-start gap-2 text-[11px] text-emerald-800">
             <span className="mt-0.5">✓</span>
             <span>
               {isFr
-                ? 'Vos choix précédents ont été pré-remplis. Vérifiez, modifiez si besoin.'
-                : 'Your previous choices have been pre-filled. Review, adjust if needed.'}
+                ? 'Vos choix précédents ont été pré-remplis.'
+                : 'Your previous choices have been pre-filled.'}
             </span>
           </div>
         </div>
       )}
 
-      {/* ─── ÉTAPE 1 : Paiement + Coordonnées ─── */}
+      {/* ÉTAPE 1 */}
       {step === 1 && (
         <div className="space-y-5 p-6 sm:p-8">
-          {hasPrice && (
+          {hasAnyOnlineOption && (
             <div>
               <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-resa-text/60">
                 {isFr ? 'Mode de paiement' : 'Payment method'}
@@ -176,10 +181,10 @@ export default function CampRegistrationForm({
               <div className="grid gap-2 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => setPaymentChoice('later')}
+                  onClick={() => setPaymentMode('later')}
                   className={cn(
                     'flex items-start gap-2.5 rounded-xl border-2 px-3.5 py-3 text-left transition',
-                    paymentChoice === 'later'
+                    paymentMode === 'later'
                       ? 'border-resa-red bg-resa-red/5'
                       : 'border-black/10 bg-white hover:border-resa-navy/30'
                   )}
@@ -187,20 +192,20 @@ export default function CampRegistrationForm({
                   <span className="mt-0.5 text-base">📝</span>
                   <div>
                     <div className="text-[12px] font-bold text-resa-navy">
-                      {isFr ? 'Sans payer' : 'Without paying'}
+                      {isFr ? 'Sans payer maintenant' : 'Pay later'}
                     </div>
                     <div className="mt-0.5 text-[10px] text-resa-text/55">
-                      {isFr ? 'On vous contacte.' : 'We contact you.'}
+                      {isFr ? 'Momo hors ligne, espèces ou contact.' : 'Offline momo, cash, or contact.'}
                     </div>
                   </div>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setPaymentChoice('online')}
+                  onClick={() => setPaymentMode('online')}
                   className={cn(
                     'flex items-start gap-2.5 rounded-xl border-2 px-3.5 py-3 text-left transition',
-                    paymentChoice === 'online'
+                    paymentMode === 'online'
                       ? 'border-resa-red bg-resa-red/5'
                       : 'border-black/10 bg-white hover:border-resa-navy/30'
                   )}
@@ -208,19 +213,41 @@ export default function CampRegistrationForm({
                   <span className="mt-0.5 text-base">💳</span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-resa-navy">
-                      {isFr ? 'Payer' : 'Pay'}
-                      {camp.price_fr && (
-                        <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700">
-                          {camp.price_fr}
-                        </span>
-                      )}
+                      {isFr ? 'Payer en ligne' : 'Pay online'}
                     </div>
                     <div className="mt-0.5 text-[10px] text-resa-text/55">
-                      {isFr ? 'Mobile Money · Carte' : 'Mobile Money · Card'}
+                      {isFr ? 'Mobile Money · Carte · PayPal' : 'Mobile Money · Card · PayPal'}
                     </div>
                   </div>
                 </button>
               </div>
+
+              {/* Sélecteur FedaPay / PayPal */}
+              {paymentMode === 'online' && (
+                <div className="mt-3">
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/55">
+                    {isFr ? 'Méthode' : 'Method'}
+                  </label>
+                  <select
+                    value={onlineMethod}
+                    onChange={(e) => setOnlineMethod(e.target.value as OnlineMethod)}
+                    className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+                  >
+                    {hasPrice && (
+                      <option value="fedapay">
+                        {isFr ? 'Mobile Money / Carte (FedaPay)' : 'Mobile Money / Card (FedaPay)'}
+                        {camp.price_fr ? ` — ${camp.price_fr}` : ''}
+                      </option>
+                    )}
+                    {hasUsdPrice && (
+                      <option value="paypal">
+                        {isFr ? 'PayPal (international)' : 'PayPal (international)'}
+                        {` — $${camp.price_amount_usd}`}
+                      </option>
+                    )}
+                  </select>
+                </div>
+              )}
             </div>
           )}
 
@@ -250,20 +277,14 @@ export default function CampRegistrationForm({
                   className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
                 >
                   {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.label}
-                    </option>
+                    <option key={c.code} value={c.code}>{c.label}</option>
                   ))}
                 </select>
                 <input
                   type="tel"
                   value={form.parent_phone}
                   onChange={(e) => update('parent_phone', e.target.value)}
-                  placeholder={
-                    isFr
-                      ? `${COUNTRIES.find((c) => c.code === form.parent_country)?.dial ?? ''}…`
-                      : `${COUNTRIES.find((c) => c.code === form.parent_country)?.dial ?? ''}…`
-                  }
+                  placeholder={`${COUNTRIES.find((c) => c.code === form.parent_country)?.dial ?? ''}…`}
                   className="w-full rounded-lg border border-black/10 bg-white px-3.5 py-2.5 text-[13px] outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
                 />
               </div>
@@ -296,7 +317,7 @@ export default function CampRegistrationForm({
         </div>
       )}
 
-      {/* ─── ÉTAPE 2 : Joueur + Notes ─── */}
+      {/* ÉTAPE 2 */}
       {step === 2 && (
         <form onSubmit={handleSubmit} className="space-y-5 p-6 sm:p-8">
           <div>
@@ -356,11 +377,11 @@ export default function CampRegistrationForm({
             <button
               type="submit"
               disabled={status === 'loading' || !form.player_name.trim()}
-              className="inline-flex flex-[2] items-center justify-center gap-2 rounded-full bg-resa-red px-6 py-3.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex flex-2 items-center justify-center gap-2 rounded-full bg-resa-red px-6 py-3.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {status === 'loading'
                 ? isFr ? 'Envoi…' : 'Sending…'
-                : paymentChoice === 'online' && hasPrice
+                : paymentMode === 'online'
                   ? isFr ? '💳 Payer et réserver' : '💳 Pay & reserve'
                   : isFr ? 'Réserver ma place' : 'Reserve my spot'}
             </button>

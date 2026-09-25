@@ -1,9 +1,15 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getCurrentProfile } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import {
+  createFedaPayTransaction,
+  generatePaymentToken,
+  buildPaymentUrl
+} from '@/lib/payments/fedapay';
 
 async function requireRole(allowed: string[]) {
   const profile = await getCurrentProfile();
@@ -13,7 +19,9 @@ async function requireRole(allowed: string[]) {
   return profile;
 }
 
-// ─── Supprimer ──────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// CRUD CAMP
+// ═══════════════════════════════════════════════════════════
 export async function deleteCamp(id: string) {
   await requireRole(['admin', 'league_manager']);
   const supabase = await createClient();
@@ -23,7 +31,6 @@ export async function deleteCamp(id: string) {
   revalidatePath('/[locale]/camps', 'layout');
 }
 
-// ─── Toggle actif ───────────────────────────────────────────
 export async function toggleCampActive(id: string, current: boolean) {
   await requireRole(['admin', 'league_manager']);
   const supabase = await createClient();
@@ -36,7 +43,6 @@ export async function toggleCampActive(id: string, current: boolean) {
   revalidatePath('/[locale]/camps', 'layout');
 }
 
-// ─── Créer / mettre à jour ──────────────────────────────────
 export async function saveCamp(
   _prev: { error?: string; ok?: boolean } | null,
   formData: FormData
@@ -76,16 +82,13 @@ export async function saveCamp(
     capacity: formData.get('capacity') ? Number(formData.get('capacity')) : null,
     price_fr: String(formData.get('price_fr') ?? '').trim() || null,
     price_en: String(formData.get('price_en') ?? '').trim() || null,
-    price_amount: formData.get('price_amount')
-      ? Number(formData.get('price_amount'))
-      : null,
+    price_amount: formData.get('price_amount') ? Number(formData.get('price_amount')) : null,
+    price_amount_usd: formData.get('price_amount_usd') ? Number(formData.get('price_amount_usd')) : null,
     program_slug: String(formData.get('program_slug') ?? '').trim() || null,
     status: String(formData.get('status') ?? 'open'),
     region: String(formData.get('region') ?? 'both'),
     is_active: formData.get('is_active') === 'on',
-    display_order: formData.get('display_order')
-      ? Number(formData.get('display_order'))
-      : 100
+    display_order: formData.get('display_order') ? Number(formData.get('display_order')) : 100
   };
 
   const supabase = await createClient();
@@ -102,7 +105,9 @@ export async function saveCamp(
   redirect('/admin/camps');
 }
 
-// ─── Admin : mise à jour d'une inscription ──────────────────
+// ═══════════════════════════════════════════════════════════
+// INSCRIPTIONS (admin)
+// ═══════════════════════════════════════════════════════════
 export async function updateCampRegistration(
   id: string,
   patch: {
@@ -125,7 +130,6 @@ export async function updateCampRegistration(
   revalidatePath('/admin/camps');
 }
 
-// ─── Admin : suppression inscription ────────────────────────
 export async function deleteCampRegistration(id: string) {
   await requireRole(['admin']);
   const supabase = await createClient();
@@ -138,7 +142,7 @@ export async function deleteCampRegistration(id: string) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Envoyer un email au parent d'une inscription camp
+// EMAIL PARENT
 // ═══════════════════════════════════════════════════════════
 export async function sendCampParentEmail(
   registrationId: string,
@@ -179,7 +183,6 @@ ${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
         <tr><td style="background:#F4F6FA;padding:24px 32px;text-align:center;color:#64748B;font-size:12px;line-height:1.6;">
           <div style="font-weight:700;color:#0A1F44;margin-bottom:4px;">RESA Sport Academy</div>
           <div>Abidjan, Côte d'Ivoire</div>
-          <div style="margin-top:12px;font-size:11px;">Vous pouvez répondre directement à cet email.</div>
         </td></tr>
       </table>
     </td></tr>
@@ -187,10 +190,9 @@ ${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
 </body>
 </html>`;
 
-    const adminEmail =
-      process.env.BREVO_SENDER_EMAIL ?? 'contact@cataria-systems.com';
-
+    const adminEmail = process.env.BREVO_SENDER_EMAIL ?? 'contact@cataria-systems.com';
     const { sendEmail } = await import('@/lib/email');
+
     const res = await sendEmail({
       to: [{ email: reg.parent_email, name: reg.parent_name }],
       subject,
@@ -198,11 +200,188 @@ ${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
       replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
     });
 
-    if (!res.sent) return { error: res.error ?? "Erreur lors de l'envoi." };
+    if (!res.sent) return { error: res.error ?? "Erreur d'envoi." };
 
     revalidatePath('/admin/camps');
     return { ok: true };
   } catch (err: any) {
+    return { error: err.message ?? 'Erreur inconnue' };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PRIX CAMP (auto-charger dans modal paiement)
+// ═══════════════════════════════════════════════════════════
+export async function getCampPriceById(
+  campId: string
+): Promise<{ xof: number | null; usd: number | null }> {
+  if (!campId) return { xof: null, usd: null };
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('camps')
+    .select('price_amount, price_amount_usd')
+    .eq('id', campId)
+    .maybeSingle();
+  return {
+    xof: data?.price_amount ? Number(data.price_amount) : null,
+    usd: data?.price_amount_usd ? Number(data.price_amount_usd) : null
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAYMENT — Envoyer/renvoyer un lien FedaPay
+// ═══════════════════════════════════════════════════════════
+export async function sendCampPaymentLink(
+  registrationId: string,
+  amount: number,
+  currency = 'XOF'
+): Promise<{ ok?: boolean; error?: string; payment_url?: string }> {
+  try {
+    await requireRole(['admin', 'league_manager']);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { error: 'Montant invalide.' };
+    }
+    if (currency !== 'XOF') {
+      return { error: 'FedaPay accepte uniquement les FCFA. Utilisez PayPal pour USD.' };
+    }
+
+    const supabase = createAdminClient();
+    const { data: reg } = await supabase
+      .from('camp_registrations')
+      .select('*, camp:camps(id, title_fr, slug, date_start, location)')
+      .eq('id', registrationId)
+      .single();
+
+    if (!reg) return { error: 'Inscription introuvable.' };
+    if (reg.payment_status === 'paid' || reg.paid_at || reg.success_email_sent_at) {
+      return { error: 'Cette inscription est déjà payée.' };
+    }
+
+    const isResend = reg.payment_link_sent_at != null;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    const callbackUrl = `${siteUrl}/fr/paiement/camp/${registrationId}`;
+
+    const nameParts = (reg.parent_name as string).trim().split(' ');
+    const firstname = nameParts[0] || reg.parent_name;
+    const lastname = nameParts.slice(1).join(' ') || firstname;
+
+    const isSandbox = (process.env.FEDAPAY_ENV ?? 'sandbox') !== 'live';
+    const country = isSandbox ? 'bj' : (reg.parent_country || 'ci');
+
+    const tx = await createFedaPayTransaction({
+      amount: Math.round(amount),
+      description: `Camp — ${(reg.camp as any)?.title_fr ?? 'RESA'}`,
+      callbackUrl,
+      customer: {
+        firstname,
+        lastname,
+        email: reg.parent_email,
+        phone: reg.parent_phone || undefined,
+        country
+      },
+      currency,
+      metadata: { registration_id: registrationId, type: 'camp' }
+    });
+
+    const token = await generatePaymentToken(tx.id);
+    const paymentUrl = buildPaymentUrl(token);
+
+    await supabase
+      .from('camp_registrations')
+      .update({
+        payment_status: 'pending',
+        payment_method: 'fedapay',
+        payment_provider_id: String(tx.id),
+        payment_token: token,
+        payment_reference: tx.reference ?? null,
+        payment_amount: Math.round(amount),
+        payment_currency: currency,
+        payment_link_sent_at: new Date().toISOString(),
+        failure_email_sent_at: null
+      })
+      .eq('id', registrationId);
+
+    const { sendCampPaymentLinkEmail } = await import('@/lib/camp-emails');
+    await sendCampPaymentLinkEmail(registrationId, paymentUrl, isResend);
+
+    revalidatePath('/admin/camps');
+    return { ok: true, payment_url: paymentUrl };
+  } catch (err: any) {
+    console.error('[Camp Payment Link] Error:', err);
+    return { error: err.message ?? 'Erreur inconnue' };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAYMENT — Envoyer/renvoyer un lien PayPal
+// ═══════════════════════════════════════════════════════════
+export async function sendCampPayPalLink(
+  registrationId: string,
+  amount: number,
+  currency = 'USD'
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    await requireRole(['admin', 'league_manager']);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { error: 'Montant invalide.' };
+    }
+    if (currency !== 'USD' && currency !== 'EUR') {
+      return { error: 'PayPal accepte USD ou EUR uniquement.' };
+    }
+
+    const supabase = createAdminClient();
+    const { data: reg } = await supabase
+      .from('camp_registrations')
+      .select('*, camp:camps(id, title_fr, slug, date_start, location)')
+      .eq('id', registrationId)
+      .single();
+
+    if (!reg) return { error: 'Inscription introuvable.' };
+    if (reg.payment_status === 'paid' || reg.paid_at || reg.success_email_sent_at) {
+      return { error: 'Cette inscription est déjà payée.' };
+    }
+
+    const { createPayPalOrder } = await import('@/lib/payments/paypal');
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    const returnUrl = `${siteUrl}/fr/paiement/paypal/camp/${registrationId}`;
+    const cancelUrl = `${siteUrl}/fr/paiement/paypal/camp/${registrationId}?cancelled=1`;
+
+    const order = await createPayPalOrder({
+      amount: Number(amount),
+      currency,
+      description: `Camp — ${(reg.camp as any)?.title_fr ?? 'RESA'}`,
+      referenceId: registrationId,
+      returnUrl,
+      cancelUrl
+    });
+
+    const isResend = reg.payment_link_sent_at != null;
+
+    await supabase
+      .from('camp_registrations')
+      .update({
+        payment_status: 'pending',
+        payment_method: 'paypal',
+        payment_provider_id: order.id,
+        payment_token: order.id,
+        payment_reference: null,
+        payment_amount: Math.round(amount),
+        payment_currency: currency,
+        payment_link_sent_at: new Date().toISOString(),
+        failure_email_sent_at: null
+      })
+      .eq('id', registrationId);
+
+    const { sendCampPayPalLinkEmail } = await import('@/lib/camp-emails');
+    await sendCampPayPalLinkEmail(registrationId, order.approveUrl, isResend);
+
+    revalidatePath('/admin/camps');
+    return { ok: true };
+  } catch (err: any) {
+    console.error('[Camp PayPal Link] Error:', err);
     return { error: err.message ?? 'Erreur inconnue' };
   }
 }

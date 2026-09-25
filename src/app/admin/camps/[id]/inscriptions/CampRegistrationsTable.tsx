@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { deleteCampRegistration } from '../../actions';
 import ConfirmModal from '@/components/admin/ConfirmModal';
 import CampRegistrationsWizard from './CampRegistrationsWizard';
+import CampPaymentModal from './CampPaymentModal';
 
 const STATUS_LABEL: Record<string, string> = {
   new: 'Nouveau',
@@ -44,14 +45,13 @@ export default function CampRegistrationsTable({
 }) {
   const [toDelete, setToDelete] = useState<any | null>(null);
   const [openRegistration, setOpenRegistration] = useState<any | null>(null);
+  const [paymentRegistration, setPaymentRegistration] = useState<any | null>(null);
 
   if (registrations.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-black/10 p-12 text-center">
         <div className="mb-3 text-4xl">📭</div>
-        <p className="text-sm text-resa-text/60">
-          Aucune inscription pour le moment.
-        </p>
+        <p className="text-sm text-resa-text/60">Aucune inscription.</p>
       </div>
     );
   }
@@ -71,75 +71,105 @@ export default function CampRegistrationsTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-black/5">
-            {registrations.map((r) => (
-              <tr key={r.id} className="transition hover:bg-resa-gray/40">
-                <td className="px-5 py-3">
-                  <div className="text-[13px] font-semibold text-resa-navy">
-                    {r.player_name}
-                    {r.player_age && (
-                      <span className="text-resa-text/40"> · {r.player_age} ans</span>
-                    )}
-                  </div>
-                  {r.parent_phone && (
-                    <div className="text-[10px] text-resa-text/50 md:hidden">
-                      {r.parent_phone}
+            {registrations.map((r) => {
+              const isPaid =
+                r.payment_status === 'paid' ||
+                !!r.paid_at ||
+                !!r.success_email_sent_at;
+
+              const showPaymentButton = !isPaid && r.status !== 'cancelled';
+              const isResend =
+                r.payment_status === 'pending' || r.payment_status === 'failed';
+
+              return (
+                <tr key={r.id} className="transition hover:bg-resa-gray/40">
+                  <td className="px-5 py-3">
+                    <div className="text-[13px] font-semibold text-resa-navy">
+                      {r.player_name}
+                      {r.player_age && (
+                        <span className="text-resa-text/40"> · {r.player_age} ans</span>
+                      )}
                     </div>
-                  )}
-                </td>
+                  </td>
 
-                <td className="hidden px-5 py-3 md:table-cell">
-                  <div className="text-[12px] font-medium text-resa-text/70">
-                    {r.parent_name}
-                  </div>
-                  <div className="text-[10px] text-resa-text/50">{r.parent_email}</div>
-                </td>
+                  <td className="hidden px-5 py-3 md:table-cell">
+                    <div className="text-[12px] font-medium text-resa-text/70">
+                      {r.parent_name}
+                    </div>
+                    <div className="text-[10px] text-resa-text/50">{r.parent_email}</div>
+                  </td>
 
-                <td className="hidden px-5 py-3 text-center lg:table-cell text-[11px] text-resa-text/60">
-                  {new Date(r.created_at).toLocaleDateString('fr-FR', {
-                    day: '2-digit', month: 'short'
-                  })}
-                </td>
+                  <td className="hidden px-5 py-3 text-center lg:table-cell text-[11px] text-resa-text/60">
+                    {new Date(r.created_at).toLocaleDateString('fr-FR', {
+                      day: '2-digit', month: 'short'
+                    })}
+                  </td>
 
-                <td className="px-5 py-3 text-center">
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${STATUS_COLOR[r.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                    {STATUS_LABEL[r.status] ?? r.status}
-                  </span>
-                </td>
+                  <td className="px-5 py-3 text-center">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${STATUS_COLOR[r.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                      {STATUS_LABEL[r.status] ?? r.status}
+                    </span>
+                  </td>
 
-                <td className="px-5 py-3 text-center">
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${PAYMENT_COLOR[r.payment_status] ?? 'bg-gray-100 text-gray-600'}`}>
-                    {PAYMENT_LABEL[r.payment_status] ?? r.payment_status}
-                  </span>
-                </td>
+                  <td className="px-5 py-3 text-center">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                      isPaid
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : PAYMENT_COLOR[r.payment_status] ?? 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {isPaid ? 'Payé' : (PAYMENT_LABEL[r.payment_status] ?? r.payment_status)}
+                    </span>
+                    {r.payment_amount && (
+                      <div className="mt-0.5 text-[9px] text-resa-text/50">
+                        {Number(r.payment_amount).toLocaleString('fr-FR')} {r.payment_currency ?? 'XOF'}
+                      </div>
+                    )}
+                  </td>
 
-                <td className="px-5 py-3">
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => setOpenRegistration(r)}
-                      className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-resa-navy transition hover:bg-resa-gray"
-                    >
-                      Traiter
-                    </button>
-                    <button
-                      onClick={() => setToDelete(r)}
-                      className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-red-600 transition hover:border-red-200 hover:bg-red-50"
-                    >
-                      Suppr.
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  <td className="px-5 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      {showPaymentButton && (
+                        <button
+                          onClick={() => setPaymentRegistration(r)}
+                          className="rounded-lg border border-resa-red/20 bg-resa-red/5 px-2.5 py-1 text-[11px] font-bold text-resa-red transition hover:bg-resa-red/10"
+                        >
+                          {isResend ? '🔄 Relancer' : '💳 Paiement'}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setOpenRegistration(r)}
+                        className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-resa-navy transition hover:bg-resa-gray"
+                      >
+                        Traiter
+                      </button>
+                      <button
+                        onClick={() => setToDelete(r)}
+                        className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-red-600 transition hover:border-red-200 hover:bg-red-50"
+                      >
+                        Suppr.
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {/* Wizard */}
       {openRegistration && (
         <CampRegistrationsWizard
           registration={{ ...openRegistration, camp }}
           onClose={() => setOpenRegistration(null)}
+        />
+      )}
+
+      {paymentRegistration && (
+        <CampPaymentModal
+          registration={paymentRegistration}
+          camp={camp}
+          onClose={() => setPaymentRegistration(null)}
         />
       )}
 

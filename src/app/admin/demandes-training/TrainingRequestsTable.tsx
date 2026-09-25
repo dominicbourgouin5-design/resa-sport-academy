@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import RequestWizard from './RequestWizard';
 import TrainingPaymentModal from '@/components/admin/TrainingPaymentModal';
@@ -10,6 +10,16 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
   const [openRequest, setOpenRequest] = useState<any | null>(null);
   const [paymentRequest, setPaymentRequest] = useState<any | null>(null);
   const router = useRouter();
+
+  // ⚠️ Auto-close : si la demande ouverte disparaît de la liste (polling refresh)
+  useEffect(() => {
+    if (openRequest && !requests.find((r) => r.id === openRequest.id)) {
+      setOpenRequest(null);
+    }
+    if (paymentRequest && !requests.find((r) => r.id === paymentRequest.id)) {
+      setPaymentRequest(null);
+    }
+  }, [requests, openRequest, paymentRequest]);
 
   if (requests.length === 0) {
     return (
@@ -35,7 +45,6 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
           </thead>
           <tbody className="divide-y divide-black/5">
             {requests.map((r) => {
-
               const showPaymentButton =
                 r.status === 'booked' &&
                 r.payment_status !== 'paid' &&
@@ -81,10 +90,7 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
                     )}
                   </td>
 
-                  {/* Statut paiement */}
                   <td className="hidden px-5 py-3 text-center lg:table-cell">
-
-
                     <PaymentBadge
                       status={
                         r.paid_at || r.success_email_sent_at
@@ -94,8 +100,6 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
                       amount={r.payment_amount}
                       currency={r.payment_currency}
                     />
-
-
                   </td>
 
                   <td className="hidden px-5 py-3 text-[12px] text-resa-text/60 xl:table-cell">

@@ -26,14 +26,14 @@ export async function sendCampRegistration(payload: {
   player_age: string;
   player_birth_date: string;
   notes: string;
-  payment_choice: 'later' | 'online';
+  payment_method: 'later' | 'fedapay' | 'paypal';
   locale?: string;
 }): Promise<CampRegistrationResult> {
   try {
     const {
       camp_id, parent_name, parent_email, parent_phone, parent_country,
       player_name, player_age, player_birth_date, notes,
-      payment_choice, locale = 'fr'
+      payment_method, locale = 'fr'
     } = payload;
 
     if (!camp_id) return { error: 'Identifiant camp manquant.' };
@@ -43,10 +43,9 @@ export async function sendCampRegistration(payload: {
 
     const supabase = createAdminClient();
 
-    // 1) Lookup camp
     const { data: camp, error: campErr } = await supabase
       .from('camps')
-      .select('id, slug, title_fr, title_en, price_amount, price_fr, date_start, location, currency')
+      .select('id, slug, title_fr, title_en, price_amount, price_amount_usd, price_fr, date_start, location, currency')
       .eq('id', camp_id)
       .single();
 
@@ -54,7 +53,12 @@ export async function sendCampRegistration(payload: {
       return { error: campErr?.message ?? 'Camp introuvable.' };
     }
 
-    // 2) Insert registration — AJOUT de parent_country
+    if (payment_method === 'paypal' && !camp.price_amount_usd) {
+      return { error: 'Paiement PayPal indisponible pour ce camp.' };
+    }
+
+    const dbMethod = payment_method === 'later' ? 'manual' : payment_method;
+
     const { data: registration, error: insertErr } = await supabase
       .from('camp_registrations')
       .insert({
@@ -62,13 +66,13 @@ export async function sendCampRegistration(payload: {
         parent_name,
         parent_email,
         parent_phone: parent_phone || null,
-        parent_country: parent_country || 'ci',   // ← NOUVEAU
+        parent_country: parent_country || 'ci',
         player_name,
         player_age: player_age ? Number(player_age) : null,
         player_birth_date: player_birth_date || null,
         notes: notes || null,
         payment_status: 'pending',
-        payment_method: payment_choice === 'online' ? 'fedapay' : 'manual',
+        payment_method: dbMethod,
         status: 'new'
       })
       .select('id')
@@ -81,30 +85,32 @@ export async function sendCampRegistration(payload: {
     const regId = registration.id;
     let payment_url: string | undefined;
 
-    // 3) Cas "paiement en ligne" → FedaPay
-    if (payment_choice === 'online' && camp.price_amount) {
+    // Cas manuel
+    if (payment_method === 'later') {
+      await sendCampSuccessEmails(regId);
+      return { ok: true, registration_id: regId };
+    }
+
+    // Cas FedaPay
+    if (payment_method === 'fedapay' && camp.price_amount) {
       try {
-        const siteUrl =
-          process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
         const callbackUrl = `${siteUrl}/${locale}/paiement/camp/${regId}`;
 
         const nameParts = parent_name.trim().split(' ');
         const firstname = nameParts[0] || parent_name;
         const lastname = nameParts.slice(1).join(' ') || firstname;
 
+        const isSandbox = (process.env.FEDAPAY_ENV ?? 'sandbox') !== 'live';
+        const country = isSandbox ? 'bj' : (parent_country || 'ci');
+
         const tx = await createFedaPayTransaction({
           amount: camp.price_amount,
           description: `Inscription camp — ${camp.title_fr ?? 'RESA'}`,
           callbackUrl,
-          customer: {
-            firstname,
-            lastname,
-            email: parent_email,
-            phone: parent_phone || undefined,
-            country: parent_country || 'ci'
-          },
+          customer: { firstname, lastname, email: parent_email, phone: parent_phone || undefined, country },
           currency: camp.currency ?? 'XOF',
-          metadata: { registration_id: regId, camp_slug: camp.slug }
+          metadata: { registration_id: regId, camp_slug: camp.slug, type: 'camp' }
         });
 
         const token = await generatePaymentToken(tx.id);
@@ -114,14 +120,16 @@ export async function sendCampRegistration(payload: {
           .update({
             payment_provider_id: String(tx.id),
             payment_token: token,
-            payment_reference: tx.reference ?? null
+            payment_reference: tx.reference ?? null,
+            payment_amount: camp.price_amount,
+            payment_currency: camp.currency ?? 'XOF',
+            payment_link_sent_at: new Date().toISOString()
           })
           .eq('id', regId);
 
         payment_url = buildPaymentUrl(token);
       } catch (err: any) {
         console.error('[Camp Reg] ❌ FedaPay error:', err);
-
         await supabase
           .from('camp_registrations')
           .update({
@@ -129,24 +137,62 @@ export async function sendCampRegistration(payload: {
             payment_status: 'failed'
           })
           .eq('id', regId);
-
         const { sendCampFailureEmails } = await import('@/lib/camp-emails');
         await sendCampFailureEmails(regId, 'error');
-
-        return {
-          ok: true,
-          registration_id: regId,
-          error: undefined
-        };
+        return { ok: true, registration_id: regId };
       }
 
       return { ok: true, payment_url, registration_id: regId };
     }
 
-    // 4) Cas "réserver sans payer" → emails immédiats
-    await sendCampSuccessEmails(regId);
+    // Cas PayPal
+    if (payment_method === 'paypal' && camp.price_amount_usd) {
+      try {
+        const { createPayPalOrder } = await import('@/lib/payments/paypal');
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+        const returnUrl = `${siteUrl}/fr/paiement/paypal/camp/${regId}`;
+        const cancelUrl = `${siteUrl}/fr/paiement/paypal/camp/${regId}?cancelled=1`;
 
-    return { ok: true, registration_id: regId };
+        const order = await createPayPalOrder({
+          amount: Number(camp.price_amount_usd),
+          currency: 'USD',
+          description: `Camp — ${camp.title_fr ?? 'RESA'}`,
+          referenceId: regId,
+          returnUrl,
+          cancelUrl
+        });
+
+        await supabase
+          .from('camp_registrations')
+          .update({
+            payment_provider_id: order.id,
+            payment_token: order.id,
+            payment_reference: null,
+            payment_amount: Number(camp.price_amount_usd),
+            payment_currency: 'USD',
+            payment_link_sent_at: new Date().toISOString()
+          })
+          .eq('id', regId);
+
+        payment_url = order.approveUrl;
+      } catch (err: any) {
+        console.error('[Camp Reg] ❌ PayPal error:', err);
+        await supabase
+          .from('camp_registrations')
+          .update({
+            admin_notes: `⚠️ Erreur PayPal : ${err.message}`,
+            payment_status: 'failed'
+          })
+          .eq('id', regId);
+        const { sendCampFailureEmails } = await import('@/lib/camp-emails');
+        await sendCampFailureEmails(regId, 'error');
+        return { ok: true, registration_id: regId };
+      }
+
+      return { ok: true, payment_url, registration_id: regId };
+    }
+
+    return { error: 'Mode de paiement invalide.' };
   } catch (err: any) {
     console.error('[Camp Reg] ❌ Erreur globale:', err);
     return { error: err.message ?? 'Erreur inconnue' };

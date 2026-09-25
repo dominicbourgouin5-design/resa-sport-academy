@@ -33,17 +33,18 @@ export default async function CampDetailPage({
         .maybeSingle();
 
       if (reg) {
-        initialValues = {
-          parent_name: reg.parent_name ?? '',
-          parent_email: reg.parent_email ?? '',
-          parent_phone: reg.parent_phone ?? '',
-          parent_country: reg.parent_country ?? 'ci',
-          player_name: reg.player_name ?? '',
-          player_age: reg.player_age ? String(reg.player_age) : '',
-          player_birth_date: reg.player_birth_date ?? '',
-          notes: reg.notes ?? '',
-          payment_choice: reg.payment_method === 'fedapay' ? 'online' : 'later'
-        };
+            initialValues = {
+              parent_name: reg.parent_name ?? '',
+              parent_email: reg.parent_email ?? '',
+              parent_phone: reg.parent_phone ?? '',
+              parent_country: reg.parent_country ?? 'ci',
+              player_name: reg.player_name ?? '',
+              player_age: reg.player_age ? String(reg.player_age) : '',
+              player_birth_date: reg.player_birth_date ?? '',
+              notes: reg.notes ?? '',
+              payment_mode: reg.payment_method === 'manual' ? 'later' : 'online',
+              online_method: reg.payment_method === 'paypal' ? 'paypal' : 'fedapay'
+            };
       }
     } catch (err) {
       console.warn('[CampDetailPage] rebook lookup failed:', err);

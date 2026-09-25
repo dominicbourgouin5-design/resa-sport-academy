@@ -341,3 +341,144 @@ ${reg.payment_reference ? `<p><strong>Réf. FedaPay :</strong> ${reg.payment_ref
 
   return { ok: true };
 }
+
+
+
+// ═══════════════════════════════════════════════════════════
+// EMAIL — Lien de paiement FedaPay
+// ═══════════════════════════════════════════════════════════
+export async function sendCampPaymentLinkEmail(
+  registrationId: string,
+  paymentUrl: string,
+  isResend = false
+): Promise<{ ok: boolean }> {
+  const supabase = createAdminClient();
+
+  const { data: reg } = await supabase
+    .from('camp_registrations')
+    .select(`*, camp:camps(id, title_fr, date_start, location, price_fr)`)
+    .eq('id', registrationId)
+    .single();
+
+  if (!reg) return { ok: false };
+
+  const adminEmail = process.env.BREVO_SENDER_EMAIL ?? 'contact@cataria-systems.com';
+  const camp = reg.camp as any;
+  const campTitle = camp?.title_fr ?? 'Camp RESA';
+  const amountLabel = reg.payment_amount
+    ? `${Number(reg.payment_amount).toLocaleString('fr-FR')} ${reg.payment_currency ?? 'XOF'}`
+    : '—';
+
+  const headline = isResend ? 'Nouveau lien de paiement 🔄' : "C'est calé ! 🎉";
+  const intro = isResend
+    ? `Voici un <strong>nouveau lien de paiement</strong> pour finaliser l'inscription de <strong>${reg.player_name}</strong> au <strong>${campTitle}</strong>. <em>L'ancien lien n'est plus valable.</em>`
+    : `Bonne nouvelle : nous avons bien enregistré l'inscription de <strong>${reg.player_name}</strong> au <strong>${campTitle}</strong>. Il ne reste plus qu'à finaliser le paiement pour bloquer définitivement la place.`;
+
+  const subject = isResend
+    ? `🔄 Nouveau lien de paiement — ${campTitle}`
+    : `💳 Votre lien de paiement — ${campTitle}`;
+
+  const inner = `
+<tr><td style="padding:40px 32px;color:#0F172A;font-size:15px;line-height:1.7;">
+<h1 style="font-size:24px;color:#0A1F44;margin:0 0 8px;">${headline}</h1>
+<p style="color:#64748B;margin:0 0 24px;font-size:14px;">Bonjour ${reg.parent_name},</p>
+<p>${intro}</p>
+<div style="background:#EFF6FF;border-left:4px solid #1E3A8A;padding:18px 22px;border-radius:10px;margin:28px 0;">
+  <div style="font-weight:800;color:#1E3A8A;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Récapitulatif</div>
+  <div><strong>Événement :</strong> ${campTitle}</div>
+  <div style="margin-top:6px;"><strong>Joueur :</strong> ${reg.player_name}${reg.player_age ? ` (${reg.player_age} ans)` : ''}</div>
+  ${camp?.date_start ? `<div style="margin-top:6px;"><strong>Date :</strong> ${new Date(camp.date_start).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>` : ''}
+  ${camp?.location ? `<div style="margin-top:6px;"><strong>Lieu :</strong> ${camp.location}</div>` : ''}
+  <div style="margin-top:12px;font-size:20px;font-weight:900;color:#DC2626;">${amountLabel}</div>
+</div>
+<p>Cliquez sur le bouton ci-dessous pour régler en toute sécurité (Wave, Orange Money, MTN, Moov, carte bancaire).</p>
+${contactButtons(`Paiement camp - ${campTitle}`, "💳 Payer maintenant", paymentUrl)}
+<p style="margin-top:24px;font-size:13px;color:#64748B;">
+  ⏱️ Le lien reste valable 24h. Passé ce délai, la place pourra être réattribuée.
+</p>
+<p style="margin-top:28px;">À très vite sur le terrain,<br/><strong>L'équipe RESA Sport Academy</strong> ⚽</p>
+</td></tr>`;
+
+  try {
+    await sendEmail({
+      to: [{ email: reg.parent_email, name: reg.parent_name }],
+      subject,
+      htmlContent: emailWrap(inner),
+      replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
+    });
+    console.log(`[Camp Emails] 📧 Email lien paiement ${isResend ? '(renvoi) ' : ''}envoyé`);
+    return { ok: true };
+  } catch (err) {
+    console.error('[Camp Emails] ⚠️ Lien email échec:', err);
+    return { ok: false };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// EMAIL — Lien de paiement PayPal
+// ═══════════════════════════════════════════════════════════
+export async function sendCampPayPalLinkEmail(
+  registrationId: string,
+  paymentUrl: string,
+  isResend = false
+): Promise<{ ok: boolean }> {
+  const supabase = createAdminClient();
+
+  const { data: reg } = await supabase
+    .from('camp_registrations')
+    .select(`*, camp:camps(id, title_fr, date_start, location)`)
+    .eq('id', registrationId)
+    .single();
+
+  if (!reg) return { ok: false };
+
+  const adminEmail = process.env.BREVO_SENDER_EMAIL ?? 'contact@cataria-systems.com';
+  const camp = reg.camp as any;
+  const campTitle = camp?.title_fr ?? 'Camp RESA';
+  const amountLabel = reg.payment_amount
+    ? `$${Number(reg.payment_amount).toFixed(2)} USD`
+    : '—';
+
+  const headline = isResend ? 'Nouveau lien de paiement PayPal 🔄' : "C'est calé ! 🎉";
+  const intro = isResend
+    ? `Voici un <strong>nouveau lien de paiement PayPal</strong> pour finaliser l'inscription de <strong>${reg.player_name}</strong> au <strong>${campTitle}</strong>.`
+    : `Bonne nouvelle : nous avons bien enregistré l'inscription de <strong>${reg.player_name}</strong> au <strong>${campTitle}</strong>. Finalisez le paiement via PayPal pour bloquer la place.`;
+
+  const subject = isResend
+    ? `🔄 Nouveau lien PayPal — ${campTitle}`
+    : `💳 Votre lien de paiement PayPal — ${campTitle}`;
+
+  const inner = `
+<tr><td style="padding:40px 32px;color:#0F172A;font-size:15px;line-height:1.7;">
+<h1 style="font-size:24px;color:#0A1F44;margin:0 0 8px;">${headline}</h1>
+<p style="color:#64748B;margin:0 0 24px;font-size:14px;">Bonjour ${reg.parent_name},</p>
+<p>${intro}</p>
+<div style="background:#EFF6FF;border-left:4px solid #003087;padding:18px 22px;border-radius:10px;margin:28px 0;">
+  <div style="font-weight:800;color:#003087;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Récapitulatif</div>
+  <div><strong>Événement :</strong> ${campTitle}</div>
+  <div style="margin-top:6px;"><strong>Joueur :</strong> ${reg.player_name}${reg.player_age ? ` (${reg.player_age} ans)` : ''}</div>
+  <div style="margin-top:12px;font-size:20px;font-weight:900;color:#DC2626;">${amountLabel}</div>
+  <div style="margin-top:6px;font-size:11px;color:#64748B;">Moyen de paiement : PayPal</div>
+</div>
+<p>Cliquez sur le bouton ci-dessous pour régler via PayPal.</p>
+${contactButtons(`Paiement PayPal - ${campTitle}`, "💳 Payer avec PayPal", paymentUrl)}
+<p style="margin-top:24px;font-size:13px;color:#64748B;">
+  ⏱️ Le lien reste valable 24h.
+</p>
+<p style="margin-top:28px;">À très vite,<br/><strong>L'équipe RESA Sport Academy</strong> ⚽</p>
+</td></tr>`;
+
+  try {
+    await sendEmail({
+      to: [{ email: reg.parent_email, name: reg.parent_name }],
+      subject,
+      htmlContent: emailWrap(inner),
+      replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
+    });
+    console.log(`[Camp Emails] 📧 Email PayPal ${isResend ? '(renvoi) ' : ''}envoyé`);
+    return { ok: true };
+  } catch (err) {
+    console.error('[Camp Emails] ⚠️ PayPal email échec:', err);
+    return { ok: false };
+  }
+}
