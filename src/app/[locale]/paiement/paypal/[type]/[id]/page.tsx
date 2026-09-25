@@ -76,17 +76,24 @@ export default async function PayPalReturnPage({
             .select('*, camp:camps(title_fr, price_amount, price_fr)')
             .eq('id', id)
             .single();
-          if (reg && reg.payment_status !== 'paid') {
-            await supabase
-              .from('camp_registrations')
-              .update({
-                payment_status: 'paid',
-                payment_method: 'paypal',
-                payment_reference: reference,
-                paid_at: new Date().toISOString()
-              })
-              .eq('id', id);
-            await sendCampSuccessEmails(id);
+
+          if (reg) {
+            if (reg.payment_status !== 'paid') {
+              await supabase
+                .from('camp_registrations')
+                .update({
+                  payment_status: 'paid',
+                  payment_method: 'paypal',
+                  payment_reference: reference,
+                  paid_at: new Date().toISOString()
+                })
+                .eq('id', id);
+              await sendCampSuccessEmails(id);
+            } else if (!reg.success_email_sent_at) {
+              // Déjà payé mais email pas envoyé → on force
+              await sendCampSuccessEmails(id);
+            }
+            console.log('[PayPal Return] Camp déjà payé — double paiement ignoré');
           }
           itemTitle = (reg?.camp as any)?.title_fr ?? 'Camp RESA';
           amountLabel = reg?.camp?.price_amount
@@ -98,17 +105,24 @@ export default async function PayPalReturnPage({
             .select('*')
             .eq('id', id)
             .single();
-          if (req && req.payment_status !== 'paid') {
-            await supabase
-              .from('training_requests')
-              .update({
-                payment_status: 'paid',
-                payment_method: 'paypal',
-                payment_reference: reference,
-                paid_at: new Date().toISOString()
-              })
-              .eq('id', id);
-            await sendTrainingSuccessEmail(id);
+
+          if (req) {
+            if (req.payment_status !== 'paid') {
+              await supabase
+                .from('training_requests')
+                .update({
+                  payment_status: 'paid',
+                  payment_method: 'paypal',
+                  payment_reference: reference,
+                  paid_at: new Date().toISOString()
+                })
+                .eq('id', id);
+              await sendTrainingSuccessEmail(id);
+            } else if (!req.success_email_sent_at) {
+              // Déjà payé mais email pas envoyé → on force
+              await sendTrainingSuccessEmail(id);
+            }
+            console.log('[PayPal Return] Training déjà payé — double paiement ignoré');
           }
           itemTitle = req?.program_title ?? 'Training RESA';
           amountLabel = req?.payment_amount
@@ -160,9 +174,7 @@ export default async function PayPalReturnPage({
       <div className="overflow-hidden rounded-3xl border border-black/5 bg-white shadow-resa-lg">
         <div className={`h-2 ${barColor}`} />
         <div className="p-8 text-center md:p-12">
-          <div
-            className={`mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full text-4xl text-white shadow-lg ${barColor}`}
-          >
+          <div className={`mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full text-4xl text-white shadow-lg ${barColor}`}>
             {icon}
           </div>
           <h1 className="font-display text-2xl font-black text-resa-navy md:text-3xl">
@@ -188,11 +200,7 @@ export default async function PayPalReturnPage({
                   <span className="text-resa-text/60">
                     {isFr ? 'Montant' : 'Amount'}
                   </span>
-                  <span
-                    className={`font-display font-black ${
-                      isSuccess ? 'text-emerald-600' : 'text-resa-red'
-                    }`}
-                  >
+                  <span className={`font-display font-black ${isSuccess ? 'text-emerald-600' : 'text-resa-red'}`}>
                     {amountLabel}
                   </span>
                 </div>
@@ -201,15 +209,9 @@ export default async function PayPalReturnPage({
                 <span className="text-resa-text/60">
                   {isFr ? 'Statut' : 'Status'}
                 </span>
-                <span
-                  className={`font-display font-black uppercase text-[11px] ${
-                    isSuccess
-                      ? 'text-emerald-600'
-                      : isFailed
-                        ? 'text-red-600'
-                        : 'text-amber-600'
-                  }`}
-                >
+                <span className={`font-display font-black uppercase text-[11px] ${
+                  isSuccess ? 'text-emerald-600' : isFailed ? 'text-red-600' : 'text-amber-600'
+                }`}>
                   {isSuccess
                     ? isFr ? '✓ Payé' : '✓ Paid'
                     : isFailed

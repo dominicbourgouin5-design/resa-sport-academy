@@ -17,6 +17,8 @@ export default function TrainingPaymentModal({
   request: any;
   onClose: () => void;
 }) {
+  const isAlreadyPaid = request.payment_status === 'paid' || !!request.paid_at;
+
   const [method, setMethod] = useState<Method>('fedapay');
   const [amount, setAmount] = useState<string>(
     request.payment_amount ? String(request.payment_amount) : ''
@@ -29,9 +31,10 @@ export default function TrainingPaymentModal({
   const [result, setResult] = useState<{ ok: boolean; error?: string } | null>(null);
 
   const isResend =
-    request.payment_status === 'pending' || request.payment_status === 'failed';
+    !isAlreadyPaid &&
+    (request.payment_status === 'pending' || request.payment_status === 'failed');
 
-  // Change devise auto selon méthode
+  // Auto-switch devise selon méthode
   useEffect(() => {
     if (method === 'paypal' && currency === 'XOF') {
       setCurrency('USD');
@@ -40,7 +43,7 @@ export default function TrainingPaymentModal({
     }
   }, [method]); // eslint-disable-line
 
-  // Auto-charger le tarif depuis la DB si montant vide
+  // Auto-charger le tarif DB
   useEffect(() => {
     const shouldFetch = !request.payment_amount && request.program_slug;
     if (!shouldFetch) return;
@@ -59,6 +62,11 @@ export default function TrainingPaymentModal({
   }, [request.program_slug, request.payment_amount]); // eslint-disable-line
 
   const handleSend = async () => {
+    if (isAlreadyPaid) {
+      setResult({ ok: false, error: 'Cette demande est déjà payée.' });
+      return;
+    }
+
     const num = Number(amount);
     if (!Number.isFinite(num) || num <= 0) {
       setResult({ ok: false, error: 'Entrez un montant valide.' });
@@ -111,7 +119,11 @@ export default function TrainingPaymentModal({
 
         <div className="flex items-center justify-between border-b border-black/5 px-6 py-4">
           <div className="text-[10px] font-bold uppercase tracking-widest text-resa-red">
-            {isResend ? 'Renvoyer un lien de paiement' : 'Envoyer un lien de paiement'}
+            {isAlreadyPaid
+              ? 'Demande déjà payée'
+              : isResend
+                ? 'Renvoyer un lien de paiement'
+                : 'Envoyer un lien de paiement'}
           </div>
           <button
             onClick={onClose}
@@ -122,6 +134,17 @@ export default function TrainingPaymentModal({
         </div>
 
         <div className="space-y-5 p-6">
+          {/* Bandeau "déjà payé" */}
+          {isAlreadyPaid && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">
+              ✅ Cette demande est déjà payée
+              {request.paid_at && (
+                <> le {new Date(request.paid_at).toLocaleDateString('fr-FR')}</>
+              )}
+              . Aucun nouveau lien ne peut être envoyé.
+            </div>
+          )}
+
           {/* Destinataire */}
           <div className="rounded-lg border border-black/5 bg-resa-gray/40 px-4 py-3 text-sm">
             <div className="text-[10px] font-bold uppercase tracking-widest text-resa-text/50">Destinataire</div>
@@ -135,85 +158,85 @@ export default function TrainingPaymentModal({
           </div>
 
           {/* Choix méthode */}
-          <div>
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
-              Méthode de paiement *
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setMethod('fedapay')}
-                className={`rounded-lg border-2 px-3 py-2.5 text-left transition ${
-                  method === 'fedapay'
-                    ? 'border-resa-red bg-resa-red/5'
-                    : 'border-black/10 bg-white hover:border-resa-navy/30'
-                }`}
-              >
-                <div className="text-[13px] font-bold text-resa-navy">📱 FedaPay</div>
-                <div className="mt-0.5 text-[10px] text-resa-text/55">
-                  Mobile Money · Carte
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMethod('paypal')}
-                className={`rounded-lg border-2 px-3 py-2.5 text-left transition ${
-                  method === 'paypal'
-                    ? 'border-resa-red bg-resa-red/5'
-                    : 'border-black/10 bg-white hover:border-resa-navy/30'
-                }`}
-              >
-                <div className="text-[13px] font-bold text-resa-navy">💳 PayPal</div>
-                <div className="mt-0.5 text-[10px] text-resa-text/55">
-                  International · Cartes
-                </div>
-              </button>
+          {!isAlreadyPaid && (
+            <div>
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
+                Méthode de paiement *
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMethod('fedapay')}
+                  className={`rounded-lg border-2 px-3 py-2.5 text-left transition ${
+                    method === 'fedapay'
+                      ? 'border-resa-red bg-resa-red/5'
+                      : 'border-black/10 bg-white hover:border-resa-navy/30'
+                  }`}
+                >
+                  <div className="text-[13px] font-bold text-resa-navy">📱 FedaPay</div>
+                  <div className="mt-0.5 text-[10px] text-resa-text/55">
+                    Mobile Money · FCFA
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMethod('paypal')}
+                  className={`rounded-lg border-2 px-3 py-2.5 text-left transition ${
+                    method === 'paypal'
+                      ? 'border-resa-red bg-resa-red/5'
+                      : 'border-black/10 bg-white hover:border-resa-navy/30'
+                  }`}
+                >
+                  <div className="text-[13px] font-bold text-resa-navy">💳 PayPal</div>
+                  <div className="mt-0.5 text-[10px] text-resa-text/55">
+                    International · USD/EUR
+                  </div>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Montant + devise */}
-          <div>
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
-              Montant à facturer *
-              {loadingRate && <span className="ml-2 text-resa-text/40">⏳ chargement…</span>}
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder={method === 'paypal' ? '25.00' : '25000'}
-                min={1}
-                step={method === 'paypal' ? '0.01' : '1'}
-                className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[15px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
-              />
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[13px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
-              >
-                {method === 'fedapay' ? (
-                  <>
+          {/* Montant */}
+          {!isAlreadyPaid && (
+            <div>
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
+                Montant à facturer *
+                {loadingRate && <span className="ml-2 text-resa-text/40">⏳ chargement…</span>}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder={method === 'paypal' ? '25.00' : '25000'}
+                  min={1}
+                  step={method === 'paypal' ? '0.01' : '1'}
+                  className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[15px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+                />
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[13px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+                >
+                  {method === 'fedapay' ? (
                     <option value="XOF">FCFA</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                  </>
-                )}
-              </select>
+                  ) : (
+                    <>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                    </>
+                  )}
+                </select>
+              </div>
+              <div className="mt-1.5 text-[10px] text-resa-text/40">
+                {method === 'paypal'
+                  ? 'PayPal accepte USD et EUR uniquement.'
+                  : 'FedaPay accepte uniquement les FCFA (XOF).'}
+              </div>
             </div>
-            <div className="mt-1.5 text-[10px] text-resa-text/40">
-              {method === 'paypal'
-                ? 'PayPal accepte USD et EUR uniquement. Conversion automatique.'
-                : 'Le parent recevra un email avec un bouton « Payer maintenant ».'}
-            </div>
-          </div>
+          )}
 
-          {isResend && (
+          {isResend && !isAlreadyPaid && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[12px] text-amber-800">
               ⚠️ Un lien a déjà été envoyé
               {request.payment_link_sent_at && (
@@ -236,16 +259,18 @@ export default function TrainingPaymentModal({
             disabled={sending}
             className="rounded-full border border-black/10 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-resa-text/60 transition hover:bg-resa-gray disabled:opacity-50"
           >
-            Annuler
+            {isAlreadyPaid ? 'Fermer' : 'Annuler'}
           </button>
-          <button
-            onClick={handleSend}
-            disabled={sending || !amount}
-            className="inline-flex items-center gap-2 rounded-full bg-resa-red px-6 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:opacity-50"
-          >
-            {sending ? 'Envoi…' : isResend ? 'Renvoyer le lien' : 'Envoyer le lien'}
-            {!sending && <span>→</span>}
-          </button>
+          {!isAlreadyPaid && (
+            <button
+              onClick={handleSend}
+              disabled={sending || !amount}
+              className="inline-flex items-center gap-2 rounded-full bg-resa-red px-6 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700 disabled:opacity-50"
+            >
+              {sending ? 'Envoi…' : isResend ? 'Renvoyer le lien' : 'Envoyer le lien'}
+              {!sending && <span>→</span>}
+            </button>
+          )}
         </div>
       </div>
     </Modal>

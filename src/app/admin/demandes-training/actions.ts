@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendTrainingPayPalLinkEmail } from '@/lib/training-emails';
+import { sendTrainingPayPalLinkEmail, sendTrainingPaymentLinkEmail } from '@/lib/training-emails';
 import { getCurrentProfile } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
 import {
@@ -10,7 +10,6 @@ import {
   generatePaymentToken,
   buildPaymentUrl
 } from '@/lib/payments/fedapay';
-import { sendTrainingPaymentLinkEmail } from '@/lib/training-emails';
 import { revalidatePath } from 'next/cache';
 
 async function requireRole(allowed: string[]) {
@@ -22,7 +21,7 @@ async function requireRole(allowed: string[]) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Récupérer le tarif par défaut d'un programme (depuis rates JSON)
+// Récupérer le tarif par défaut d'un programme
 // ═══════════════════════════════════════════════════════════
 export async function getTrainingProgramRate(slug: string): Promise<number | null> {
   if (!slug) return null;
@@ -38,7 +37,6 @@ export async function getTrainingProgramRate(slug: string): Promise<number | nul
   const rates = Array.isArray(data.rates) ? data.rates : [];
   for (const r of rates) {
     if (r?.price_fr) {
-      // "25 000 FCFA" → 25000
       const match = String(r.price_fr).match(/([\d\s]+)/);
       if (match) {
         const num = parseInt(match[1].replace(/\s/g, ''), 10);
@@ -85,7 +83,7 @@ export async function saveTrainingRequestNotes(id: string, notes: string) {
   revalidatePath('/admin/demandes-training');
 }
 
-// ─── Envoyer un email manuel au parent ──────────────────────
+// ─── Envoyer un email manuel ────────────────────────────────
 export async function sendParentEmail(
   requestId: string,
   subject: string,
@@ -139,7 +137,7 @@ export async function sendParentEmail(
       replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
     });
 
-    if (!res.sent) return { error: res.error ?? 'Erreur d\'envoi de l\'email' };
+    if (!res.sent) return { error: res.error ?? "Erreur d'envoi de l'email" };
 
     if (request.status === 'pending') {
       await supabase
@@ -156,7 +154,7 @@ export async function sendParentEmail(
 }
 
 // ═══════════════════════════════════════════════════════════
-// Envoyer / Renvoyer un lien de paiement
+// FedaPay : envoyer / renvoyer un lien de paiement
 // ═══════════════════════════════════════════════════════════
 export async function sendTrainingPaymentLink(
   requestId: string,
@@ -170,6 +168,13 @@ export async function sendTrainingPaymentLink(
       return { error: 'Montant invalide.' };
     }
 
+    // ⚠️ FedaPay ne supporte que XOF
+    if (currency !== 'XOF') {
+      return {
+        error: 'FedaPay accepte uniquement les paiements en FCFA (XOF). Utilisez PayPal pour USD/EUR.'
+      };
+    }
+
     const supabase = createAdminClient();
 
     const { data: req } = await supabase
@@ -179,7 +184,14 @@ export async function sendTrainingPaymentLink(
       .single();
 
     if (!req) return { error: 'Demande introuvable.' };
-    if (req.payment_status === 'paid') return { error: 'Cette demande est déjà payée.' };
+
+    // ⚠️ Double vérification : statut OU paid_at
+    if (req.payment_status === 'paid' || req.paid_at) {
+      return { error: 'Cette demande est déjà payée. Aucun nouveau lien ne peut être envoyé.' };
+    }
+    if (req.payment_status === 'refunded') {
+      return { error: 'Cette demande a été remboursée.' };
+    }
 
     const isResend = req.payment_link_sent_at != null;
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
@@ -189,8 +201,6 @@ export async function sendTrainingPaymentLink(
     const firstname = nameParts[0] || req.parent_name;
     const lastname = nameParts.slice(1).join(' ') || firstname;
 
-    // ⚠️ Sandbox : momo_test fonctionne uniquement pour BJ.
-    // En production, remplacer par un vrai pays (ou collecter côté formulaire).
     const isSandbox = (process.env.FEDAPAY_ENV ?? 'sandbox') !== 'live';
     const country = isSandbox ? 'bj' : 'ci';
 
@@ -216,6 +226,7 @@ export async function sendTrainingPaymentLink(
       .from('training_requests')
       .update({
         payment_status: 'pending',
+        payment_method: 'fedapay',
         payment_provider_id: String(tx.id),
         payment_token: token,
         payment_reference: tx.reference ?? null,
@@ -236,10 +247,8 @@ export async function sendTrainingPaymentLink(
   }
 }
 
-
-
 // ═══════════════════════════════════════════════════════════
-// Envoyer un lien de paiement PayPal
+// PayPal : envoyer / renvoyer un lien de paiement
 // ═══════════════════════════════════════════════════════════
 export async function sendTrainingPayPalLink(
   requestId: string,
@@ -261,7 +270,16 @@ export async function sendTrainingPayPalLink(
       .single();
 
     if (!req) return { error: 'Demande introuvable.' };
-    if (req.payment_status === 'paid') return { error: 'Déjà payée.' };
+
+    // ⚠️ Double vérification : statut OU paid_at
+    if (req.payment_status === 'paid' || req.paid_at) {
+      return {
+        error: 'Cette demande est déjà payée. Aucun nouveau lien ne peut être envoyé.'
+      };
+    }
+    if (req.payment_status === 'refunded') {
+      return { error: 'Cette demande a été remboursée.' };
+    }
 
     const { createPayPalOrder } = await import('@/lib/payments/paypal');
 
@@ -295,7 +313,6 @@ export async function sendTrainingPayPalLink(
       })
       .eq('id', requestId);
 
-    // Envoyer l'email avec le lien PayPal
     await sendTrainingPayPalLinkEmail(requestId, order.approveUrl, isResend);
 
     revalidatePath('/admin/demandes-training');
