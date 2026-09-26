@@ -28,6 +28,7 @@
     "pdf-lib": "^1.17.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "stripe": "^22.6.2",
     "tailwind-merge": "^2.6.0",
     "web-push": "^3.6.7"
   },

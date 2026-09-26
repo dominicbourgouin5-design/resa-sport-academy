@@ -6,8 +6,7 @@ import {
   OrdersController,
   CheckoutPaymentIntent,
   PaypalExperienceLandingPage,
-  PaypalExperienceUserAction,
-  ShippingPreference
+  PaypalExperienceUserAction
 } from '@paypal/paypal-server-sdk';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? '';
@@ -64,11 +63,6 @@ export async function createPayPalOrder(params: {
     (PaypalExperienceUserAction as any)?.PayNow ??
     'PAY_NOW';
 
-  const shippingPreference =
-    (ShippingPreference as any)?.NO_SHIPPING ??
-    (ShippingPreference as any)?.NoShipping ??
-    'NO_SHIPPING';
-
   const { result } = await ordersController.createOrder({
     prefer: 'return=representation',
     body: {
@@ -91,8 +85,7 @@ export async function createPayPalOrder(params: {
             brandName: 'RESA Sport Academy',
             locale: 'fr-FR',
             landingPage: landingPage as any,
-            userAction: userAction as any,
-            shippingPreference: shippingPreference as any
+            userAction: userAction as any
           }
         }
       }

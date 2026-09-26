@@ -385,3 +385,79 @@ export async function sendCampPayPalLink(
     return { error: err.message ?? 'Erreur inconnue' };
   }
 }
+
+
+
+
+// ═══════════════════════════════════════════════════════════
+// PAYMENT — Envoyer un lien de paiement Stripe (Camp)
+// ═══════════════════════════════════════════════════════════
+export async function sendCampStripeLink(
+  registrationId: string,
+  amount: number,
+  currency = 'XOF'
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    await requireRole(['admin', 'league_manager']);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { error: 'Montant invalide.' };
+    }
+
+    const supabase = createAdminClient();
+    const { data: reg } = await supabase
+      .from('camp_registrations')
+      .select('*, camp:camps(id, title_fr, slug, date_start, location)')
+      .eq('id', registrationId)
+      .single();
+
+    if (!reg) return { error: 'Inscription introuvable.' };
+    if (reg.payment_status === 'paid' || reg.paid_at || reg.success_email_sent_at) {
+      return { error: 'Cette inscription est déjà payée.' };
+    }
+
+    const { createStripeSession } = await import('@/lib/payments/stripe');
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    const returnUrl = `${siteUrl}/fr/paiement/stripe/return`;
+    const cancelUrl = `${siteUrl}/fr/paiement/stripe/return?cancelled=1`;
+
+    const session = await createStripeSession({
+      amount: Number(amount),
+      currency,
+      title: `Camp — ${(reg.camp as any)?.title_fr ?? 'RESA'}`,
+      customerEmail: reg.parent_email,
+      customerName: reg.parent_name,
+      requestId: registrationId,
+      requestType: 'camp',
+      returnUrl,
+      cancelUrl
+    });
+
+    const isResend = reg.payment_link_sent_at != null;
+
+    await supabase
+      .from('camp_registrations')
+      .update({
+        payment_status: 'pending',
+        payment_method: 'stripe',
+        payment_provider_id: session.sessionId,
+        payment_token: session.sessionId,
+        payment_reference: null,
+        payment_amount: Math.round(amount),
+        payment_currency: currency,
+        payment_link_sent_at: new Date().toISOString(),
+        failure_email_sent_at: null
+      })
+      .eq('id', registrationId);
+
+    const { sendCampStripeLinkEmail } = await import('@/lib/camp-emails');
+    await sendCampStripeLinkEmail(registrationId, session.url!, isResend);
+
+    revalidatePath('/admin/camps');
+    return { ok: true };
+  } catch (err: any) {
+    console.error('[Camp Stripe Link] Error:', err);
+    return { error: err.message ?? 'Erreur inconnue' };
+  }
+}

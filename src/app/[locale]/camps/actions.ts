@@ -26,8 +26,7 @@ export async function sendCampRegistration(payload: {
   player_age: string;
   player_birth_date: string;
   notes: string;
-  payment_method: 'later' | 'fedapay' | 'paypal';
-  locale?: string;
+  payment_method: 'later' | 'fedapay' | 'paypal' | 'stripe';  locale?: string;
 }): Promise<CampRegistrationResult> {
   try {
     const {
@@ -181,6 +180,63 @@ export async function sendCampRegistration(payload: {
           .from('camp_registrations')
           .update({
             admin_notes: `⚠️ Erreur PayPal : ${err.message}`,
+            payment_status: 'failed'
+          })
+          .eq('id', regId);
+        const { sendCampFailureEmails } = await import('@/lib/camp-emails');
+        await sendCampFailureEmails(regId, 'error');
+        return { ok: true, registration_id: regId };
+      }
+
+      return { ok: true, payment_url, registration_id: regId };
+    }
+
+        // ═══ Cas "Stripe" ═══
+    if (payment_method === 'stripe') {
+      try {
+        const { createStripeSession } = await import('@/lib/payments/stripe');
+
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+        const returnUrl = `${siteUrl}/fr/paiement/stripe/return`;
+        const cancelUrl = `${siteUrl}/fr/paiement/stripe/return?cancelled=1`;
+
+        const amount = camp.price_amount_usd
+          ? Number(camp.price_amount_usd)
+          : camp.price_amount ?? 0;
+
+        const currency = camp.price_amount_usd ? 'USD' : 'XOF';
+
+        const session = await createStripeSession({
+          amount,
+          currency,
+          title: `Camp — ${camp.title_fr ?? 'RESA'}`,
+          customerEmail: parent_email,
+          customerName: parent_name,
+          requestId: regId,
+          requestType: 'camp',
+          returnUrl,
+          cancelUrl
+        });
+
+        await supabase
+          .from('camp_registrations')
+          .update({
+            payment_provider_id: session.sessionId,
+            payment_token: session.sessionId,
+            payment_reference: null,
+            payment_amount: Math.round(amount),
+            payment_currency: currency,
+            payment_link_sent_at: new Date().toISOString()
+          })
+          .eq('id', regId);
+
+        payment_url = session.url!;
+      } catch (err: any) {
+        console.error('[Camp Reg] ❌ Stripe error:', err);
+        await supabase
+          .from('camp_registrations')
+          .update({
+            admin_notes: `⚠️ Erreur Stripe : ${err.message}`,
             payment_status: 'failed'
           })
           .eq('id', regId);

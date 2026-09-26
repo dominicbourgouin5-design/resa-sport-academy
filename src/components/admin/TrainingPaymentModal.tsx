@@ -5,10 +5,11 @@ import Modal from '@/components/admin/Modal';
 import {
   sendTrainingPaymentLink,
   sendTrainingPayPalLink,
+  sendTrainingStripeLink,
   getTrainingProgramRate
 } from '@/app/admin/demandes-training/actions';
 
-type Method = 'fedapay' | 'paypal';
+type Method = 'fedapay' | 'paypal' | 'stripe';
 
 export default function TrainingPaymentModal({
   request,
@@ -21,7 +22,7 @@ export default function TrainingPaymentModal({
     request.payment_status === 'paid' ||
     !!request.paid_at ||
     !!request.success_email_sent_at;
-    
+
   const [method, setMethod] = useState<Method>('fedapay');
   const [amount, setAmount] = useState<string>(
     request.payment_amount ? String(request.payment_amount) : ''
@@ -44,6 +45,7 @@ export default function TrainingPaymentModal({
     } else if (method === 'fedapay' && currency !== 'XOF') {
       setCurrency('XOF');
     }
+    // Stripe accepte XOF, USD, EUR → pas de switch auto
   }, [method]); // eslint-disable-line
 
   // Auto-charger le tarif DB
@@ -80,9 +82,12 @@ export default function TrainingPaymentModal({
     setResult(null);
 
     try {
-      const res = method === 'paypal'
-        ? await sendTrainingPayPalLink(request.id, num, currency)
-        : await sendTrainingPaymentLink(request.id, num, currency);
+      const res =
+        method === 'paypal'
+          ? await sendTrainingPayPalLink(request.id, num, currency)
+          : method === 'stripe'
+            ? await sendTrainingStripeLink(request.id, num, currency)
+            : await sendTrainingPaymentLink(request.id, num, currency);
 
       if (res.error) {
         setResult({ ok: false, error: res.error });
@@ -107,7 +112,7 @@ export default function TrainingPaymentModal({
             {isResend ? 'Nouveau lien envoyé !' : 'Lien envoyé !'}
           </h2>
           <p className="mt-2 text-sm text-resa-text/60">
-            Le parent vient de recevoir un email {method === 'paypal' ? 'PayPal' : 'FedaPay'} avec le lien de paiement.
+            Le parent vient de recevoir un email {method === 'paypal' ? 'PayPal' : method === 'stripe' ? 'Stripe' : 'FedaPay'} avec le lien de paiement.
           </p>
         </div>
       </Modal>
@@ -166,7 +171,7 @@ export default function TrainingPaymentModal({
               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
                 Méthode de paiement *
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setMethod('fedapay')}
@@ -177,9 +182,7 @@ export default function TrainingPaymentModal({
                   }`}
                 >
                   <div className="text-[13px] font-bold text-resa-navy">📱 FedaPay</div>
-                  <div className="mt-0.5 text-[10px] text-resa-text/55">
-                    Mobile Money · FCFA
-                  </div>
+                  <div className="mt-0.5 text-[10px] text-resa-text/55">Mobile Money · FCFA</div>
                 </button>
                 <button
                   type="button"
@@ -191,9 +194,19 @@ export default function TrainingPaymentModal({
                   }`}
                 >
                   <div className="text-[13px] font-bold text-resa-navy">💳 PayPal</div>
-                  <div className="mt-0.5 text-[10px] text-resa-text/55">
-                    International · USD/EUR
-                  </div>
+                  <div className="mt-0.5 text-[10px] text-resa-text/55">Intl. · USD/EUR</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMethod('stripe')}
+                  className={`rounded-lg border-2 px-3 py-2.5 text-left transition ${
+                    method === 'stripe'
+                      ? 'border-resa-red bg-resa-red/5'
+                      : 'border-black/10 bg-white hover:border-resa-navy/30'
+                  }`}
+                >
+                  <div className="text-[13px] font-bold text-resa-navy">💳 Stripe</div>
+                  <div className="mt-0.5 text-[10px] text-resa-text/55">Carte bancaire</div>
                 </button>
               </div>
             </div>
@@ -211,7 +224,7 @@ export default function TrainingPaymentModal({
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder={method === 'paypal' ? '25.00' : '25000'}
+                  placeholder={method === 'fedapay' ? '25000' : method === 'paypal' ? '25.00' : '25000'}
                   min={1}
                   step={method === 'paypal' ? '0.01' : '1'}
                   className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[15px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
@@ -223,8 +236,14 @@ export default function TrainingPaymentModal({
                 >
                   {method === 'fedapay' ? (
                     <option value="XOF">FCFA</option>
+                  ) : method === 'paypal' ? (
+                    <>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                    </>
                   ) : (
                     <>
+                      <option value="XOF">FCFA</option>
                       <option value="USD">USD</option>
                       <option value="EUR">EUR</option>
                     </>
@@ -234,7 +253,9 @@ export default function TrainingPaymentModal({
               <div className="mt-1.5 text-[10px] text-resa-text/40">
                 {method === 'paypal'
                   ? 'PayPal accepte USD et EUR uniquement.'
-                  : 'FedaPay accepte uniquement les FCFA (XOF).'}
+                  : method === 'stripe'
+                    ? 'Stripe accepte les cartes bancaires. XOF converti automatiquement en USD.'
+                    : 'FedaPay accepte uniquement les FCFA (XOF).'}
               </div>
             </div>
           )}

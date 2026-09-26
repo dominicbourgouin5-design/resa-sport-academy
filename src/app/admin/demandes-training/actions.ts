@@ -276,7 +276,11 @@ export async function sendTrainingPayPalLink(
     if (!req) return { error: 'Demande introuvable.' };
 
     // ⚠️ Double vérification : statut OU paid_at
-    if (req.payment_status === 'paid' || req.paid_at) {
+    if (
+      req.payment_status === 'paid' ||
+      req.paid_at ||
+      req.success_email_sent_at
+    ) {
       return {
         error: 'Cette demande est déjà payée. Aucun nouveau lien ne peut être envoyé.'
       };
@@ -323,6 +327,83 @@ export async function sendTrainingPayPalLink(
     return { ok: true };
   } catch (err: any) {
     console.error('[Training PayPal Link] Error:', err);
+    return { error: err.message ?? 'Erreur inconnue' };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Stripe : envoyer / renvoyer un lien de paiement
+// ═══════════════════════════════════════════════════════════
+export async function sendTrainingStripeLink(
+  requestId: string,
+  amount: number,
+  currency = 'XOF'
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    await requireRole(['admin', 'league_manager']);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { error: 'Montant invalide.' };
+    }
+
+    const supabase = createAdminClient();
+    const { data: req } = await supabase
+      .from('training_requests')
+      .select('*')
+      .eq('id', requestId)
+      .single();
+
+    if (!req) return { error: 'Demande introuvable.' };
+    if (
+      req.payment_status === 'paid' ||
+      req.paid_at ||
+      req.success_email_sent_at
+    ) {
+      return { error: 'Cette demande est déjà payée.' };
+    }
+
+    const { createStripeSession } = await import('@/lib/payments/stripe');
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    const returnUrl = `${siteUrl}/fr/paiement/stripe/return`;
+    const cancelUrl = `${siteUrl}/fr/paiement/stripe/return?cancelled=1`;
+
+    const session = await createStripeSession({
+      amount: Number(amount),
+      currency,
+      title: `Training — ${req.program_title ?? 'RESA'}`,
+      customerEmail: req.parent_email,
+      customerName: req.parent_name,
+      requestId,
+      requestType: 'training',
+      returnUrl,
+      cancelUrl
+    });
+
+    const isResend = req.payment_link_sent_at != null;
+
+    await supabase
+      .from('training_requests')
+      .update({
+        payment_status: 'pending',
+        payment_method: 'stripe',
+        payment_provider_id: session.sessionId,
+        payment_token: session.sessionId,
+        payment_reference: null,
+        payment_amount: Math.round(amount),
+        payment_currency: currency,
+        payment_link_sent_at: new Date().toISOString(),
+        failure_email_sent_at: null
+      })
+      .eq('id', requestId);
+
+    const { sendTrainingStripeLinkEmail } = await import('@/lib/training-emails');
+    await sendTrainingStripeLinkEmail(requestId, session.url!, isResend);
+
+    revalidatePath('/admin/demandes-training');
+    return { ok: true };
+  } catch (err: any) {
+    console.error('[Training Stripe Link] Error:', err);
     return { error: err.message ?? 'Erreur inconnue' };
   }
 }

@@ -20,8 +20,7 @@ const COUNTRIES = [
 
 type InitialValues = Record<string, string> | null;
 type PaymentMode = 'later' | 'online';
-type OnlineMethod = 'fedapay' | 'paypal';
-
+type OnlineMethod = 'fedapay' | 'paypal' | 'stripe';
 export default function CampRegistrationForm({
   camp,
   initialValues = null,
@@ -74,7 +73,7 @@ export default function CampRegistrationForm({
     setStatus('loading');
     setError(null);
 
-    const finalMethod: 'later' | 'fedapay' | 'paypal' =
+    const finalMethod: 'later' | 'fedapay' | 'paypal'|'stripe' =
       paymentMode === 'later' ? 'later' : onlineMethod;
 
     try {
@@ -239,12 +238,10 @@ export default function CampRegistrationForm({
                         {camp.price_fr ? ` — ${camp.price_fr}` : ''}
                       </option>
                     )}
-                    {hasUsdPrice && (
-                      <option value="paypal">
-                        {isFr ? 'PayPal (international)' : 'PayPal (international)'}
-                        {` — $${camp.price_amount_usd}`}
-                      </option>
-                    )}
+                       <option value="stripe">
+                      {isFr ? 'Carte bancaire (Stripe)' : 'Card (Stripe)'}
+                      {camp.price_amount_usd ? ` — $${camp.price_amount_usd}` : ''}
+                    </option>
                   </select>
                 </div>
               )}

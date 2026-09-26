@@ -5,10 +5,11 @@ import Modal from '@/components/admin/Modal';
 import {
   sendCampPaymentLink,
   sendCampPayPalLink,
+  sendCampStripeLink,
   getCampPriceById
 } from '../../actions';
 
-type Method = 'fedapay' | 'paypal';
+type Method = 'fedapay' | 'paypal' | 'stripe';
 
 export default function CampPaymentModal({
   registration,
@@ -25,7 +26,11 @@ export default function CampPaymentModal({
     !!registration.success_email_sent_at;
 
   const [method, setMethod] = useState<Method>(
-    registration.payment_method === 'paypal' ? 'paypal' : 'fedapay'
+    registration.payment_method === 'paypal'
+      ? 'paypal'
+      : registration.payment_method === 'stripe'
+        ? 'stripe'
+        : 'fedapay'
   );
   const [amount, setAmount] = useState<string>(
     registration.payment_amount ? String(registration.payment_amount) : ''
@@ -43,10 +48,11 @@ export default function CampPaymentModal({
     (registration.payment_status === 'pending' ||
       registration.payment_status === 'failed');
 
-  // Auto-switch devise
+  // Auto-switch devise selon méthode
   useEffect(() => {
     if (method === 'paypal' && currency === 'XOF') setCurrency('USD');
     else if (method === 'fedapay' && currency !== 'XOF') setCurrency('XOF');
+    // Stripe accepte XOF, USD, EUR → pas de switch
   }, [method]); // eslint-disable-line
 
   // Auto-charger le prix depuis le camp
@@ -61,6 +67,7 @@ export default function CampPaymentModal({
         if (cancelled || amount) return;
         if (method === 'paypal' && usd) setAmount(String(usd));
         else if (method === 'fedapay' && xof) setAmount(String(xof));
+        else if (method === 'stripe' && xof) setAmount(String(xof));
       })
       .catch((err) => console.warn('[CampPaymentModal] price lookup:', err))
       .finally(() => { if (!cancelled) setLoadingPrice(false); });
@@ -83,9 +90,12 @@ export default function CampPaymentModal({
     setResult(null);
 
     try {
-      const res = method === 'paypal'
-        ? await sendCampPayPalLink(registration.id, num, currency)
-        : await sendCampPaymentLink(registration.id, num, currency);
+      const res =
+        method === 'paypal'
+          ? await sendCampPayPalLink(registration.id, num, currency)
+          : method === 'stripe'
+            ? await sendCampStripeLink(registration.id, num, currency)
+            : await sendCampPaymentLink(registration.id, num, currency);
 
       if (res.error) {
         setResult({ ok: false, error: res.error });
@@ -110,7 +120,7 @@ export default function CampPaymentModal({
             {isResend ? 'Nouveau lien envoyé !' : 'Lien envoyé !'}
           </h2>
           <p className="mt-2 text-sm text-resa-text/60">
-            Email {method === 'paypal' ? 'PayPal' : 'FedaPay'} envoyé au parent.
+            Email {method === 'paypal' ? 'PayPal' : method === 'stripe' ? 'Stripe' : 'FedaPay'} envoyé au parent.
           </p>
         </div>
       </Modal>
@@ -171,7 +181,7 @@ export default function CampPaymentModal({
               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
                 Méthode *
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setMethod('fedapay')}
@@ -182,7 +192,7 @@ export default function CampPaymentModal({
                   }`}
                 >
                   <div className="text-[13px] font-bold text-resa-navy">📱 FedaPay</div>
-                  <div className="mt-0.5 text-[10px] text-resa-text/55">Mobile Money · FCFA</div>
+                  <div className="mt-0.5 text-[10px] text-resa-text/55">Mobile Money</div>
                 </button>
                 <button
                   type="button"
@@ -194,7 +204,19 @@ export default function CampPaymentModal({
                   }`}
                 >
                   <div className="text-[13px] font-bold text-resa-navy">💳 PayPal</div>
-                  <div className="mt-0.5 text-[10px] text-resa-text/55">International · USD</div>
+                  <div className="mt-0.5 text-[10px] text-resa-text/55">Intl. · USD</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMethod('stripe')}
+                  className={`rounded-lg border-2 px-3 py-2.5 text-left transition ${
+                    method === 'stripe'
+                      ? 'border-resa-red bg-resa-red/5'
+                      : 'border-black/10 bg-white hover:border-resa-navy/30'
+                  }`}
+                >
+                  <div className="text-[13px] font-bold text-resa-navy">💳 Stripe</div>
+                  <div className="mt-0.5 text-[10px] text-resa-text/55">Carte bancaire</div>
                 </button>
               </div>
             </div>
@@ -223,13 +245,26 @@ export default function CampPaymentModal({
                 >
                   {method === 'fedapay' ? (
                     <option value="XOF">FCFA</option>
+                  ) : method === 'paypal' ? (
+                    <>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                    </>
                   ) : (
                     <>
+                      <option value="XOF">FCFA</option>
                       <option value="USD">USD</option>
                       <option value="EUR">EUR</option>
                     </>
                   )}
                 </select>
+              </div>
+              <div className="mt-1.5 text-[10px] text-resa-text/40">
+                {method === 'paypal'
+                  ? 'PayPal accepte USD et EUR uniquement.'
+                  : method === 'stripe'
+                    ? 'Stripe accepte XOF, USD, EUR. XOF converti en USD.'
+                    : 'FedaPay accepte uniquement les FCFA (XOF).'}
               </div>
             </div>
           )}
