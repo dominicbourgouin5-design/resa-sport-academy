@@ -78,7 +78,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
     };
   }, [userId]);
 
-  // ─── Ferme au changement de page (mobile) ───
+  // ─── Ferme au changement de taille vers desktop ───
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 640) setOpen(false);
@@ -144,9 +144,9 @@ export default function NotificationsBell({ userId }: { userId: string }) {
         <div
           className={cn(
             // Base commune
-            'z-50 overflow-hidden border-black/5 bg-white shadow-2xl',
+            'z-50 flex flex-col overflow-hidden border-black/5 bg-white shadow-2xl',
             // Mobile : plein écran
-            'fixed inset-x-0 top-0 flex h-[100dvh] flex-col border-0 sm:hidden',
+            'fixed inset-x-0 top-0 h-[100dvh] border-0',
             // Desktop : dropdown classique
             'sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:h-auto sm:max-h-[600px] sm:w-96 sm:rounded-xl sm:border'
           )}
@@ -171,7 +171,6 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                   Tout lu
                 </button>
               )}
-              {/* Bouton fermer — uniquement mobile */}
               <button
                 onClick={() => setOpen(false)}
                 className="grid h-8 w-8 place-items-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white sm:hidden"
@@ -222,7 +221,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                           <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-resa-red" />
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="text-[13px] font-semibold leading-tight text-resa-navy sm:text-[13px]">
+                          <div className="text-[13px] font-semibold leading-tight text-resa-navy">
                             {n.title}
                           </div>
                           {n.body && (
@@ -247,7 +246,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
             )}
           </div>
 
-          {/* Footer — Voir tout */}
+          {/* Footer */}
           {items.length > 0 && (
             <div className="shrink-0 border-t border-black/5 bg-white px-4 py-3 text-center sm:py-2">
               <Link
