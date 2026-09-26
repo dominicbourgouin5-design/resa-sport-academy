@@ -25,9 +25,11 @@ export async function createStripeSession(params: {
     : params.amount;
 
   const session = await stripe.checkout.sessions.create({
-    // ⚠️ payment_method_types retiré : Managed Payments Stripe gère les méthodes
     customer_email: params.customerEmail,
     client_reference_id: params.requestId,
+    // ⚠️ Désactive Managed Payments : indispensable pour les événements/formations en présentiel
+    // Permet d'éviter l'obligation d'un tax_code digital
+    managed_payments: { enabled: false } as any,
     metadata: {
       requestId: params.requestId,
       requestType: params.requestType,
