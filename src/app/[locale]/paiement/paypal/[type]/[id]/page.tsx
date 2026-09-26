@@ -28,7 +28,7 @@ export default async function PayPalReturnPage({
   let amountLabel: string | null = null;
 
   // ═══════════════════════════════════════════════════════════
-  // 1) CAS ANNULATION EXPLICITE
+  // 1) CAS ANNULATION EXPLICITE (clic « Annuler » sur PayPal)
   // ═══════════════════════════════════════════════════════════
   if (cancelled === '1') {
     status = 'failed';
@@ -70,6 +70,7 @@ export default async function PayPalReturnPage({
       reference = result.captureId ?? null;
 
       if (result.status === 'COMPLETED') {
+        // ─── SUCCÈS RÉEL ───
         if (type === 'camp') {
           const { data: reg } = await supabase
             .from('camp_registrations')
@@ -92,10 +93,8 @@ export default async function PayPalReturnPage({
             } else if (!reg.success_email_sent_at) {
               await sendCampSuccessEmails(id);
             }
-            console.log('[PayPal Return] Camp déjà payé — double paiement ignoré');
           }
           itemTitle = (reg?.camp as any)?.title_fr ?? 'Camp RESA';
-          // ✅ MODIF : on affiche le montant/la devise réellement payés
           amountLabel = reg?.payment_amount
             ? `${Number(reg.payment_amount).toLocaleString('fr-FR')} ${reg.payment_currency ?? 'XOF'}`
             : null;
@@ -121,7 +120,6 @@ export default async function PayPalReturnPage({
             } else if (!req.success_email_sent_at) {
               await sendTrainingSuccessEmail(id);
             }
-            console.log('[PayPal Return] Training déjà payé — double paiement ignoré');
           }
           itemTitle = req?.program_title ?? 'Training RESA';
           amountLabel = req?.payment_amount
@@ -130,11 +128,49 @@ export default async function PayPalReturnPage({
         }
         status = 'paid';
       } else {
-        status = 'failed';
+        // Statut non-COMPLETED → traité comme échec
+        throw new Error(`PayPal capture non complétée : ${result.status}`);
       }
     } catch (err: any) {
-      console.error('[PayPal Return] Capture error:', err);
+      // ═══════════════════════════════════════════════════════════
+      // ✅ ÉCHEC DE CAPTURE (ex: INSTRUMENT_DECLINED / 422)
+      // Aucun webhook PayPal n'arrivera → c'est ICI qu'on persiste
+      // ═══════════════════════════════════════════════════════════
+      console.error('[PayPal Return] ❌ Échec de capture:', err);
+
       status = 'failed';
+
+      if (type === 'camp') {
+        const { data: reg } = await supabase
+          .from('camp_registrations')
+          .select('id, payment_status, camp:camps(title_fr)')
+          .eq('id', id)
+          .single();
+
+        if (reg && reg.payment_status !== 'paid' && reg.payment_status !== 'failed') {
+          await supabase
+            .from('camp_registrations')
+            .update({ payment_status: 'failed' })
+            .eq('id', id);
+          await sendCampFailureEmails(id, 'declined');
+        }
+        itemTitle = (reg?.camp as any)?.title_fr ?? 'Camp RESA';
+      } else {
+        const { data: req } = await supabase
+          .from('training_requests')
+          .select('id, payment_status, program_title')
+          .eq('id', id)
+          .single();
+
+        if (req && req.payment_status !== 'paid' && req.payment_status !== 'failed') {
+          await supabase
+            .from('training_requests')
+            .update({ payment_status: 'failed' })
+            .eq('id', id);
+          await sendTrainingPaymentFailedEmail(id, 'declined');
+        }
+        itemTitle = req?.program_title ?? 'Training RESA';
+      }
     }
   } else {
     notFound();
