@@ -24,16 +24,26 @@ export async function createStripeSession(params: {
     ? Math.max(1, Math.round((params.amount / 600) * 100) / 100)
     : params.amount;
 
+  // ✅ Metadata à propager sur TOUS les objets Stripe
+  // (session, payment_intent, charge) pour que les webhooks
+  // `charge.failed` et `payment_intent.payment_failed` puissent
+  // identifier la demande (training/camp) concernée.
+  const sharedMetadata = {
+    requestId: params.requestId,
+    requestType: params.requestType,
+    clientName: params.customerName
+  };
+
   const session = await stripe.checkout.sessions.create({
     customer_email: params.customerEmail,
     client_reference_id: params.requestId,
     // ⚠️ Désactive Managed Payments : indispensable pour les événements/formations en présentiel
     // Permet d'éviter l'obligation d'un tax_code digital
     managed_payments: { enabled: false } as any,
-    metadata: {
-      requestId: params.requestId,
-      requestType: params.requestType,
-      clientName: params.customerName
+    metadata: sharedMetadata,
+    // ✅ AJOUT : propage les metadata au PaymentIntent + au Charge
+    payment_intent_data: {
+      metadata: sharedMetadata
     },
     line_items: [
       {
