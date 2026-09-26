@@ -74,8 +74,7 @@ export default function CampRegistrationsTable({
             {registrations.map((r) => {
               const isPaid =
                 r.payment_status === 'paid' ||
-                !!r.paid_at ||
-                !!r.success_email_sent_at;
+                !!r.paid_at;
 
               const showPaymentButton = !isPaid && r.status !== 'cancelled';
               const isResend =

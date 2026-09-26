@@ -21,6 +21,7 @@ const COUNTRIES = [
 type InitialValues = Record<string, string> | null;
 type PaymentMode = 'later' | 'online';
 type OnlineMethod = 'fedapay' | 'paypal' | 'stripe';
+
 export default function CampRegistrationForm({
   camp,
   initialValues = null,
@@ -37,12 +38,25 @@ export default function CampRegistrationForm({
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
+  const hasPrice = !!camp.price_amount;
+  const hasUsdPrice = !!camp.price_amount_usd;
+  const hasAnyOnlineOption = hasPrice || hasUsdPrice;
+
   const [paymentMode, setPaymentMode] = useState<PaymentMode>(
     initialValues?.payment_mode === 'online' ? 'online' : 'later'
   );
-  const [onlineMethod, setOnlineMethod] = useState<OnlineMethod>(
-    initialValues?.online_method === 'paypal' ? 'paypal' : 'fedapay'
-  );
+
+  // ✅ Devise par défaut intelligente :
+  // - Si XOF existe → FedaPay
+  // - Sinon si USD → PayPal (Stripe en secours)
+  const [onlineMethod, setOnlineMethod] = useState<OnlineMethod>(() => {
+    if (initialValues?.online_method === 'paypal') return 'paypal';
+    if (initialValues?.online_method === 'stripe') return 'stripe';
+    if (initialValues?.online_method === 'fedapay') return 'fedapay';
+    if (hasPrice) return 'fedapay';
+    if (hasUsdPrice) return 'paypal';
+    return 'fedapay';
+  });
 
   const [form, setForm] = useState({
     parent_name: initialValues?.parent_name ?? '',
@@ -58,10 +72,6 @@ export default function CampRegistrationForm({
   const update = (k: string, v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const hasPrice = !!camp.price_amount;
-  const hasUsdPrice = !!camp.price_amount_usd;
-  const hasAnyOnlineOption = hasPrice || hasUsdPrice;
-
   const canGoStep2 =
     form.parent_name.trim() !== '' &&
     form.parent_email.trim() !== '' &&
@@ -73,7 +83,7 @@ export default function CampRegistrationForm({
     setStatus('loading');
     setError(null);
 
-    const finalMethod: 'later' | 'fedapay' | 'paypal'|'stripe' =
+    const finalMethod: 'later' | 'fedapay' | 'paypal' | 'stripe' =
       paymentMode === 'later' ? 'later' : onlineMethod;
 
     try {
@@ -221,7 +231,7 @@ export default function CampRegistrationForm({
                 </button>
               </div>
 
-              {/* Sélecteur FedaPay / PayPal */}
+              {/* Sélecteur FedaPay / PayPal / Stripe */}
               {paymentMode === 'online' && (
                 <div className="mt-3">
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/55">
@@ -238,9 +248,21 @@ export default function CampRegistrationForm({
                         {camp.price_fr ? ` — ${camp.price_fr}` : ''}
                       </option>
                     )}
-                       <option value="stripe">
+                    {/* ✅ AJOUT : PayPal (USD uniquement) */}
+                    {hasUsdPrice && (
+                      <option value="paypal">
+                        {isFr ? 'PayPal' : 'PayPal'}
+                        {` — $${camp.price_amount_usd}`}
+                      </option>
+                    )}
+                    {/* ✅ Stripe : USD si dispo, sinon XOF (converti en USD côté serveur) */}
+                    <option value="stripe">
                       {isFr ? 'Carte bancaire (Stripe)' : 'Card (Stripe)'}
-                      {camp.price_amount_usd ? ` — $${camp.price_amount_usd}` : ''}
+                      {hasUsdPrice
+                        ? ` — $${camp.price_amount_usd}`
+                        : camp.price_fr
+                          ? ` — ${camp.price_fr}`
+                          : ''}
                     </option>
                   </select>
                 </div>

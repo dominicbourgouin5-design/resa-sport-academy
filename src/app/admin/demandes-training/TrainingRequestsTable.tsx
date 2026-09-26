@@ -91,11 +91,7 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
 
                   <td className="hidden px-5 py-3 text-center lg:table-cell">
                     <PaymentBadge
-                      status={
-                        r.paid_at || r.success_email_sent_at
-                          ? 'paid'
-                          : r.payment_status
-                      }
+                      status={r.payment_status}
                       amount={r.payment_amount}
                       currency={r.payment_currency}
                     />
