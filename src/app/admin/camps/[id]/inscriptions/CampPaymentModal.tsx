@@ -130,7 +130,7 @@ export default function CampPaymentModal({
   return (
     <Modal open onClose={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md anim-fade-in" onClick={onClose} aria-hidden="true" />
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] anim-fade-up">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] anim-fade-up">
         <div className="h-1 bg-linear-to-r from-resa-red via-resa-royal to-resa-red" />
 
         <div className="flex items-center justify-between border-b border-black/5 px-6 py-4">
@@ -286,7 +286,7 @@ export default function CampPaymentModal({
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-black/5 bg-resa-gray/40 px-6 py-4">
+        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-black/5 bg-resa-gray/40 px-6 py-4">
           <button
             onClick={onClose}
             disabled={sending}
