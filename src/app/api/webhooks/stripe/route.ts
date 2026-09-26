@@ -174,7 +174,83 @@ export async function POST(req: NextRequest) {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 3) CHECKOUT SESSION EXPIRED → Échec (annulé)
+    // 2bis) CHARGE FAILED → Échec (carte refusée)
+    // ✅ MODIF : on récupère le PaymentIntent pour retrouver
+    // les metadata (le Charge n'a souvent pas les metadata)
+    // ═══════════════════════════════════════════════════════════
+    if (event.type === 'charge.failed') {
+      const charge = event.data.object as Stripe.Charge;
+
+      let requestId = charge.metadata?.requestId;
+      let requestType = charge.metadata?.requestType;
+
+      // Fallback : récupérer via le PaymentIntent
+      if ((!requestId || !requestType) && charge.payment_intent) {
+        try {
+          const piId = typeof charge.payment_intent === 'string'
+            ? charge.payment_intent
+            : charge.payment_intent.id;
+          const pi = await stripe.paymentIntents.retrieve(piId);
+          requestId = requestId || pi.metadata?.requestId;
+          requestType = requestType || pi.metadata?.requestType;
+          console.log('[Stripe Webhook] charge.failed — PI metadata:', {
+            requestId: pi.metadata?.requestId,
+            requestType: pi.metadata?.requestType
+          });
+        } catch (e: any) {
+          console.error('[Stripe Webhook] charge.failed — PI retrieve error:', e.message);
+        }
+      }
+
+      if (!requestId || !requestType) {
+        console.warn('[Stripe Webhook] charge.failed — no_metadata', {
+          charge_id: charge.id,
+          payment_intent: charge.payment_intent
+        });
+        return NextResponse.json({ ok: true, ignored: 'no_metadata' });
+      }
+
+      if (requestType === 'training') {
+        const { data: req } = await supabase
+          .from('training_requests')
+          .select('id, payment_status')
+          .eq('id', requestId)
+          .maybeSingle();
+
+        if (req && req.payment_status !== 'paid' && req.payment_status !== 'failed') {
+          await supabase
+            .from('training_requests')
+            .update({ payment_status: 'failed' })
+            .eq('id', requestId);
+
+          await sendTrainingPaymentFailedEmail(requestId, 'declined');
+          revalidatePath('/admin/demandes-training');
+        }
+      }
+
+      if (requestType === 'camp') {
+        const { data: reg } = await supabase
+          .from('camp_registrations')
+          .select('id, payment_status')
+          .eq('id', requestId)
+          .maybeSingle();
+
+        if (reg && reg.payment_status !== 'paid' && reg.payment_status !== 'failed') {
+          await supabase
+            .from('camp_registrations')
+            .update({ payment_status: 'failed' })
+            .eq('id', requestId);
+
+          await sendCampFailureEmails(requestId, 'declined');
+          revalidatePath('/admin/camps');
+        }
+      }
+
+      return NextResponse.json({ ok: true, action: 'charge_failed' });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 3) CHECKOUT SESSION EXPIRED → Échec (session timeout)
     // ═══════════════════════════════════════════════════════════
     if (event.type === 'checkout.session.expired') {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -231,7 +307,6 @@ export async function POST(req: NextRequest) {
       const charge = event.data.object as Stripe.Charge;
       const paymentIntentId = charge.payment_intent as string;
 
-      // Recherche par payment_reference dans les deux tables
       const [trainRes, campRes] = await Promise.all([
         supabase
           .from('training_requests')
