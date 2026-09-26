@@ -5,6 +5,7 @@ import { deleteCampRegistration } from '../../actions';
 import ConfirmModal from '@/components/admin/ConfirmModal';
 import CampRegistrationsWizard from './CampRegistrationsWizard';
 import CampPaymentModal from './CampPaymentModal';
+import MarkPaidModal from '@/components/admin/MarkPaidModal';
 
 const STATUS_LABEL: Record<string, string> = {
   new: 'Nouveau',
@@ -46,6 +47,7 @@ export default function CampRegistrationsTable({
   const [toDelete, setToDelete] = useState<any | null>(null);
   const [openRegistration, setOpenRegistration] = useState<any | null>(null);
   const [paymentRegistration, setPaymentRegistration] = useState<any | null>(null);
+  const [markPaidRegistration, setMarkPaidRegistration] = useState<any | null>(null);
 
   if (registrations.length === 0) {
     return (
@@ -77,6 +79,7 @@ export default function CampRegistrationsTable({
                 !!r.paid_at;
 
               const showPaymentButton = !isPaid && r.status !== 'cancelled';
+              const showMarkPaidButton = !isPaid;
               const isResend =
                 r.payment_status === 'pending' || r.payment_status === 'failed';
 
@@ -127,7 +130,7 @@ export default function CampRegistrationsTable({
                   </td>
 
                   <td className="px-5 py-3">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
                       {showPaymentButton && (
                         <button
                           onClick={() => setPaymentRegistration(r)}
@@ -136,12 +139,44 @@ export default function CampRegistrationsTable({
                           {isResend ? '🔄 Relancer' : '💳 Paiement'}
                         </button>
                       )}
+
+                      {showMarkPaidButton && (
+                        <button
+                          onClick={() => setMarkPaidRegistration(r)}
+                          className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100"
+                          title="Marquer comme payé (paiement manuel / hors ligne)"
+                        >
+                          💰 Payé
+                        </button>
+                      )}
+
+                      {/* Reçu PDF : toujours visible, grisé si non payé */}
+                      {isPaid ? (
+                        <a
+                          href={`/api/admin/receipt/camp/${r.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700 transition hover:border-blue-400 hover:bg-blue-100"
+                          title="Voir le reçu PDF"
+                        >
+                          📄 Reçu
+                        </a>
+                      ) : (
+                        <span
+                          className="rounded-lg border border-black/5 bg-resa-gray/60 px-2.5 py-1 text-[11px] font-bold text-resa-text/30 cursor-not-allowed"
+                          title="Disponible uniquement quand l'inscription est payée"
+                        >
+                          📄 Reçu
+                        </span>
+                      )}
+
                       <button
                         onClick={() => setOpenRegistration(r)}
                         className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-resa-navy transition hover:bg-resa-gray"
                       >
                         Traiter
                       </button>
+
                       <button
                         onClick={() => setToDelete(r)}
                         className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-red-600 transition hover:border-red-200 hover:bg-red-50"
@@ -169,6 +204,22 @@ export default function CampRegistrationsTable({
           registration={paymentRegistration}
           camp={camp}
           onClose={() => setPaymentRegistration(null)}
+        />
+      )}
+
+      {markPaidRegistration && (
+        <MarkPaidModal
+          type="camp"
+          id={markPaidRegistration.id}
+          parentName={markPaidRegistration.parent_name}
+          playerName={markPaidRegistration.player_name}
+          defaultAmount={markPaidRegistration.payment_amount}
+          defaultCurrency={markPaidRegistration.payment_currency}
+          onClose={() => setMarkPaidRegistration(null)}
+          onSuccess={() => {
+            // Le parent page utilise Server Component → rechargement suffit
+            window.location.reload();
+          }}
         />
       )}
 

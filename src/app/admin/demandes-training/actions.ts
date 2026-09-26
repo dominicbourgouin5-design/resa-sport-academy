@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendTrainingPayPalLinkEmail, sendTrainingPaymentLinkEmail } from '@/lib/training-emails';
+import { sendTrainingSuccessEmail } from '@/lib/training-emails';
 import { getCurrentProfile } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
 import {
@@ -402,6 +403,63 @@ export async function sendTrainingStripeLink(
     return { ok: true };
   } catch (err: any) {
     console.error('[Training Stripe Link] Error:', err);
+    return { error: err.message ?? 'Erreur inconnue' };
+  }
+}
+
+
+
+// ═══════════════════════════════════════════════════════════
+// Marquer manuellement un training comme payé (hors ligne)
+// + envoie automatiquement email succès + PDF reçu
+// ═══════════════════════════════════════════════════════════
+export async function markTrainingRequestPaid(
+  requestId: string,
+  amount: number,
+  currency: string,
+  method: string
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    await requireRole(['admin', 'league_manager']);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { error: 'Montant invalide.' };
+    }
+
+    const supabase = createAdminClient();
+
+    const { data: req } = await supabase
+      .from('training_requests')
+      .select('id, payment_status, paid_at, parent_name, program_title')
+      .eq('id', requestId)
+      .single();
+
+    if (!req) return { error: 'Demande introuvable.' };
+    if (req.payment_status === 'paid' || req.paid_at) {
+      return { error: 'Cette demande est déjà marquée comme payée.' };
+    }
+
+    await supabase
+      .from('training_requests')
+      .update({
+        payment_status: 'paid',
+        payment_method: method,
+        payment_amount: amount,
+        payment_currency: currency,
+        paid_at: new Date().toISOString(),
+        // Reset pour forcer l'envoi de l'email succès + PDF
+        success_email_sent_at: null,
+        failure_email_sent_at: null
+      })
+      .eq('id', requestId);
+
+    // Envoi email succès + PDF (idempotent via success_email_sent_at)
+    await sendTrainingSuccessEmail(requestId);
+
+    revalidatePath('/admin/demandes-training');
+    return { ok: true };
+  } catch (err: any) {
+    console.error('[Mark Training Paid] Error:', err);
     return { error: err.message ?? 'Erreur inconnue' };
   }
 }

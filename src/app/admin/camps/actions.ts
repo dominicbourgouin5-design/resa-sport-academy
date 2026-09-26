@@ -459,3 +459,62 @@ export async function sendCampStripeLink(
     return { error: err.message ?? 'Erreur inconnue' };
   }
 }
+
+
+
+
+// ═══════════════════════════════════════════════════════════
+// Marquer manuellement une inscription camp comme payée (hors ligne)
+// + envoie automatiquement email succès + PDF reçu
+// ═══════════════════════════════════════════════════════════
+export async function markCampRegistrationPaid(
+  registrationId: string,
+  amount: number,
+  currency: string,
+  method: string
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    await requireRole(['admin', 'league_manager']);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { error: 'Montant invalide.' };
+    }
+
+    const supabase = createAdminClient();
+
+    const { data: reg } = await supabase
+      .from('camp_registrations')
+      .select('id, payment_status, paid_at, parent_name, player_name')
+      .eq('id', registrationId)
+      .single();
+
+    if (!reg) return { error: 'Inscription introuvable.' };
+    if (reg.payment_status === 'paid' || reg.paid_at) {
+      return { error: 'Cette inscription est déjà marquée comme payée.' };
+    }
+
+    await supabase
+      .from('camp_registrations')
+      .update({
+        payment_status: 'paid',
+        payment_method: method,
+        payment_amount: amount,
+        payment_currency: currency,
+        paid_at: new Date().toISOString(),
+        // Reset pour forcer l'envoi de l'email succès + PDF
+        success_email_sent_at: null,
+        failure_email_sent_at: null
+      })
+      .eq('id', registrationId);
+
+    // Envoi email succès + PDF (idempotent)
+    const { sendCampSuccessEmails } = await import('@/lib/camp-emails');
+    await sendCampSuccessEmails(registrationId);
+
+    revalidatePath('/admin/camps');
+    return { ok: true };
+  } catch (err: any) {
+    console.error('[Mark Camp Paid] Error:', err);
+    return { error: err.message ?? 'Erreur inconnue' };
+  }
+}

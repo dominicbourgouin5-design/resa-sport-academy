@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import RequestWizard from './RequestWizard';
 import TrainingPaymentModal from '@/components/admin/TrainingPaymentModal';
+import MarkPaidModal from '@/components/admin/MarkPaidModal';
 import { deleteTrainingRequest } from '@/app/admin/demandes-training/actions';
 
 export default function TrainingRequestsTable({ requests }: { requests: any[] }) {
   const [openRequest, setOpenRequest] = useState<any | null>(null);
   const [paymentRequest, setPaymentRequest] = useState<any | null>(null);
+  const [markPaidRequest, setMarkPaidRequest] = useState<any | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -18,7 +20,10 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
     if (paymentRequest && !requests.find((r) => r.id === paymentRequest.id)) {
       setPaymentRequest(null);
     }
-  }, [requests, openRequest, paymentRequest]);
+    if (markPaidRequest && !requests.find((r) => r.id === markPaidRequest.id)) {
+      setMarkPaidRequest(null);
+    }
+  }, [requests, openRequest, paymentRequest, markPaidRequest]);
 
   if (requests.length === 0) {
     return (
@@ -44,11 +49,15 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
           </thead>
           <tbody className="divide-y divide-black/5">
             {requests.map((r) => {
+              const isPaid =
+                r.payment_status === 'paid' ||
+                !!r.paid_at;
+
               const showPaymentButton =
-                r.status === 'booked' &&
-                r.payment_status !== 'paid' &&
-                !r.paid_at &&
-                !r.success_email_sent_at;
+                !isPaid &&
+                r.status === 'booked';
+
+              const showMarkPaidButton = !isPaid;
 
               const isResend =
                 r.payment_status === 'pending' || r.payment_status === 'failed';
@@ -106,7 +115,7 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
                   </td>
 
                   <td className="px-5 py-3">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
                       {showPaymentButton && (
                         <button
                           onClick={() => setPaymentRequest(r)}
@@ -115,12 +124,44 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
                           {isResend ? '🔄 Relancer' : '💳 Paiement'}
                         </button>
                       )}
+
+                      {showMarkPaidButton && (
+                        <button
+                          onClick={() => setMarkPaidRequest(r)}
+                          className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100"
+                          title="Marquer comme payé (paiement manuel / hors ligne)"
+                        >
+                          💰 Payé
+                        </button>
+                      )}
+
+                      {/* Reçu PDF : toujours visible, grisé si non payé */}
+                      {isPaid ? (
+                        <a
+                          href={`/api/admin/receipt/training/${r.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700 transition hover:border-blue-400 hover:bg-blue-100"
+                          title="Voir le reçu PDF"
+                        >
+                          📄 Reçu
+                        </a>
+                      ) : (
+                        <span
+                          className="rounded-lg border border-black/5 bg-resa-gray/60 px-2.5 py-1 text-[11px] font-bold text-resa-text/30 cursor-not-allowed"
+                          title="Disponible uniquement quand la demande est payée"
+                        >
+                          📄 Reçu
+                        </span>
+                      )}
+
                       <button
                         onClick={() => setOpenRequest(r)}
                         className="rounded-lg border border-black/5 bg-white px-2.5 py-1 text-[11px] font-bold text-resa-navy transition hover:border-resa-navy/20 hover:bg-resa-gray"
                       >
                         Traiter
                       </button>
+
                       <DeleteButton id={r.id} name={r.parent_name} />
                     </div>
                   </td>
@@ -146,6 +187,21 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
           request={paymentRequest}
           onClose={() => {
             setPaymentRequest(null);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {markPaidRequest && (
+        <MarkPaidModal
+          type="training"
+          id={markPaidRequest.id}
+          parentName={markPaidRequest.parent_name}
+          playerName={markPaidRequest.player_name}
+          defaultAmount={markPaidRequest.payment_amount}
+          defaultCurrency={markPaidRequest.payment_currency}
+          onClose={() => setMarkPaidRequest(null)}
+          onSuccess={() => {
             router.refresh();
           }}
         />
@@ -183,6 +239,10 @@ function PaymentBadge({
     failed: {
       label: '🔴 Échoué',
       cls: 'bg-red-50 text-red-700 border-red-200'
+    },
+    refunded: {
+      label: '🔵 Remboursé',
+      cls: 'bg-blue-50 text-blue-700 border-blue-200'
     }
   };
 
