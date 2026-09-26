@@ -49,7 +49,8 @@ export default async function StripeReturnPage({
               .eq('id', requestId);
             await sendTrainingPaymentFailedEmail(requestId, 'canceled');
           }
-          redirect(`/${lang}/paiement/training/${requestId}?status=declined`);
+          // ✅ status=canceled → écran « Paiement annulé »
+          redirect(`/${lang}/paiement/training/${requestId}?status=canceled`);
         }
 
         if (requestType === 'camp') {
@@ -66,7 +67,8 @@ export default async function StripeReturnPage({
               .eq('id', requestId);
             await sendCampFailureEmails(requestId, 'canceled');
           }
-          redirect(`/${lang}/paiement/camp/${requestId}?status=declined`);
+          // ✅ status=canceled → écran « Paiement annulé »
+          redirect(`/${lang}/paiement/camp/${requestId}?status=canceled`);
         }
       }
     } catch (err: any) {
@@ -86,16 +88,14 @@ export default async function StripeReturnPage({
   const supabase = createAdminClient();
 
   try {
-    // 1. Récupère la session Stripe
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
     const requestId = session.metadata?.requestId || session.client_reference_id;
-    const requestType = session.metadata?.requestType; // 'camp' | 'training'
+    const requestType = session.metadata?.requestType;
 
     if (!requestId || !requestType) {
       redirectUrl = `/${lang}?status=declined`;
     } else if (session.payment_status === 'paid') {
-      // ═══ Cas paiement réussi ═══
       const reference = (session.payment_intent as string) || session.id;
 
       if (requestType === 'training') {
@@ -144,7 +144,6 @@ export default async function StripeReturnPage({
         redirectUrl = `/${lang}/paiement/camp/${requestId}?status=approved&id=${session.id}`;
       }
     } else {
-      // ═══ Paiement non abouti ═══
       if (requestType === 'training') {
         await sendTrainingPaymentFailedEmail(requestId, 'declined');
         redirectUrl = `/${lang}/paiement/training/${requestId}?status=declined`;
