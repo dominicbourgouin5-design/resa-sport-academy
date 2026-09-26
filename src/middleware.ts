@@ -5,46 +5,40 @@ import { routing } from './i18n/routing';
 
 const intlMiddleware = createMiddleware(routing);
 
-// ─── Basic Auth (protection preview) ───
-const PREVIEW_USER = process.env.PREVIEW_USER ?? 'resa';
-const PREVIEW_PASS = process.env.PREVIEW_PASS ?? 'resa-preview-2026';
+// ─── Cookie d'auth preview ───
+const PREVIEW_COOKIE = 'resa_preview_auth';
+const PREVIEW_TOKEN = process.env.PREVIEW_TOKEN ?? 'resa-preview-token-2026';
 
-function hasValidBasicAuth(req: NextRequest): boolean {
-  const header = req.headers.get('authorization');
-  if (!header?.startsWith('Basic ')) return false;
+// Routes toujours accessibles (même non authentifié preview)
+const PUBLIC_PATHS = [
+  '/preview',
+  '/api/preview-auth',
+  '/api/webhooks',   // FedaPay + PayPal
+];
 
-  try {
-    const decoded = atob(header.slice(6));
-    const idx = decoded.indexOf(':');
-    if (idx < 0) return false;
-    const user = decoded.slice(0, idx);
-    const pass = decoded.slice(idx + 1);
-    return user === PREVIEW_USER && pass === PREVIEW_PASS;
-  } catch {
-    return false;
-  }
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 }
 
 export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ─── 0) Blocage global de la preview ───
-  if (!hasValidBasicAuth(req)) {
-    return new NextResponse(
-      'Accès restreint — Environnement de prévisualisation privé.\n\n' +
-      'Ce site est actuellement en pause.\n' +
-      'Contact : contact@cataria-systems.com',
-      {
-        status: 401,
-        headers: {
-          'WWW-Authenticate': 'Basic realm="RESA Preview", charset="UTF-8"',
-          'Content-Type': 'text/plain; charset=utf-8',
-        },
-      }
-    );
+  // ─── 0) Autorise les routes publiques ───
+  if (isPublicPath(pathname)) {
+    return NextResponse.next();
   }
 
-  // ─── Zone admin : auth Supabase + pas d'i18n ───
+  // ─── 1) Vérifie le cookie d'auth preview ───
+  const cookie = req.cookies.get(PREVIEW_COOKIE)?.value;
+  const isAuthed = cookie === PREVIEW_TOKEN;
+
+  if (!isAuthed) {
+    const url = new URL('/preview', req.url);
+    if (pathname !== '/') url.searchParams.set('from', pathname);
+    return NextResponse.redirect(url);
+  }
+
+  // ─── 2) Zone admin : auth Supabase + pas d'i18n ───
   if (pathname.startsWith('/admin')) {
     if (pathname === '/admin/login') {
       return NextResponse.next();
@@ -83,7 +77,7 @@ export default async function middleware(req: NextRequest) {
     return response;
   }
 
-  // ─── Reste du site : i18n normal ───
+  // ─── 3) Reste du site : i18n normal ───
   return intlMiddleware(req);
 }
 
