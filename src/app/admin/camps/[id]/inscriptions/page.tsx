@@ -1,7 +1,11 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import CampRegistrationsTable from './CampRegistrationsTable';
+import CampRegistrationsRealtime from '@/components/admin/CampRegistrationsRealtime';
 
 export default async function CampRegistrationsPage({
   params
@@ -29,6 +33,10 @@ export default async function CampRegistrationsPage({
 
   return (
     <div className="mx-auto max-w-6xl">
+
+      {/* ⚡ Auto-refresh temps réel */}
+      <CampRegistrationsRealtime campId={id} />
+
       <div className="mb-6 text-[11px] text-resa-text/50">
         <Link href="/admin/camps" className="hover:text-resa-red">
           Camps & Tryouts
