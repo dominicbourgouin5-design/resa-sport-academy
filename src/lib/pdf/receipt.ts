@@ -19,10 +19,11 @@ export type ReceiptData = {
   availability?: string;
 };
 
-// ⚠️ Nettoie les caractères hors WinAnsi (émojis, symboles non supportés)
-function cleanText(text?: string | null): string {
+// ⚠️ Nettoie les caractères hors WinAnsi et remplace l'espace insécable fin 0x202f par un espace standard
+export function cleanText(text?: string | null): string {
   if (!text) return '';
   return text
+    .replace(/[\u202F\u00A0\u2000-\u200B]/g, ' ') // 👈 Supprime 0x202f qui faisait crasher pdf-lib !
     .replace(/[✓✔]/g, '')
     .replace(/⚽/g, '')
     .replace(/[^\x20-\x7E\xA0-\xFF\u2018\u2019\u201C\u201D\u2013\u2014\u2026\u20AC\u0152\u0153]/g, '')
@@ -97,9 +98,10 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     size: 9, font: helvObl, color: GRAY_TEXT
   });
 
-  const dateStr = new Date(data.date).toLocaleDateString('fr-FR', {
+  const rawDate = new Date(data.date).toLocaleDateString('fr-FR', {
     day: '2-digit', month: 'long', year: 'numeric'
   });
+  const dateStr = cleanText(rawDate);
   const refLabel = `N° ${cleanText(data.reference)}`;
   const refWidth = helvBold.widthOfTextAtSize(refLabel, 9);
   const dateWidth = helv.widthOfTextAtSize(dateStr, 9);
@@ -162,9 +164,9 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   if (data.type === 'camp') {
     if (data.campTitle) rows.push(['Événement', cleanText(data.campTitle)]);
     if (data.campDate) {
-      const d = new Date(data.campDate).toLocaleDateString('fr-FR', {
+      const d = cleanText(new Date(data.campDate).toLocaleDateString('fr-FR', {
         day: '2-digit', month: 'long', year: 'numeric'
-      });
+      }));
       rows.push(['Date', d]);
     }
     if (data.campLocation) rows.push(['Lieu', cleanText(data.campLocation)]);
@@ -185,15 +187,14 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     if (data.coach) rows.push(['Coach', cleanText(data.coach)]);
     if (data.availability) rows.push(['Disponibilités', cleanText(data.availability)]);
   }
-  rows.push(['Moyen de paiement', 'Mobile Money / Carte (FedaPay)']);
+  rows.push(['Moyen de paiement', 'Mobile Money / Carte']);
 
   const labelX = margin;
   const valueX = margin + 130;
-  const maxValueWidth = width - margin - valueX; // ~385 px disponible pour le texte
+  const maxValueWidth = width - margin - valueX;
 
   for (const [label, rawVal] of rows) {
     const value = cleanText(rawVal);
-    // Découpe multi-lignes si le texte est long
     const lines = wrapText(value, maxValueWidth, helvBold, 9.5);
 
     page.drawText(label, {
@@ -208,7 +209,6 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
       });
     }
 
-    // Descend selon le nombre de lignes générées
     y -= Math.max(lines.length * 13, 15) + 5;
   }
 
@@ -227,7 +227,9 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     size: 8, font: helvBold, color: EMERALD
   });
 
-  const amountStr = `${data.amount.toLocaleString('fr-FR')} ${cleanText(data.currency)}`;
+  // ⚠️ cleanText appliqué sur le toLocaleString pour supprimer l'espace insécable fin 0x202f
+  const formattedAmount = cleanText(data.amount.toLocaleString('fr-FR'));
+  const amountStr = `${formattedAmount} ${cleanText(data.currency)}`;
   page.drawText(amountStr, {
     x: margin + 16, y: y - 46,
     size: 22, font: helvBold, color: NAVY
@@ -251,7 +253,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     size: 8.5, font: helv, color: GRAY_TEXT
   });
 
-  // ─── Footer Navy en bas de page ───
+  // ─── Footer Navy ───
   page.drawRectangle({ x: 0, y: 0, width, height: 60, color: NAVY_DEEP });
   page.drawText("RESA SPORT ACADEMY - Abidjan, Côte d'Ivoire", {
     x: margin, y: 34,

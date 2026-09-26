@@ -1,35 +1,44 @@
 import { redirect } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
 import { stripe } from '@/lib/payments/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendTrainingSuccessEmail, sendTrainingPaymentFailedEmail } from '@/lib/training-emails';
 import { sendCampSuccessEmails, sendCampFailureEmails } from '@/lib/camp-emails';
 
+export const dynamic = 'force-dynamic';
+
 export default async function StripeReturnPage({
+  params,
   searchParams
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ session_id?: string; cancelled?: string }>;
 }) {
+  const { locale } = await params;
   const { session_id, cancelled } = await searchParams;
-  const supabase = createAdminClient();
+  setRequestLocale(locale);
+
+  const lang = locale || 'fr';
+  let redirectUrl = `/${lang}`;
 
   // ═══ Cas annulation directe ═══
   if (cancelled === '1' || !session_id) {
-    redirect('/fr/paiement/training?status=canceled');
+    redirect(`/${lang}?status=canceled`);
   }
+
+  const supabase = createAdminClient();
 
   try {
     // 1. Récupère la session Stripe
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
-    const requestId = session.metadata?.requestId;
+    const requestId = session.metadata?.requestId || session.client_reference_id;
     const requestType = session.metadata?.requestType; // 'camp' | 'training'
 
     if (!requestId || !requestType) {
-      redirect('/fr/paiement/training?status=declined');
-    }
-
-    // ═══ Cas paiement réussi ═══
-    if (session.payment_status === 'paid') {
+      redirectUrl = `/${lang}?status=declined`;
+    } else if (session.payment_status === 'paid') {
+      // ═══ Cas paiement réussi ═══
       const reference = (session.payment_intent as string) || session.id;
 
       if (requestType === 'training') {
@@ -49,13 +58,12 @@ export default async function StripeReturnPage({
               paid_at: new Date().toISOString()
             })
             .eq('id', requestId);
+
           await sendTrainingSuccessEmail(requestId);
         }
 
-        redirect(`/fr/paiement/training/${requestId}?status=approved&id=${session.id}`);
-      }
-
-      if (requestType === 'camp') {
+        redirectUrl = `/${lang}/paiement/training/${requestId}?status=approved&id=${session.id}`;
+      } else if (requestType === 'camp') {
         const { data: reg } = await supabase
           .from('camp_registrations')
           .select('id, payment_status')
@@ -72,22 +80,32 @@ export default async function StripeReturnPage({
               paid_at: new Date().toISOString()
             })
             .eq('id', requestId);
+
           await sendCampSuccessEmails(requestId);
         }
 
-        redirect(`/fr/paiement/camp/${requestId}?status=approved&id=${session.id}`);
+        redirectUrl = `/${lang}/paiement/camp/${requestId}?status=approved&id=${session.id}`;
+      }
+    } else {
+      // ═══ Paiement non abouti ═══
+      if (requestType === 'training') {
+        await sendTrainingPaymentFailedEmail(requestId, 'declined');
+        redirectUrl = `/${lang}/paiement/training/${requestId}?status=declined`;
+      } else if (requestType === 'camp') {
+        await sendCampFailureEmails(requestId, 'declined');
+        redirectUrl = `/${lang}/paiement/camp/${requestId}?status=declined`;
+      } else {
+        redirectUrl = `/${lang}?status=declined`;
       }
     }
-
-    // ═══ Paiement non abouti ═══
-    if (requestType === 'training') {
-      await sendTrainingPaymentFailedEmail(requestId, 'declined');
-    } else if (requestType === 'camp') {
-      await sendCampFailureEmails(requestId, 'declined');
+  } catch (err: any) {
+    if (err?.message === 'NEXT_REDIRECT' || err?.digest?.startsWith('NEXT_REDIRECT')) {
+      throw err;
     }
-    redirect('/fr/paiement/training?status=declined');
-  } catch (err) {
     console.error('[Stripe Return] Erreur:', err);
-    redirect('/fr/paiement/training?status=declined');
+    redirectUrl = `/${lang}?status=error`;
   }
+
+  // ⚠️ Le redirect() doit TOUJOURS être appelé en dehors du try/catch
+  redirect(redirectUrl);
 }
