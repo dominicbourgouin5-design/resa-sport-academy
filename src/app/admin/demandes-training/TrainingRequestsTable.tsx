@@ -11,7 +11,6 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
   const [paymentRequest, setPaymentRequest] = useState<any | null>(null);
   const router = useRouter();
 
-  // ⚠️ Auto-close : si la demande ouverte disparaît de la liste (polling refresh)
   useEffect(() => {
     if (openRequest && !requests.find((r) => r.id === openRequest.id)) {
       setOpenRequest(null);
@@ -136,7 +135,6 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
         </table>
       </div>
 
-      {/* Wizard */}
       {openRequest && (
         <RequestWizard
           request={openRequest}
@@ -147,7 +145,6 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
         />
       )}
 
-      {/* Modal paiement */}
       {paymentRequest && (
         <TrainingPaymentModal
           request={paymentRequest}
@@ -161,7 +158,6 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
   );
 }
 
-// ─── Badge statut paiement ──────────────────────────────────
 function PaymentBadge({
   status,
   amount,
@@ -211,7 +207,6 @@ function PaymentBadge({
   );
 }
 
-// ─── Bouton supprimer ───────────────────────────────────────
 function DeleteButton({ id, name }: { id: string; name: string }) {
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);

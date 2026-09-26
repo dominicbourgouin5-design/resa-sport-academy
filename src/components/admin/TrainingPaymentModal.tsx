@@ -11,6 +11,10 @@ import {
 
 type Method = 'fedapay' | 'paypal' | 'stripe';
 
+// Taux de conversion utilisés pour les previews
+const XOF_TO_USD = 600;    // doit être aligné avec src/lib/payments/stripe.ts
+const XOF_TO_EUR = 656;    // taux fixe indicatif EUR/XOF
+
 export default function TrainingPaymentModal({
   request,
   onClose
@@ -38,14 +42,29 @@ export default function TrainingPaymentModal({
     !isAlreadyPaid &&
     (request.payment_status === 'pending' || request.payment_status === 'failed');
 
-  // Auto-switch devise selon méthode
+  // ✅ Auto-switch devise + conversion du montant selon méthode
   useEffect(() => {
-    if (method === 'paypal' && currency === 'XOF') {
-      setCurrency('USD');
-    } else if (method === 'fedapay' && currency !== 'XOF') {
-      setCurrency('XOF');
+    const num = Number(amount);
+    const hasAmount = Number.isFinite(num) && num > 0;
+
+    if (method === 'paypal' || method === 'stripe') {
+      if (currency === 'XOF' && hasAmount) {
+        setAmount(String(Math.max(1, Math.round((num / XOF_TO_USD) * 100) / 100)));
+        setCurrency('USD');
+      } else if (currency === 'XOF') {
+        setCurrency('USD');
+      }
+    } else if (method === 'fedapay') {
+      if (currency === 'USD' && hasAmount) {
+        setAmount(String(Math.round(num * XOF_TO_USD)));
+        setCurrency('XOF');
+      } else if (currency === 'EUR' && hasAmount) {
+        setAmount(String(Math.round(num * XOF_TO_EUR)));
+        setCurrency('XOF');
+      } else if (currency !== 'XOF') {
+        setCurrency('XOF');
+      }
     }
-    // Stripe accepte XOF, USD, EUR → pas de switch auto
   }, [method]); // eslint-disable-line
 
   // Auto-charger le tarif DB
@@ -58,7 +77,13 @@ export default function TrainingPaymentModal({
 
     getTrainingProgramRate(request.program_slug)
       .then((rate) => {
-        if (!cancelled && rate && !amount) setAmount(String(rate));
+        if (cancelled || amount || !rate) return;
+        if (method === 'fedapay') {
+          setAmount(String(rate));
+        } else {
+          setAmount(String(Math.max(1, Math.round((rate / XOF_TO_USD) * 100) / 100)));
+          setCurrency('USD');
+        }
       })
       .catch((err) => console.warn('[TrainingPaymentModal] rate lookup:', err))
       .finally(() => { if (!cancelled) setLoadingRate(false); });
@@ -119,6 +144,9 @@ export default function TrainingPaymentModal({
     );
   }
 
+  const previewAmount = Number(amount);
+  const previewValid = Number.isFinite(previewAmount) && previewAmount > 0;
+
   return (
     <Modal open onClose={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md anim-fade-in" onClick={onClose} aria-hidden="true" />
@@ -142,7 +170,6 @@ export default function TrainingPaymentModal({
         </div>
 
         <div className="space-y-5 p-6">
-          {/* Bandeau "déjà payé" */}
           {isAlreadyPaid && (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">
               ✅ Cette demande est déjà payée
@@ -153,7 +180,6 @@ export default function TrainingPaymentModal({
             </div>
           )}
 
-          {/* Destinataire */}
           <div className="rounded-lg border border-black/5 bg-resa-gray/40 px-4 py-3 text-sm">
             <div className="text-[10px] font-bold uppercase tracking-widest text-resa-text/50">Destinataire</div>
             <div className="mt-1 font-semibold text-resa-navy">{request.parent_name}</div>
@@ -165,7 +191,6 @@ export default function TrainingPaymentModal({
             )}
           </div>
 
-          {/* Choix méthode */}
           {!isAlreadyPaid && (
             <div>
               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
@@ -206,13 +231,12 @@ export default function TrainingPaymentModal({
                   }`}
                 >
                   <div className="text-[13px] font-bold text-resa-navy">💳 Stripe</div>
-                  <div className="mt-0.5 text-[10px] text-resa-text/55">Carte bancaire</div>
+                  <div className="mt-0.5 text-[10px] text-resa-text/55">Carte · USD/EUR</div>
                 </button>
               </div>
             </div>
           )}
 
-          {/* Montant */}
           {!isAlreadyPaid && (
             <div>
               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
@@ -224,9 +248,9 @@ export default function TrainingPaymentModal({
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder={method === 'fedapay' ? '25000' : method === 'paypal' ? '25.00' : '25000'}
+                  placeholder={method === 'fedapay' ? '25000' : '25.00'}
                   min={1}
-                  step={method === 'paypal' ? '0.01' : '1'}
+                  step={method === 'fedapay' ? '1' : '0.01'}
                   className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[15px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
                 />
                 <select
@@ -236,27 +260,35 @@ export default function TrainingPaymentModal({
                 >
                   {method === 'fedapay' ? (
                     <option value="XOF">FCFA</option>
-                  ) : method === 'paypal' ? (
-                    <>
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                    </>
                   ) : (
                     <>
-                      <option value="XOF">FCFA</option>
                       <option value="USD">USD</option>
                       <option value="EUR">EUR</option>
                     </>
                   )}
                 </select>
               </div>
+
               <div className="mt-1.5 text-[10px] text-resa-text/40">
-                {method === 'paypal'
-                  ? 'PayPal accepte USD et EUR uniquement.'
-                  : method === 'stripe'
-                    ? 'Stripe accepte les cartes bancaires. XOF converti automatiquement en USD.'
-                    : 'FedaPay accepte uniquement les FCFA (XOF).'}
+                {method === 'fedapay'
+                  ? 'FedaPay accepte uniquement les FCFA (XOF).'
+                  : method === 'paypal'
+                    ? 'PayPal accepte USD et EUR. Le lien sera envoyé dans cette devise.'
+                    : 'Stripe accepte USD et EUR. Le lien sera envoyé dans cette devise.'}
               </div>
+
+              {(method === 'stripe' || method === 'paypal') && previewValid && (
+                <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-800">
+                  <span className="font-bold">
+                    {method === 'stripe' ? '💳 Carte' : '💳 PayPal'} :
+                  </span>{' '}
+                  Le client sera facturé{' '}
+                  <strong>
+                    {previewAmount.toFixed(2)} {currency}
+                  </strong>{' '}
+                  — ce montant apparaîtra sur le reçu PDF et la page de confirmation.
+                </div>
+              )}
             </div>
           )}
 

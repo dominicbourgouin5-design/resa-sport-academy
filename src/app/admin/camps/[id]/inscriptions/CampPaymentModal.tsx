@@ -11,6 +11,10 @@ import {
 
 type Method = 'fedapay' | 'paypal' | 'stripe';
 
+// Taux de conversion utilisés pour les previews
+const XOF_TO_USD = 600;
+const XOF_TO_EUR = 656;
+
 export default function CampPaymentModal({
   registration,
   camp,
@@ -37,7 +41,9 @@ export default function CampPaymentModal({
   );
   const [currency, setCurrency] = useState<string>(
     registration.payment_currency ??
-      (registration.payment_method === 'paypal' ? 'USD' : 'XOF')
+      (registration.payment_method === 'paypal' || registration.payment_method === 'stripe'
+        ? 'USD'
+        : 'XOF')
   );
   const [loadingPrice, setLoadingPrice] = useState(false);
   const [sending, setSending] = useState(false);
@@ -48,14 +54,30 @@ export default function CampPaymentModal({
     (registration.payment_status === 'pending' ||
       registration.payment_status === 'failed');
 
-  // Auto-switch devise selon méthode
   useEffect(() => {
-    if (method === 'paypal' && currency === 'XOF') setCurrency('USD');
-    else if (method === 'fedapay' && currency !== 'XOF') setCurrency('XOF');
-    // Stripe accepte XOF, USD, EUR → pas de switch
+    const num = Number(amount);
+    const hasAmount = Number.isFinite(num) && num > 0;
+
+    if (method === 'paypal' || method === 'stripe') {
+      if (currency === 'XOF' && hasAmount) {
+        setAmount(String(Math.max(1, Math.round((num / XOF_TO_USD) * 100) / 100)));
+        setCurrency('USD');
+      } else if (currency === 'XOF') {
+        setCurrency('USD');
+      }
+    } else if (method === 'fedapay') {
+      if (currency === 'USD' && hasAmount) {
+        setAmount(String(Math.round(num * XOF_TO_USD)));
+        setCurrency('XOF');
+      } else if (currency === 'EUR' && hasAmount) {
+        setAmount(String(Math.round(num * XOF_TO_EUR)));
+        setCurrency('XOF');
+      } else if (currency !== 'XOF') {
+        setCurrency('XOF');
+      }
+    }
   }, [method]); // eslint-disable-line
 
-  // Auto-charger le prix depuis le camp
   useEffect(() => {
     if (registration.payment_amount || !camp?.id) return;
 
@@ -65,9 +87,15 @@ export default function CampPaymentModal({
     getCampPriceById(camp.id)
       .then(({ xof, usd }) => {
         if (cancelled || amount) return;
-        if (method === 'paypal' && usd) setAmount(String(usd));
-        else if (method === 'fedapay' && xof) setAmount(String(xof));
-        else if (method === 'stripe' && xof) setAmount(String(xof));
+        if (method === 'fedapay' && xof) {
+          setAmount(String(xof));
+        } else if (usd) {
+          setAmount(String(usd));
+          setCurrency('USD');
+        } else if (xof) {
+          setAmount(String(Math.max(1, Math.round((xof / XOF_TO_USD) * 100) / 100)));
+          setCurrency('USD');
+        }
       })
       .catch((err) => console.warn('[CampPaymentModal] price lookup:', err))
       .finally(() => { if (!cancelled) setLoadingPrice(false); });
@@ -126,6 +154,9 @@ export default function CampPaymentModal({
       </Modal>
     );
   }
+
+  const previewAmount = Number(amount);
+  const previewValid = Number.isFinite(previewAmount) && previewAmount > 0;
 
   return (
     <Modal open onClose={onClose}>
@@ -192,7 +223,7 @@ export default function CampPaymentModal({
                   }`}
                 >
                   <div className="text-[13px] font-bold text-resa-navy">📱 FedaPay</div>
-                  <div className="mt-0.5 text-[10px] text-resa-text/55">Mobile Money</div>
+                  <div className="mt-0.5 text-[10px] text-resa-text/55">Mobile Money · FCFA</div>
                 </button>
                 <button
                   type="button"
@@ -204,7 +235,7 @@ export default function CampPaymentModal({
                   }`}
                 >
                   <div className="text-[13px] font-bold text-resa-navy">💳 PayPal</div>
-                  <div className="mt-0.5 text-[10px] text-resa-text/55">Intl. · USD</div>
+                  <div className="mt-0.5 text-[10px] text-resa-text/55">Intl. · USD/EUR</div>
                 </button>
                 <button
                   type="button"
@@ -216,7 +247,7 @@ export default function CampPaymentModal({
                   }`}
                 >
                   <div className="text-[13px] font-bold text-resa-navy">💳 Stripe</div>
-                  <div className="mt-0.5 text-[10px] text-resa-text/55">Carte bancaire</div>
+                  <div className="mt-0.5 text-[10px] text-resa-text/55">Carte · USD/EUR</div>
                 </button>
               </div>
             </div>
@@ -233,9 +264,9 @@ export default function CampPaymentModal({
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder={method === 'paypal' ? '40.00' : '25000'}
+                  placeholder={method === 'fedapay' ? '25000' : '40.00'}
                   min={1}
-                  step={method === 'paypal' ? '0.01' : '1'}
+                  step={method === 'fedapay' ? '1' : '0.01'}
                   className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[15px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
                 />
                 <select
@@ -245,14 +276,8 @@ export default function CampPaymentModal({
                 >
                   {method === 'fedapay' ? (
                     <option value="XOF">FCFA</option>
-                  ) : method === 'paypal' ? (
-                    <>
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                    </>
                   ) : (
                     <>
-                      <option value="XOF">FCFA</option>
                       <option value="USD">USD</option>
                       <option value="EUR">EUR</option>
                     </>
@@ -260,12 +285,25 @@ export default function CampPaymentModal({
                 </select>
               </div>
               <div className="mt-1.5 text-[10px] text-resa-text/40">
-                {method === 'paypal'
-                  ? 'PayPal accepte USD et EUR uniquement.'
-                  : method === 'stripe'
-                    ? 'Stripe accepte XOF, USD, EUR. XOF converti en USD.'
-                    : 'FedaPay accepte uniquement les FCFA (XOF).'}
+                {method === 'fedapay'
+                  ? 'FedaPay accepte uniquement les FCFA (XOF).'
+                  : method === 'paypal'
+                    ? 'PayPal accepte USD et EUR. Le lien sera envoyé dans cette devise.'
+                    : 'Stripe accepte USD et EUR. Le lien sera envoyé dans cette devise.'}
               </div>
+
+              {(method === 'stripe' || method === 'paypal') && previewValid && (
+                <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-800">
+                  <span className="font-bold">
+                    {method === 'stripe' ? '💳 Carte' : '💳 PayPal'} :
+                  </span>{' '}
+                  Le client sera facturé{' '}
+                  <strong>
+                    {previewAmount.toFixed(2)} {currency}
+                  </strong>{' '}
+                  — ce montant apparaîtra sur le reçu PDF et la page de confirmation.
+                </div>
+              )}
             </div>
           )}
 
