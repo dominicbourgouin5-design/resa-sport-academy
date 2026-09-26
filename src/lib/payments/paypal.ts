@@ -4,7 +4,10 @@ import {
   Environment,
   LogLevel,
   OrdersController,
-  CheckoutPaymentIntent
+  CheckoutPaymentIntent,
+  PaypalExperienceLandingPage,
+  PaypalExperienceUserAction,
+  ShippingPreference
 } from '@paypal/paypal-server-sdk';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? '';
@@ -42,6 +45,30 @@ export async function createPayPalOrder(params: {
   const client = getClient();
   const ordersController = new OrdersController(client);
 
+  // ⚠️ PayPal ne supporte pas le Franc CFA (XOF).
+  // Si le montant fourni est en XOF, on le convertit automatiquement en EUR.
+  const isXOF = params.currency.toUpperCase() === 'XOF';
+  const currencyCode = isXOF ? 'EUR' : params.currency.toUpperCase();
+  const amountValue = isXOF
+    ? Math.max(1, Math.round((params.amount / 655.957) * 100) / 100).toFixed(2)
+    : params.amount.toFixed(2);
+
+  // Options pour forcer le paiement par carte sans compte (Guest Checkout)
+  const landingPage =
+    (PaypalExperienceLandingPage as any)?.GUEST_CHECKOUT ??
+    (PaypalExperienceLandingPage as any)?.GuestCheckout ??
+    'GUEST_CHECKOUT';
+
+  const userAction =
+    (PaypalExperienceUserAction as any)?.PAY_NOW ??
+    (PaypalExperienceUserAction as any)?.PayNow ??
+    'PAY_NOW';
+
+  const shippingPreference =
+    (ShippingPreference as any)?.NO_SHIPPING ??
+    (ShippingPreference as any)?.NoShipping ??
+    'NO_SHIPPING';
+
   const { result } = await ordersController.createOrder({
     prefer: 'return=representation',
     body: {
@@ -51,8 +78,8 @@ export async function createPayPalOrder(params: {
           referenceId: params.referenceId,
           description: params.description,
           amount: {
-            currencyCode: params.currency,
-            value: params.amount.toFixed(2)
+            currencyCode,
+            value: amountValue
           }
         }
       ],
@@ -61,7 +88,11 @@ export async function createPayPalOrder(params: {
           experienceContext: {
             returnUrl: params.returnUrl,
             cancelUrl: params.cancelUrl,
-            brandName: 'RESA Sport Academy'
+            brandName: 'RESA Sport Academy',
+            locale: 'fr-FR',
+            landingPage: landingPage as any,
+            userAction: userAction as any,
+            shippingPreference: shippingPreference as any
           }
         }
       }
@@ -73,7 +104,7 @@ export async function createPayPalOrder(params: {
   );
 
   if (!approveLink?.href) {
-    throw new Error("URL d'approbation PayPal introuvable");
+    throw new Error("URL d'approbation PayPal introuvable dans la réponse");
   }
 
   return {
