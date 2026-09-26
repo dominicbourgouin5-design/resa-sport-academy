@@ -21,8 +21,65 @@ export default async function StripeReturnPage({
   const lang = locale || 'fr';
   let redirectUrl = `/${lang}`;
 
-  // ═══ Cas annulation directe ═══
-  if (cancelled === '1' || !session_id) {
+  // ═══ Cas annulation (avec session_id → on traite) ═══
+  if (cancelled === '1') {
+    if (!session_id) {
+      redirect(`/${lang}?status=canceled`);
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+      const requestId = session.metadata?.requestId || session.client_reference_id;
+      const requestType = session.metadata?.requestType;
+
+      if (requestId && requestType) {
+        const supabase = createAdminClient();
+
+        if (requestType === 'training') {
+          const { data: req } = await supabase
+            .from('training_requests')
+            .select('id, payment_status')
+            .eq('id', requestId)
+            .maybeSingle();
+
+          if (req && req.payment_status !== 'paid' && req.payment_status !== 'failed') {
+            await supabase
+              .from('training_requests')
+              .update({ payment_status: 'failed' })
+              .eq('id', requestId);
+            await sendTrainingPaymentFailedEmail(requestId, 'canceled');
+          }
+          redirect(`/${lang}/paiement/training/${requestId}?status=declined`);
+        }
+
+        if (requestType === 'camp') {
+          const { data: reg } = await supabase
+            .from('camp_registrations')
+            .select('id, payment_status')
+            .eq('id', requestId)
+            .maybeSingle();
+
+          if (reg && reg.payment_status !== 'paid' && reg.payment_status !== 'failed') {
+            await supabase
+              .from('camp_registrations')
+              .update({ payment_status: 'failed' })
+              .eq('id', requestId);
+            await sendCampFailureEmails(requestId, 'canceled');
+          }
+          redirect(`/${lang}/paiement/camp/${requestId}?status=declined`);
+        }
+      }
+    } catch (err: any) {
+      if (err?.message === 'NEXT_REDIRECT' || err?.digest?.startsWith('NEXT_REDIRECT')) {
+        throw err;
+      }
+      console.error('[Stripe Return] cancel processing error:', err);
+    }
+
+    redirect(`/${lang}?status=canceled`);
+  }
+
+  if (!session_id) {
     redirect(`/${lang}?status=canceled`);
   }
 
@@ -106,6 +163,5 @@ export default async function StripeReturnPage({
     redirectUrl = `/${lang}?status=error`;
   }
 
-  // ⚠️ Le redirect() doit TOUJOURS être appelé en dehors du try/catch
   redirect(redirectUrl);
 }

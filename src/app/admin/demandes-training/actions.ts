@@ -168,7 +168,6 @@ export async function sendTrainingPaymentLink(
       return { error: 'Montant invalide.' };
     }
 
-    // ⚠️ FedaPay ne supporte que XOF
     if (currency !== 'XOF') {
       return {
         error: 'FedaPay accepte uniquement les paiements en FCFA (XOF). Utilisez PayPal pour USD/EUR.'
@@ -185,7 +184,6 @@ export async function sendTrainingPaymentLink(
 
     if (!req) return { error: 'Demande introuvable.' };
 
-    // ⚠️ Double vérification : statut OU paid_at
     if (
       req.payment_status === 'paid' ||
       req.paid_at ||
@@ -275,7 +273,6 @@ export async function sendTrainingPayPalLink(
 
     if (!req) return { error: 'Demande introuvable.' };
 
-    // ⚠️ Double vérification : statut OU paid_at
     if (
       req.payment_status === 'paid' ||
       req.paid_at ||
@@ -366,7 +363,8 @@ export async function sendTrainingStripeLink(
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
     const returnUrl = `${siteUrl}/fr/paiement/stripe/return`;
-    const cancelUrl = `${siteUrl}/fr/paiement/stripe/return?cancelled=1`;
+    // ✅ MODIF : on passe {CHECKOUT_SESSION_ID} dans cancelUrl pour identifier la session annulée
+    const cancelUrl = `${siteUrl}/fr/paiement/stripe/return?cancelled=1&session_id={CHECKOUT_SESSION_ID}`;
 
     const session = await createStripeSession({
       amount: Number(amount),

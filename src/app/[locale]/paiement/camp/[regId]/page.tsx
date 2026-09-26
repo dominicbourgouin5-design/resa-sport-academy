@@ -65,7 +65,6 @@ async function PaymentReturn({
 
   // ═══════════════════════════════════════════════════════════
   // 1) CAS D'ANNULATION DIRECTE (Bouton "Annuler" FedaPay)
-  //    FedaPay renvoie status=pending&close=true OU status=canceled
   // ═══════════════════════════════════════════════════════════
   if (callbackStatus === 'canceled' || isClosed) {
     if (reg.payment_status !== 'paid') {
@@ -102,8 +101,7 @@ async function PaymentReturn({
     }
   } else {
     // ═══════════════════════════════════════════════════════════
-    // 3) VÉRIFICATION : D'abord la base locale (déjà MAJ par webhook ?),
-    //    puis vérification auprès de l'API FedaPay
+    // 3) VÉRIFICATION : DB puis API FedaPay
     // ═══════════════════════════════════════════════════════════
     if (reg.payment_status === 'paid') {
       finalStatus = 'paid';
@@ -186,6 +184,13 @@ async function PaymentReturn({
   const barColor = isSuccess ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-amber-500';
   const iconBg = isSuccess ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-amber-500';
 
+  // ✅ MODIF : montant/Devise réellement payés (fallback sur prix catalogue si absents)
+  const amountLabel = reg.payment_amount
+    ? `${Number(reg.payment_amount).toLocaleString('fr-FR')} ${reg.payment_currency ?? 'XOF'}`
+    : reg.camp?.price_amount
+      ? `${Number(reg.camp.price_amount).toLocaleString('fr-FR')} FCFA`
+      : null;
+
   return (
     <section className="mx-auto max-w-2xl px-4 py-20 md:px-6 md:py-28">
       <div className="overflow-hidden rounded-3xl border border-black/5 bg-white shadow-resa-lg">
@@ -229,11 +234,11 @@ async function PaymentReturn({
                     </span>
                   </div>
                 )}
-                {reg.camp.price_amount && (
+                {amountLabel && (
                   <div className="flex items-center justify-between border-t border-black/5 pt-2">
                     <span className="text-resa-text/60">{isFr ? 'Montant' : 'Amount'}</span>
                     <span className={`font-display font-black ${isSuccess ? 'text-emerald-600' : 'text-resa-red'}`}>
-                      {reg.camp.price_amount.toLocaleString('fr-FR')} FCFA
+                      {amountLabel}
                     </span>
                   </div>
                 )}

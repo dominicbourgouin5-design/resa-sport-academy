@@ -386,9 +386,6 @@ export async function sendCampPayPalLink(
   }
 }
 
-
-
-
 // ═══════════════════════════════════════════════════════════
 // PAYMENT — Envoyer un lien de paiement Stripe (Camp)
 // ═══════════════════════════════════════════════════════════
@@ -420,7 +417,8 @@ export async function sendCampStripeLink(
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
     const returnUrl = `${siteUrl}/fr/paiement/stripe/return`;
-    const cancelUrl = `${siteUrl}/fr/paiement/stripe/return?cancelled=1`;
+    // ✅ MODIF : on passe {CHECKOUT_SESSION_ID} dans cancelUrl pour identifier la session annulée
+    const cancelUrl = `${siteUrl}/fr/paiement/stripe/return?cancelled=1&session_id={CHECKOUT_SESSION_ID}`;
 
     const session = await createStripeSession({
       amount: Number(amount),
