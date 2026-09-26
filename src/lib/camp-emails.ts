@@ -33,7 +33,6 @@ ${emailFooter()}
 </table></td></tr></table></body></html>`;
 }
 
-// Boutons d'action : WhatsApp + Email côte à côte
 function contactButtons(mailSubject: string, primaryLabel: string, primaryUrl: string): string {
   const mailto = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(mailSubject)}`;
   const primaryIsWhatsapp = primaryUrl.includes('wa.me');
@@ -118,8 +117,11 @@ ${contactButtons(`Question - ${campTitle}`, "Voir les détails du camp", campUrl
           type: 'camp',
           reference: reg.payment_reference ?? `RESA-${reg.id.slice(0, 8).toUpperCase()}`,
           date: reg.paid_at ?? new Date().toISOString(),
-          amount: camp?.price_amount ?? 0,
-          currency: 'XOF',
+          // ✅ MODIF : montant/Devise réellement payés (fallback sur le prix catalogue si absents)
+          amount: Number(reg.payment_amount ?? camp?.price_amount ?? 0),
+          currency: reg.payment_currency ?? 'XOF',
+          // ✅ AJOUT : moyen de paiement de la dernière transaction
+          method: reg.payment_method ?? undefined,
           clientName: reg.parent_name,
           clientEmail: reg.parent_email,
           clientPhone: reg.parent_phone ?? undefined,
@@ -162,7 +164,7 @@ ${contactButtons(`Question - ${campTitle}`, "Voir les détails du camp", campUrl
 <p><strong>Joueur :</strong> ${reg.player_name}${reg.player_age ? ` (${reg.player_age} ans)` : ''}</p>
 ${reg.notes ? `<p><strong>Notes :</strong> ${reg.notes}</p>` : ''}
 <p><strong>Statut :</strong> ${isPaid ? '✅ Payé en ligne' : '📝 Réservation manuelle (à contacter)'}</p>
-${isPaid && reg.payment_reference ? `<p><strong>Réf. FedaPay :</strong> ${reg.payment_reference}</p>` : ''}
+${isPaid && reg.payment_reference ? `<p><strong>Réf. :</strong> ${reg.payment_reference}</p>` : ''}
 <p style="margin-top:24px;"><a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin/camps/${camp.id}/inscriptions" style="background:#0A1F44;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;">Voir dans l'admin</a></p>
 </div>`;
 
@@ -224,7 +226,6 @@ export async function sendCampFailureEmails(
   const camp = reg.camp as any;
   const campTitle = camp?.title_fr ?? 'Camp RESA';
   const adminEmail = process.env.BREVO_SENDER_EMAIL ?? 'contact@cataria-systems.com';
-  // ← MODIF : ajout de ?rebook=<regId> pour pré-remplir le formulaire
   const campUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/fr/camps/${camp?.slug ?? ''}?rebook=${reg.id}`;
 
   const isCanceled = reason === 'canceled';
@@ -308,7 +309,7 @@ ${contactButtons(`Paiement échoué - ${campTitle}`, "Réessayer le paiement", c
 <p><strong>Parent :</strong> ${reg.parent_name} (${reg.parent_email}${reg.parent_phone ? ` · ${reg.parent_phone}` : ''})</p>
 <p><strong>Joueur :</strong> ${reg.player_name}${reg.player_age ? ` (${reg.player_age} ans)` : ''}</p>
 <p><strong>Motif :</strong> ${reasonAdminLabel}</p>
-${reg.payment_reference ? `<p><strong>Réf. FedaPay :</strong> ${reg.payment_reference}</p>` : ''}
+${reg.payment_reference ? `<p><strong>Réf. :</strong> ${reg.payment_reference}</p>` : ''}
 <p style="margin-top:24px;"><a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin/camps/${camp.id}/inscriptions" style="background:#0A1F44;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;">Voir dans l'admin</a></p>
 </div>`;
 
@@ -341,8 +342,6 @@ ${reg.payment_reference ? `<p><strong>Réf. FedaPay :</strong> ${reg.payment_ref
 
   return { ok: true };
 }
-
-
 
 // ═══════════════════════════════════════════════════════════
 // EMAIL — Lien de paiement FedaPay
@@ -482,8 +481,6 @@ ${contactButtons(`Paiement PayPal - ${campTitle}`, "💳 Payer avec PayPal", pay
     return { ok: false };
   }
 }
-
-
 
 // ═══════════════════════════════════════════════════════════
 // EMAIL — Lien de paiement Stripe

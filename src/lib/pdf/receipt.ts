@@ -9,6 +9,7 @@ export type ReceiptData = {
   clientName: string;
   clientEmail: string;
   clientPhone?: string;
+  method?: string;         
   campTitle?: string;
   campDate?: string;
   campLocation?: string;
@@ -23,7 +24,7 @@ export type ReceiptData = {
 export function cleanText(text?: string | null): string {
   if (!text) return '';
   return text
-    .replace(/[\u202F\u00A0\u2000-\u200B]/g, ' ') // 👈 Supprime 0x202f qui faisait crasher pdf-lib !
+    .replace(/[\u202F\u00A0\u2000-\u200B]/g, ' ') 
     .replace(/[✓✔]/g, '')
     .replace(/⚽/g, '')
     .replace(/[^\x20-\x7E\xA0-\xFF\u2018\u2019\u201C\u201D\u2013\u2014\u2026\u20AC\u0152\u0153]/g, '')
@@ -48,6 +49,23 @@ function wrapText(text: string, maxWidth: number, font: any, fontSize: number): 
   }
   if (currentLine) lines.push(currentLine);
   return lines.length > 0 ? lines : [text];
+}
+
+// ✅ NOUVEAU : traduit la valeur DB `payment_method` en libellé lisible
+// Mapping basé uniquement sur les valeurs réellement observées en base :
+//   'stripe' → carte bancaire via Stripe
+//   'paypal' → PayPal
+//   'fedapay' → Mobile Money (FedaPay)
+//   'momo…'  → Mobile Money (Wave / Orange / MTN / Moov…)
+//   'manual' → paiement enregistré manuellement par l'admin
+function formatPaymentMethod(method?: string | null): string {
+  if (!method) return 'Paiement en ligne';
+  const m = method.toLowerCase();
+  if (m === 'stripe') return 'Carte bancaire (Stripe)';
+  if (m === 'paypal') return 'PayPal';
+  if (m === 'fedapay' || m.startsWith('momo')) return 'Mobile Money';
+  if (m === 'manual') return 'Paiement manuel';
+  return method; // fallback : affiche la valeur brute plutôt que d'inventer
 }
 
 export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array> {
@@ -187,7 +205,8 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     if (data.coach) rows.push(['Coach', cleanText(data.coach)]);
     if (data.availability) rows.push(['Disponibilités', cleanText(data.availability)]);
   }
-  rows.push(['Moyen de paiement', 'Mobile Money / Carte']);
+  // libellé dynamique au lieu de 'Mobile Money / Carte' hardcodé
+  rows.push(['Moyen de paiement', formatPaymentMethod(data.method)]);
 
   const labelX = margin;
   const valueX = margin + 130;

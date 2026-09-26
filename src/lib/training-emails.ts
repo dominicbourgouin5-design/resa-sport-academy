@@ -50,7 +50,6 @@ function contactButtons(mailSubject: string, primaryLabel: string, primaryUrl: s
 
 // ═══════════════════════════════════════════════════════════
 // 1) EMAIL — Lien de paiement (envoyé par l'admin)
-// ⚠️ PAS de PDF ici : le parent n'a pas encore payé
 // ═══════════════════════════════════════════════════════════
 export async function sendTrainingPaymentLinkEmail(
   requestId: string,
@@ -163,8 +162,9 @@ ${contactButtons(`Training confirmé - ${req.program_title ?? 'RESA'}`, "💬 Un
       type: 'training',
       reference: req.payment_reference ?? `RESA-${req.id.slice(0, 8).toUpperCase()}`,
       date: req.paid_at ?? new Date().toISOString(),
-      amount: req.payment_amount ?? 0,
+      amount: Number(req.payment_amount ?? 0),          // ← MODIF : cast Number
       currency: req.payment_currency ?? 'XOF',
+      method: req.payment_method ?? undefined,           // ← AJOUT : moyen de paiement
       clientName: req.parent_name,
       clientEmail: req.parent_email,
       clientPhone: req.parent_phone ?? undefined,
@@ -179,7 +179,6 @@ ${contactButtons(`Training confirmé - ${req.program_title ?? 'RESA'}`, "💬 Un
 
     const base64Content = uint8ToBase64(pdfBytes);
 
-    // Nom de fichier propre (sans caractères accentués ni espaces bizarres)
     const safeTitle = (req.program_title ?? 'training')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
@@ -293,7 +292,6 @@ ${contactButtons(`Paiement training - ${req.program_title ?? 'RESA'}`, "💬 Nou
   return { ok: true };
 }
 
-
 // ═══════════════════════════════════════════════════════════
 // EMAIL — Lien de paiement PayPal
 // ═══════════════════════════════════════════════════════════
@@ -358,9 +356,6 @@ ${contactButtons(`Paiement PayPal - ${req.program_title ?? 'RESA'}`, "💳 Payer
     return { ok: false };
   }
 }
-
-
-
 
 // ═══════════════════════════════════════════════════════════
 // EMAIL — Lien de paiement Stripe (Training)

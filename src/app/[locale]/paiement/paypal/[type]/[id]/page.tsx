@@ -90,14 +90,14 @@ export default async function PayPalReturnPage({
                 .eq('id', id);
               await sendCampSuccessEmails(id);
             } else if (!reg.success_email_sent_at) {
-              // Déjà payé mais email pas envoyé → on force
               await sendCampSuccessEmails(id);
             }
             console.log('[PayPal Return] Camp déjà payé — double paiement ignoré');
           }
           itemTitle = (reg?.camp as any)?.title_fr ?? 'Camp RESA';
-          amountLabel = reg?.camp?.price_amount
-            ? `${reg.camp.price_amount.toLocaleString('fr-FR')} XOF`
+          // ✅ MODIF : on affiche le montant/la devise réellement payés
+          amountLabel = reg?.payment_amount
+            ? `${Number(reg.payment_amount).toLocaleString('fr-FR')} ${reg.payment_currency ?? 'XOF'}`
             : null;
         } else {
           const { data: req } = await supabase
@@ -119,14 +119,13 @@ export default async function PayPalReturnPage({
                 .eq('id', id);
               await sendTrainingSuccessEmail(id);
             } else if (!req.success_email_sent_at) {
-              // Déjà payé mais email pas envoyé → on force
               await sendTrainingSuccessEmail(id);
             }
             console.log('[PayPal Return] Training déjà payé — double paiement ignoré');
           }
           itemTitle = req?.program_title ?? 'Training RESA';
           amountLabel = req?.payment_amount
-            ? `${req.payment_amount.toLocaleString('fr-FR')} ${req.payment_currency ?? 'XOF'}`
+            ? `${Number(req.payment_amount).toLocaleString('fr-FR')} ${req.payment_currency ?? 'XOF'}`
             : null;
         }
         status = 'paid';
