@@ -6,14 +6,11 @@ import {
   sendTrainingPaymentLink,
   sendTrainingPayPalLink,
   sendTrainingStripeLink,
-  getTrainingProgramRate
+  getTrainingProgramRates,
+  type TrainingRate
 } from '@/app/admin/demandes-training/actions';
 
 type Method = 'fedapay' | 'paypal' | 'stripe';
-
-// Taux de conversion utilisés pour les previews
-const XOF_TO_USD = 600;    // doit être aligné avec src/lib/payments/stripe.ts
-const XOF_TO_EUR = 656;    // taux fixe indicatif EUR/XOF
 
 export default function TrainingPaymentModal({
   request,
@@ -24,16 +21,13 @@ export default function TrainingPaymentModal({
 }) {
   const isAlreadyPaid =
     request.payment_status === 'paid' ||
-    !!request.paid_at ||
-    !!request.success_email_sent_at;
+    !!request.paid_at;
 
   const [method, setMethod] = useState<Method>('fedapay');
-  const [amount, setAmount] = useState<string>(
-    request.payment_amount ? String(request.payment_amount) : ''
-  );
-  const [currency, setCurrency] = useState<string>(
-    request.payment_currency ?? 'XOF'
-  );
+  const [rates, setRates] = useState<TrainingRate[]>([]);
+  const [selectedRateIdx, setSelectedRateIdx] = useState<number>(-1);
+  const [amount, setAmount] = useState<string>('');
+  const [currency, setCurrency] = useState<string>('XOF');
   const [loadingRate, setLoadingRate] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; error?: string } | null>(null);
@@ -42,54 +36,57 @@ export default function TrainingPaymentModal({
     !isAlreadyPaid &&
     (request.payment_status === 'pending' || request.payment_status === 'failed');
 
-  // ✅ Auto-switch devise + conversion du montant selon méthode
+  // ═══ Charger les formules du programme ═══
   useEffect(() => {
-    const num = Number(amount);
-    const hasAmount = Number.isFinite(num) && num > 0;
+    if (request.payment_amount) return;
+    let cancelled = false;
 
-    if (method === 'paypal' || method === 'stripe') {
-      if (currency === 'XOF' && hasAmount) {
-        setAmount(String(Math.max(1, Math.round((num / XOF_TO_USD) * 100) / 100)));
-        setCurrency('USD');
-      } else if (currency === 'XOF') {
-        setCurrency('USD');
+    const load = async () => {
+      try {
+        setLoadingRate(true);
+        const list = await getTrainingProgramRates(
+          request.program_slug,
+          request.program_title
+        );
+        if (cancelled) return;
+        setRates(list);
+      } catch (err) {
+        console.warn('[TrainingPaymentModal] rates lookup:', err);
+      } finally {
+        if (!cancelled) setLoadingRate(false);
       }
-    } else if (method === 'fedapay') {
-      if (currency === 'USD' && hasAmount) {
-        setAmount(String(Math.round(num * XOF_TO_USD)));
-        setCurrency('XOF');
-      } else if (currency === 'EUR' && hasAmount) {
-        setAmount(String(Math.round(num * XOF_TO_EUR)));
-        setCurrency('XOF');
-      } else if (currency !== 'XOF') {
-        setCurrency('XOF');
-      }
-    }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [request.program_slug, request.program_title, request.payment_amount]);
+
+  // ═══ Auto-switch devise selon méthode ═══
+  useEffect(() => {
+    if (method === 'paypal' && currency === 'XOF') setCurrency('USD');
+    else if (method === 'fedapay' && currency !== 'XOF') setCurrency('XOF');
+    else if (method === 'stripe' && currency === 'XOF') setCurrency('USD');
   }, [method]); // eslint-disable-line
 
-  // Auto-charger le tarif DB
+  // ═══ Auto-remplir le montant dès qu'on a les rates OU change méthode/devise ═══
   useEffect(() => {
-    const shouldFetch = !request.payment_amount && request.program_slug;
-    if (!shouldFetch) return;
+    if (request.payment_amount) return;
+    if (rates.length === 0) return;
+    if (selectedRateIdx < 0) {
+      setSelectedRateIdx(0);
+      return;
+    }
+    const r = rates[selectedRateIdx];
+    if (!r) return;
 
-    let cancelled = false;
-    setLoadingRate(true);
-
-    getTrainingProgramRate(request.program_slug)
-      .then((rate) => {
-        if (cancelled || amount || !rate) return;
-        if (method === 'fedapay') {
-          setAmount(String(rate));
-        } else {
-          setAmount(String(Math.max(1, Math.round((rate / XOF_TO_USD) * 100) / 100)));
-          setCurrency('USD');
-        }
-      })
-      .catch((err) => console.warn('[TrainingPaymentModal] rate lookup:', err))
-      .finally(() => { if (!cancelled) setLoadingRate(false); });
-
-    return () => { cancelled = true; };
-  }, [request.program_slug, request.payment_amount]); // eslint-disable-line
+    if (currency === 'XOF' && r.amount_xof) {
+      setAmount(String(r.amount_xof));
+    } else if ((currency === 'USD' || currency === 'EUR') && r.amount_usd) {
+      setAmount(String(r.amount_usd));
+    } else if (r.amount_xof) {
+      setAmount(String(r.amount_xof));
+    }
+  }, [rates, selectedRateIdx, currency, method]); // eslint-disable-line
 
   const handleSend = async () => {
     if (isAlreadyPaid) {
@@ -137,13 +134,14 @@ export default function TrainingPaymentModal({
             {isResend ? 'Nouveau lien envoyé !' : 'Lien envoyé !'}
           </h2>
           <p className="mt-2 text-sm text-resa-text/60">
-            Le parent vient de recevoir un email {method === 'paypal' ? 'PayPal' : method === 'stripe' ? 'Stripe' : 'FedaPay'} avec le lien de paiement.
+            Email {method === 'paypal' ? 'PayPal' : method === 'stripe' ? 'Stripe' : 'FedaPay'} envoyé au parent.
           </p>
         </div>
       </Modal>
     );
   }
 
+  const hasRateDropdown = rates.length > 1;
   const previewAmount = Number(amount);
   const previewValid = Number.isFinite(previewAmount) && previewAmount > 0;
 
@@ -164,19 +162,13 @@ export default function TrainingPaymentModal({
           <button
             onClick={onClose}
             className="grid h-8 w-8 place-items-center rounded-full text-resa-text/40 transition hover:bg-resa-gray hover:text-resa-navy"
-          >
-            ✕
-          </button>
+          >✕</button>
         </div>
 
         <div className="space-y-5 p-6">
           {isAlreadyPaid && (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">
-              ✅ Cette demande est déjà payée
-              {request.paid_at && (
-                <> le {new Date(request.paid_at).toLocaleDateString('fr-FR')}</>
-              )}
-              . Aucun nouveau lien ne peut être envoyé.
+              ✅ Cette demande est déjà payée.
             </div>
           )}
 
@@ -237,11 +229,32 @@ export default function TrainingPaymentModal({
             </div>
           )}
 
+          {!isAlreadyPaid && hasRateDropdown && (
+            <div>
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
+                Formule *
+                {loadingRate && <span className="ml-2 text-resa-text/40">⏳ chargement…</span>}
+              </label>
+              <select
+                value={selectedRateIdx}
+                onChange={(e) => setSelectedRateIdx(Number(e.target.value))}
+                className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[13px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+              >
+                {rates.map((r, i) => (
+                  <option key={i} value={i}>
+                    {r.label_fr}
+                    {r.amount_xof ? ` — ${r.amount_xof.toLocaleString('fr-FR')} FCFA` : ''}
+                    {r.amount_usd ? ` / $${r.amount_usd}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {!isAlreadyPaid && (
             <div>
               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
                 Montant à facturer *
-                {loadingRate && <span className="ml-2 text-resa-text/40">⏳ chargement…</span>}
               </label>
               <div className="flex gap-2">
                 <input

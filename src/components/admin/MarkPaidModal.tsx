@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import Modal from '@/components/admin/Modal';
 import {
   markTrainingRequestPaid,
-  getTrainingProgramRate,
-  getTrainingProgramRateByTitle
+  getTrainingProgramRates,
+  type TrainingRate
 } from '@/app/admin/demandes-training/actions';
 
 import {
@@ -57,13 +57,15 @@ export default function MarkPaidModal({
     defaultCurrency ?? 'XOF'
   );
   const [method, setMethod] = useState<string>('cash');
+  const [rates, setRates] = useState<TrainingRate[]>([]);
+  const [selectedRateIdx, setSelectedRateIdx] = useState<number>(-1);
   const [loadingPrice, setLoadingPrice] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; error?: string } | null>(null);
 
-  // ✅ Auto-charger le tarif par défaut (programme training OU camp)
+  // ═══ Charger les formules (training) ou le prix (camp) ═══
   useEffect(() => {
-    if (amount) return; // déjà rempli (payment_amount ou saisie)
+    if (amount && selectedRateIdx === -1) return; // déjà rempli manuellement
     let cancelled = false;
 
     const load = async () => {
@@ -71,19 +73,24 @@ export default function MarkPaidModal({
         setLoadingPrice(true);
 
         if (!isCamp) {
-          // Training : on tente par slug, puis par titre en fallback
-          let rate: number | null = null;
+          // ─── Training : charger les formules ───
+          const list = await getTrainingProgramRates(programSlug, programTitle);
+          if (cancelled) return;
 
-          if (programSlug) {
-            rate = await getTrainingProgramRate(programSlug);
-          }
-          if (!rate && programTitle) {
-            rate = await getTrainingProgramRateByTitle(programTitle);
-          }
+          setRates(list);
 
-          if (!cancelled && rate) {
-            setAmount(String(rate));
-            setCurrency('XOF');
+          if (list.length > 0 && !amount) {
+            // Pré-sélectionne la première formule
+            setSelectedRateIdx(0);
+            const first = list[0];
+            if (currency === 'XOF' && first.amount_xof) {
+              setAmount(String(first.amount_xof));
+            } else if (first.amount_usd) {
+              setAmount(String(first.amount_usd));
+            } else if (first.amount_xof) {
+              setAmount(String(first.amount_xof));
+              setCurrency('XOF');
+            }
           }
         } else if (isCamp && campId) {
           const { xof, usd } = await getCampPriceById(campId);
@@ -105,7 +112,29 @@ export default function MarkPaidModal({
 
     load();
     return () => { cancelled = true; };
-  }, [programSlug, programTitle, campId, isCamp, amount]);
+  }, [programSlug, programTitle, campId, isCamp]); // eslint-disable-line
+
+  // ═══ Appliquer une formule quand elle change ═══
+  const applyRate = (idx: number, curr: string = currency) => {
+    setSelectedRateIdx(idx);
+    const r = rates[idx];
+    if (!r) return;
+    if (curr === 'XOF' && r.amount_xof) {
+      setAmount(String(r.amount_xof));
+    } else if (curr === 'USD' && r.amount_usd) {
+      setAmount(String(r.amount_usd));
+    } else if (curr === 'EUR' && r.amount_usd) {
+      // Pas de tarif EUR en DB, on utilise USD en conversion approx.
+      setAmount(String(r.amount_usd));
+      setCurrency('USD');
+    }
+  };
+
+  // ═══ Quand la devise change → ré-applique la formule sélectionnée ═══
+  const handleCurrencyChange = (newCurr: string) => {
+    setCurrency(newCurr);
+    if (selectedRateIdx >= 0) applyRate(selectedRateIdx, newCurr);
+  };
 
   const handleSubmit = async () => {
     const num = Number(amount);
@@ -156,6 +185,8 @@ export default function MarkPaidModal({
     );
   }
 
+  const hasRateDropdown = !isCamp && rates.length > 1;
+
   return (
     <Modal open onClose={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md anim-fade-in" onClick={onClose} aria-hidden="true" />
@@ -187,6 +218,28 @@ export default function MarkPaidModal({
             )}
           </div>
 
+          {/* ═══ Sélecteur de formule (si 2+ formules) ═══ */}
+          {hasRateDropdown && (
+            <div>
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
+                Formule *
+              </label>
+              <select
+                value={selectedRateIdx}
+                onChange={(e) => applyRate(Number(e.target.value))}
+                className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[13px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+              >
+                {rates.map((r, i) => (
+                  <option key={i} value={i}>
+                    {r.label_fr}
+                    {r.amount_xof ? ` — ${r.amount_xof.toLocaleString('fr-FR')} FCFA` : ''}
+                    {r.amount_usd ? ` / $${r.amount_usd}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
               Montant payé *
@@ -204,7 +257,7 @@ export default function MarkPaidModal({
               />
               <select
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
                 className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[13px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
               >
                 <option value="XOF">FCFA</option>

@@ -470,31 +470,115 @@ export async function markTrainingRequestPaid(
 // Fallback : récupérer le tarif par titre de programme
 // (utile quand program_slug est null en DB)
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// Fallback : récupérer le tarif par titre de programme
+// (utile quand program_slug est null en DB)
+// ═══════════════════════════════════════════════════════════
 export async function getTrainingProgramRateByTitle(
   title: string
 ): Promise<number | null> {
   if (!title) return null;
   const supabase = await createClient();
 
-  // Cherche un programme dont le titre FR ou EN matche (insensible à la casse)
+  // On récupère tous les programmes puis on matche côté client
+  // (plus fiable que `.or(...ilike...)` qui peut échouer sur certains caractères)
   const { data } = await supabase
     .from('training_programs')
-    .select('rates, title_fr, title_en, slug')
-    .or(`title_fr.ilike.%${title}%,title_en.ilike.%${title}%`)
-    .limit(1)
-    .maybeSingle();
+    .select('rates, title_fr, title_en, slug');
 
-  if (!data?.rates) return null;
+  if (!data || data.length === 0) return null;
 
-  const rates = Array.isArray(data.rates) ? data.rates : [];
+  const t = title.toLowerCase().trim();
+
+  const match = data.find((p: any) =>
+    (p.title_fr ?? '').toLowerCase().trim() === t ||
+    (p.title_en ?? '').toLowerCase().trim() === t
+  );
+
+  if (!match?.rates) return null;
+
+  const rates = Array.isArray(match.rates) ? match.rates : [];
   for (const r of rates) {
     if (r?.price_fr) {
-      const match = String(r.price_fr).match(/([\d\s]+)/);
-      if (match) {
-        const num = parseInt(match[1].replace(/\s/g, ''), 10);
+      const m = String(r.price_fr).match(/([\d\s]+)/);
+      if (m) {
+        const num = parseInt(m[1].replace(/\s/g, ''), 10);
         if (Number.isFinite(num) && num > 0) return num;
       }
     }
   }
   return null;
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// Récupérer TOUTES les formules d'un programme (slug ou titre)
+// ═══════════════════════════════════════════════════════════
+export type TrainingRate = {
+  label_fr: string;
+  label_en: string;
+  sessions: string;
+  duration: string;
+  amount_xof: number | null;
+  amount_usd: number | null;
+};
+
+function parseAmountXof(s: any): number | null {
+  if (!s) return null;
+  const m = String(s).match(/([\d\s]+)/);
+  if (!m) return null;
+  const n = parseInt(m[1].replace(/\s/g, ''), 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function parseAmountUsd(s: any): number | null {
+  if (!s) return null;
+  const m = String(s).match(/([\d.]+)/);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+export async function getTrainingProgramRates(
+  slug?: string | null,
+  title?: string | null
+): Promise<TrainingRate[]> {
+  if (!slug && !title) return [];
+  const supabase = await createClient();
+
+  let program: any = null;
+
+  // 1) Par slug si fourni
+  if (slug) {
+    const { data } = await supabase
+      .from('training_programs')
+      .select('rates, title_fr, title_en, slug')
+      .eq('slug', slug)
+      .maybeSingle();
+    program = data;
+  }
+
+  // 2) Fallback par titre (match exact en lowercase)
+  if (!program && title) {
+    const { data } = await supabase
+      .from('training_programs')
+      .select('rates, title_fr, title_en, slug');
+    const t = title.toLowerCase().trim();
+    program = (data ?? []).find((p: any) =>
+      (p.title_fr ?? '').toLowerCase().trim() === t ||
+      (p.title_en ?? '').toLowerCase().trim() === t
+    );
+  }
+
+  if (!program?.rates) return [];
+
+  const raw = Array.isArray(program.rates) ? program.rates : [];
+  return raw.map((r: any) => ({
+    label_fr: String(r?.label_fr ?? 'Formule'),
+    label_en: String(r?.label_en ?? r?.label_fr ?? 'Formula'),
+    sessions: String(r?.sessions ?? '1'),
+    duration: String(r?.duration ?? ''),
+    amount_xof: parseAmountXof(r?.price_fr),
+    amount_usd: parseAmountUsd(r?.price_en)
+  }));
 }
