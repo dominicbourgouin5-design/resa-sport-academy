@@ -1,21 +1,12 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-import React from 'react';
 import { createClient } from '@/lib/supabase/server';
-import Collapsible from '@/components/admin/Collapsible';
-import TrainingRequestsTable from './TrainingRequestsTable';
-import TrainingRequestsRealtime from '@/components/admin/TrainingRequestsRealtime';
+import RequestsListManager from '@/components/admin/RequestsListManager';
 import NewTrainingRequestButton from '@/components/admin/NewTrainingRequestButton';
 
 export default async function AdminTrainingRequestsPage() {
   const supabase = await createClient();
-
-  const { data: requests } = await supabase
-    .from('training_requests')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(100);
 
   const { data: programsData } = await supabase
     .from('training_programs')
@@ -25,48 +16,26 @@ export default async function AdminTrainingRequestsPage() {
 
   const programs = (programsData ?? []) as { slug: string; title_fr: string }[];
 
-  const list = (requests ?? []) as any[];
+  const [pendingRes, contactedRes, reservedRes, cancelledRes] = await Promise.all([
+    supabase.from('training_requests').select('id', { count: 'exact', head: true })
+      .eq('status', 'pending').neq('payment_status', 'paid').is('paid_at', null),
+    supabase.from('training_requests').select('id', { count: 'exact', head: true })
+      .or(`status.eq.contacted,and(status.eq.booked,payment_status.neq.paid)`).is('paid_at', null),
+    supabase.from('training_requests').select('id', { count: 'exact', head: true })
+      .eq('status', 'booked').eq('payment_status', 'paid'),
+    supabase.from('training_requests').select('id', { count: 'exact', head: true })
+      .eq('status', 'cancelled')
+  ]);
 
-  // ═══════════════════════════════════════════════════════════
-  // Nouvelle logique de filtrage (validée)
-  // ═══════════════════════════════════════════════════════════
-  const isPaid = (r: any) =>
-    r.payment_status === 'paid' || !!r.paid_at;
-
-  const isCancelled = (r: any) => r.status === 'cancelled';
-
-  // En attente : statut initial + pas payé + pas annulé
-   const pending = list.filter((r) =>
-    !isPaid(r) &&
-    !isCancelled(r) &&
-    r.status === 'pending'
-  );
-
-  // Contacté : statut 'contacted' non payé, OU booked/confirmed non payé
-  const contacted = list.filter((r) =>
-    !isPaid(r) &&
-    !isCancelled(r) &&
-    (r.status === 'contacted' || r.status === 'booked')
-  );
-
-  // Réservé : payé ET statut booked (training)
-  const booked = list.filter((r) =>
-    isPaid(r) &&
-    !isCancelled(r) &&
-    r.status === 'booked'
-  );
-
-  // Annulé
-  const cancelled = list.filter((r) => isCancelled(r));
-
-  const total = list.length;
+  const initialCounts = {
+    pending: pendingRes.count ?? 0,
+    contacted: contactedRes.count ?? 0,
+    reserved: reservedRes.count ?? 0,
+    cancelled: cancelledRes.count ?? 0
+  };
 
   return (
     <div className="mx-auto max-w-6xl">
-
-      <TrainingRequestsRealtime />
-
-      {/* Header */}
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
@@ -76,98 +45,13 @@ export default async function AdminTrainingRequestsPage() {
             Demandes de réservation
           </h1>
           <p className="mt-1 text-sm text-resa-text/50">
-            {total} demande(s) · {pending.length} en attente · {booked.length} réservée(s)
+            {initialCounts.pending + initialCounts.contacted + initialCounts.reserved + initialCounts.cancelled} demande(s)
           </p>
         </div>
         <NewTrainingRequestButton programs={programs} />
       </div>
 
-      {/* Stats rapides */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-4">
-        <StatCard label="En attente" value={pending.length} accent="amber" />
-        <StatCard label="Contactées" value={contacted.length} accent="royal" />
-        <StatCard label="Réservées" value={booked.length} accent="emerald" />
-        <StatCard label="Annulées" value={cancelled.length} accent="red" />
-      </div>
-
-      <div className="space-y-4">
-        <Collapsible
-          title="En attente"
-          subtitle="Nouvelles demandes à traiter"
-          icon="⏳"
-          accent="amber"
-          defaultOpen={true}
-          badge={pending.length}
-        >
-          <TrainingRequestsTable key="pending" requests={pending} />
-        </Collapsible>
-
-        {contacted.length > 0 && (
-          <Collapsible
-            title="Contactées"
-            subtitle="En cours de traitement (message envoyé, paiement non finalisé)"
-            icon="📞"
-            accent="navy"
-            defaultOpen={false}
-            badge={contacted.length}
-          >
-            <TrainingRequestsTable key="contacted" requests={contacted} />
-          </Collapsible>
-        )}
-
-        {booked.length > 0 && (
-          <Collapsible
-            title="Réservées"
-            subtitle="Séances confirmées et payées"
-            icon="✅"
-            accent="navy"
-            defaultOpen={false}
-            badge={booked.length}
-          >
-            <TrainingRequestsTable key="booked" requests={booked} />
-          </Collapsible>
-        )}
-
-        {cancelled.length > 0 && (
-          <Collapsible
-            title="Annulées"
-            subtitle="Demandes sans suite"
-            icon="✕"
-            accent="amber"
-            defaultOpen={false}
-            badge={cancelled.length}
-          >
-            <TrainingRequestsTable key="cancelled" requests={cancelled} />
-          </Collapsible>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  accent
-}: {
-  label: string;
-  value: number;
-  accent: 'amber' | 'royal' | 'emerald' | 'red';
-}) {
-  const colors = {
-    amber:   'from-amber-500/10 border-amber-200',
-    royal:   'from-resa-royal/10 border-resa-royal/20',
-    emerald: 'from-emerald-500/10 border-emerald-200',
-    red:     'from-resa-red/10 border-resa-red/20'
-  };
-  return (
-    <div className={`rounded-xl border bg-gradient-to-br ${colors[accent]} to-transparent p-4`}>
-      <div className="font-display text-3xl font-black text-resa-navy">
-        {value}
-      </div>
-      <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
-        {label}
-      </div>
+      <RequestsListManager type="training" initialCounts={initialCounts} />
     </div>
   );
 }

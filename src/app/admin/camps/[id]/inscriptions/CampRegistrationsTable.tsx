@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { deleteCampRegistration } from '../../actions';
 import ConfirmModal from '@/components/admin/ConfirmModal';
@@ -39,11 +40,16 @@ const PAYMENT_COLOR: Record<string, string> = {
 
 export default function CampRegistrationsTable({
   registrations,
-  camp
+  camp,
+  onMutate
 }: {
   registrations: any[];
   camp: any;
+  onMutate?: () => void;
 }) {
+  const router = useRouter();
+  const refresh = onMutate ?? (() => router.refresh());
+
   const [toDelete, setToDelete] = useState<any | null>(null);
   const [openRegistration, setOpenRegistration] = useState<any | null>(null);
   const [paymentRegistration, setPaymentRegistration] = useState<any | null>(null);
@@ -150,7 +156,6 @@ export default function CampRegistrationsTable({
                         </button>
                       )}
 
-                      {/* Reçu PDF : toujours visible, grisé si non payé */}
                       {isPaid ? (
                         <a
                           href={`/api/admin/receipt/camp/${r.id}`}
@@ -195,7 +200,10 @@ export default function CampRegistrationsTable({
       {openRegistration && (
         <CampRegistrationsWizard
           registration={{ ...openRegistration, camp }}
-          onClose={() => setOpenRegistration(null)}
+          onClose={() => {
+            setOpenRegistration(null);
+            refresh();
+          }}
         />
       )}
 
@@ -203,7 +211,10 @@ export default function CampRegistrationsTable({
         <CampPaymentModal
           registration={paymentRegistration}
           camp={camp}
-          onClose={() => setPaymentRegistration(null)}
+          onClose={() => {
+            setPaymentRegistration(null);
+            refresh();
+          }}
         />
       )}
 
@@ -218,8 +229,7 @@ export default function CampRegistrationsTable({
           campId={camp.id}
           onClose={() => setMarkPaidRegistration(null)}
           onSuccess={() => {
-            // Le parent page utilise Server Component → rechargement suffit
-            window.location.reload();
+            refresh();
           }}
         />
       )}
@@ -231,6 +241,7 @@ export default function CampRegistrationsTable({
           if (!toDelete) return;
           await deleteCampRegistration(toDelete.id);
           setToDelete(null);
+          refresh();
         }}
         title="Supprimer cette inscription ?"
         message={`L'inscription de "${toDelete?.player_name ?? ''}" sera définitivement supprimée.`}

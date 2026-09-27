@@ -7,11 +7,19 @@ import TrainingPaymentModal from '@/components/admin/TrainingPaymentModal';
 import MarkPaidModal from '@/components/admin/MarkPaidModal';
 import { deleteTrainingRequest } from '@/app/admin/demandes-training/actions';
 
-export default function TrainingRequestsTable({ requests }: { requests: any[] }) {
+export default function TrainingRequestsTable({
+  requests,
+  onMutate
+}: {
+  requests: any[];
+  onMutate?: () => void;
+}) {
+  const router = useRouter();
+  const refresh = onMutate ?? (() => router.refresh());
+
   const [openRequest, setOpenRequest] = useState<any | null>(null);
   const [paymentRequest, setPaymentRequest] = useState<any | null>(null);
   const [markPaidRequest, setMarkPaidRequest] = useState<any | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     if (openRequest && !requests.find((r) => r.id === openRequest.id)) {
@@ -135,7 +143,6 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
                         </button>
                       )}
 
-                      {/* Reçu PDF : toujours visible, grisé si non payé */}
                       {isPaid ? (
                         <a
                           href={`/api/admin/receipt/training/${r.id}`}
@@ -162,7 +169,11 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
                         Traiter
                       </button>
 
-                      <DeleteButton id={r.id} name={r.parent_name} />
+                      <DeleteButton
+                        id={r.id}
+                        name={r.parent_name}
+                        onMutate={onMutate}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -177,7 +188,7 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
           request={openRequest}
           onClose={() => {
             setOpenRequest(null);
-            router.refresh();
+            refresh();
           }}
         />
       )}
@@ -187,7 +198,7 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
           request={paymentRequest}
           onClose={() => {
             setPaymentRequest(null);
-            router.refresh();
+            refresh();
           }}
         />
       )}
@@ -204,7 +215,7 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
           programTitle={markPaidRequest.program_title}
           onClose={() => setMarkPaidRequest(null)}
           onSuccess={() => {
-            router.refresh();
+            refresh();
           }}
         />
       )}
@@ -265,16 +276,26 @@ function PaymentBadge({
   );
 }
 
-function DeleteButton({ id, name }: { id: string; name: string }) {
+function DeleteButton({
+  id,
+  name,
+  onMutate
+}: {
+  id: string;
+  name: string;
+  onMutate?: () => void;
+}) {
+  const router = useRouter();
+  const refresh = onMutate ?? (() => router.refresh());
+
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleDelete = async () => {
     setLoading(true);
     try {
       await deleteTrainingRequest(id);
-      router.refresh();
+      refresh();
     } catch {
       alert('Erreur lors de la suppression');
       setLoading(false);
