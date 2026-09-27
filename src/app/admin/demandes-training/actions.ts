@@ -593,7 +593,6 @@ export async function createTrainingRequestManually(payload: {
   parent_name: string;
   parent_email: string;
   parent_phone?: string | null;
-  parent_country?: string | null;
   player_name: string;
   player_age?: number | null;
   player_level?: string | null;
@@ -637,13 +636,14 @@ export async function createTrainingRequestManually(payload: {
 
     const nowIso = new Date().toISOString();
 
+    // ⚠️ training_requests n'a PAS de colonne parent_country ni player_birth_date.
+    // On n'envoie que les colonnes qui existent.
     const { data: created, error: insertErr } = await supabase
       .from('training_requests')
       .insert({
         parent_name: payload.parent_name.trim(),
         parent_email: payload.parent_email.trim().toLowerCase(),
         parent_phone: payload.parent_phone?.trim() || null,
-        parent_country: payload.parent_country?.trim() || null,
         player_name: payload.player_name.trim(),
         player_age: payload.player_age ?? null,
         player_level: payload.player_level ?? null,
@@ -675,14 +675,6 @@ export async function createTrainingRequestManually(payload: {
       } catch (err) {
         console.error('[Create Training] Email succès échec:', err);
       }
-    } else {
-      // Envoi email de confirmation d'inscription (mode "à payer plus tard")
-      try {
-        const { sendTrainingPaymentLinkEmail } = await import('@/lib/training-emails');
-        // On n'envoie PAS de lien de paiement ici — juste un email de bienvenue basique
-        // Le parent sera contacté par l'équipe
-        void sendTrainingPaymentLinkEmail; // évite unused import
-      } catch { /* noop */ }
     }
 
     revalidatePath('/admin/demandes-training');

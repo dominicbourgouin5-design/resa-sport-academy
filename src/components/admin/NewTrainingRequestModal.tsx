@@ -119,7 +119,6 @@ export default function NewTrainingRequestModal({
         parent_name: parentName,
         parent_email: parentEmail,
         parent_phone: parentPhone,
-        parent_country: parentCountry,
         player_name: playerName,
         player_age: playerAge ? Number(playerAge) : null,
         player_level: playerLevel,
