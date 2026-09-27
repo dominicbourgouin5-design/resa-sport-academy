@@ -58,6 +58,12 @@ const SECTIONS: Section[] = [
         children: [
           { href: '/admin/demandes-training', label: 'Toutes les demandes' }
         ]
+      },
+      {
+        label: 'Demandes partenariat', icon: 'sponsor',
+        children: [
+          { href: '/admin/demandes-partenariat', label: 'Toutes les demandes' }
+        ]
       }
     ]
   },

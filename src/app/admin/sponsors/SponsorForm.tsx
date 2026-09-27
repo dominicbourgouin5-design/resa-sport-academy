@@ -19,6 +19,7 @@ type Lang = 'fr' | 'en';
 export default function SponsorForm({ sponsor }: { sponsor?: any }) {
   const [state, formAction, pending] = useActionState(saveSponsor, null);
   const isEdit = !!sponsor;
+  const isFromRequest = !!sponsor?._fromRequest;
 
   const [lang, setLang] = useState<Lang>('fr');
 
@@ -56,6 +57,12 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
           {isEdit ? 'Modifier' : 'Nouveau partenaire'}
         </span>
       </div>
+
+      {isFromRequest && (
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">
+          ✨ <strong>Création depuis une demande validée.</strong> Les informations du demandeur ont été pré-remplies. Complétez le logo, la description et le niveau de partenariat pour finaliser la fiche.
+        </div>
+      )}
 
       {/* Header */}
       <div className="mb-8">
