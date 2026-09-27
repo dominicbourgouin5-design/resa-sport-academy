@@ -1,6 +1,5 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCurrentProfile } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
@@ -23,7 +22,7 @@ export async function updatePartnerRequestStatus(
 ) {
   await requireRole(['admin', 'league_manager']);
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const patch: any = { status, updated_at: new Date().toISOString() };
   if (status === 'contacted') patch.contacted_at = new Date().toISOString();
@@ -45,7 +44,7 @@ export async function updatePartnerRequestStatus(
 export async function savePartnerRequestNotes(id: string, notes: string) {
   await requireRole(['admin', 'league_manager']);
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from('sponsor_requests')
     .update({ admin_notes: notes, updated_at: new Date().toISOString() })
@@ -67,7 +66,7 @@ export async function sendPartnerRequestEmail(
   try {
     await requireRole(['admin', 'league_manager']);
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data: req } = await supabase
       .from('sponsor_requests')
       .select('*')
@@ -124,7 +123,7 @@ ${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
 // ═══════════════════════════════════════════════════════════
 export async function deletePartnerRequest(id: string) {
   await requireRole(['admin']);
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from('sponsor_requests').delete().eq('id', id);
   if (error) throw new Error(error.message);
   revalidatePath('/admin/demandes-partenariat');

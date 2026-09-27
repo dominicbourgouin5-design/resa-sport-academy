@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import Collapsible from '@/components/admin/Collapsible';
 import PartnerRequestsTable from './PartnerRequestsTable';
 
@@ -20,12 +20,24 @@ const STATUS_CONFIG: Record<string, {
 };
 
 export default async function AdminPartnerRequestsPage() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
-  const { data: requests } = await supabase
+  const { data: requests, error, count } = await supabase
     .from('sponsor_requests')
-    .select('*')
+    .select('*', { count: 'exact' })
     .order('created_at', { ascending: false });
+
+  console.log('[Admin Partner Requests] DEBUG:', {
+    hasError: !!error,
+    errorMessage: error?.message,
+    count: count,
+    dataLength: requests?.length,
+    firstItem: requests?.[0]?.company_name
+  });
+
+  if (error) {
+    console.error('[Admin Partner Requests] Supabase error:', error);
+  }
 
   const list = (requests ?? []) as any[];
 
