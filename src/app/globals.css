@@ -16,8 +16,7 @@
   --font-body:    system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
-html { scroll-behavior: smooth; }
-
+ 
 body {
   font-family: var(--font-body);
   color: var(--color-resa-text);

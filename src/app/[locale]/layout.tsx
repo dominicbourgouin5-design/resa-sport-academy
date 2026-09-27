@@ -9,6 +9,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import WhatsAppButton from '@/components/layout/WhatsAppButton';
 import ServiceWorkerPublic from '@/components/ServiceWorkerPublic';
+import ScrollToHash from '@/components/ScrollToHash';
 
 import '../globals.css';
 
@@ -49,6 +50,7 @@ export default async function LocaleLayout({
       <body className="min-h-screen antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ServiceWorkerPublic />
+          <ScrollToHash />
           <Header />
           <main>{children}</main>
           <Footer />

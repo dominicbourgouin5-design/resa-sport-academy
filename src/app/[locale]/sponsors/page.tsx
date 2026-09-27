@@ -2,6 +2,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import SponsorsHero from './SponsorsHero';
+import PartnerRequestForm from '@/components/PartnerRequestForm';
 import { getSponsors } from '@/lib/queries';
 
 export default async function SponsorsPage({
@@ -96,25 +97,26 @@ function SponsorsContent({ sponsors, locale }: { sponsors: any[]; locale: string
         );
       })}
 
-      {/* ─── CTA DEVENIR PARTENAIRE ─── */}
-      <section className="relative overflow-hidden bg-fade-navy py-14 text-white md:py-20">
+      {/* ─── SECTION DEVENIR PARTENAIRE (avec ancre + formulaire) ─── */}
+      <section
+        id="devenir-partenaire"
+        className="scroll-mt-24 relative overflow-hidden bg-fade-navy py-14 text-white md:py-20"
+      >
         <div className="absolute inset-0 bg-dots opacity-30" />
         <div className="pointer-events-none absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-resa-red/10 blur-3xl anim-float" />
-        <div className="relative mx-auto max-w-3xl px-4 text-center md:px-6">
-          <h2 className="font-display text-3xl font-black md:text-5xl">
-            {t('become')}
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base text-white/75 md:text-lg">
-            {t('becomeText')}
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link
-              href="/inscriptions"
-              className="group inline-flex items-center gap-2 rounded-full bg-resa-red px-7 py-3.5 text-sm font-bold uppercase tracking-wide text-white shadow-resa-lg transition-all duration-300 hover:bg-red-700 hover:scale-[1.04]"
-            >
-              {t('contactUs')}
-              <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-            </Link>
+
+        <div className="relative mx-auto max-w-3xl px-4 md:px-6">
+          <div className="text-center">
+            <h2 className="font-display text-3xl font-black md:text-5xl">
+              {t('become')}
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-base text-white/75 md:text-lg">
+              {t('becomeText')}
+            </p>
+          </div>
+
+          <div className="mt-10">
+            <PartnerRequestForm />
           </div>
         </div>
       </section>
@@ -123,7 +125,7 @@ function SponsorsContent({ sponsors, locale }: { sponsors: any[]; locale: string
 }
 
 // ═══════════════════════════════════════════════════════════
-// Card sponsor (avec lien vers page dédiée)
+// Card sponsor
 // ═══════════════════════════════════════════════════════════
 function SponsorCard({
   sponsor,
@@ -148,7 +150,6 @@ function SponsorCard({
         <div className={`h-1 w-full bg-linear-to-r ${tierColor}`} />
 
         <div className="flex flex-1 flex-col p-6">
-          {/* Logo (image ou fallback initiale) */}
           {sponsor.logo_url ? (
             <div
               className={`mb-5 flex shrink-0 items-center justify-center rounded-xl border border-black/5 bg-white shadow-resa transition-transform duration-300 group-hover:scale-105 ${logoSize}`}
@@ -177,7 +178,6 @@ function SponsorCard({
               : sponsor.description_en || sponsor.description_fr}
           </p>
 
-          {/* Indicateur "voir plus" */}
           <div className="mt-5 inline-flex items-center gap-1 text-xs font-bold text-resa-royal transition-colors group-hover:text-resa-red">
             {isFr ? 'Voir le partenaire' : 'View partner'}
             <span className="transition-transform duration-300 group-hover:translate-x-0.5">→</span>

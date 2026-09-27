@@ -11,6 +11,7 @@ type Props = {
 
 export default function HeroContent({ stats, isFr }: Props) {
   const t = useTranslations('universe');
+
   const [offset, setOffset] = useState(0);
   const [opacity, setOpacity] = useState(1);
 
@@ -21,10 +22,7 @@ export default function HeroContent({ stats, isFr }: Props) {
       raf = requestAnimationFrame(() => {
         const y = window.scrollY;
         const vh = window.innerHeight;
-        // Le contenu monte légèrement plus vite que le scroll (léger premier plan)
-        // Valeur négative = monte plus vite → s'éloigne du bandeau de stats en bas
         setOffset(-y * 0.08);
-        // Fade out sur 60% de la hauteur du viewport
         setOpacity(Math.max(0, 1 - y / (vh * 0.6)));
       });
     };
@@ -34,15 +32,6 @@ export default function HeroContent({ stats, isFr }: Props) {
       cancelAnimationFrame(raf);
     };
   }, []);
-
-  const statItems = [
-    { value: `${stats.schools}+`, label: isFr ? 'Écoles' : 'Schools' },
-    { value: stats.teams, label: isFr ? 'Équipes' : 'Teams' },
-    { value: stats.players, label: isFr ? 'Joueurs' : 'Players' },
-    { value: '2', label: isFr ? 'Continents' : 'Continents' }
-  ];
-  // Note : statItems est utilisé dans le bandeau de stats en bas du hero
-  // (il reste dans page.tsx pour éviter le double parallax)
 
   return (
     <div
@@ -71,8 +60,10 @@ export default function HeroContent({ stats, isFr }: Props) {
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3 anim-fade-up delay-700">
+          {/* ✅ scroll={false} empêche Next.js de reset le scroll à (0,0) */}
           <Link
-            href="/programs"
+            href="/inscriptions#form"
+            scroll={false}
             className="group inline-flex items-center gap-2 rounded-full bg-resa-red px-7 py-3.5 text-sm font-bold uppercase tracking-wide text-white shadow-resa-lg transition-all duration-300 hover:scale-[1.03] hover:bg-red-700"
           >
             {t('heroCtaPrimary')}
@@ -80,8 +71,10 @@ export default function HeroContent({ stats, isFr }: Props) {
               →
             </span>
           </Link>
+
           <Link
-            href="/private-training"
+            href="/sponsors#devenir-partenaire"
+            scroll={false}
             className="group inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/5 px-7 py-3.5 text-sm font-bold uppercase tracking-wide text-white backdrop-blur transition-all duration-300 hover:scale-[1.03] hover:bg-white hover:text-resa-navy"
           >
             {t('heroCtaSecondary')}

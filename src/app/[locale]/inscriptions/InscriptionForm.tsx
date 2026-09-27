@@ -129,7 +129,7 @@ export default function InscriptionForm({ categories }: { categories: any[] }) {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-20">
+      <section id="form" className="scroll-mt-24 mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-20">
         <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
           <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-resa-lg md:p-10">
             <div className="mb-8 inline-flex w-full max-w-md rounded-xl border border-black/10 bg-resa-gray p-1">
