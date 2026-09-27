@@ -40,7 +40,7 @@ export default function NewCampRegistrationModal({
   const [notes, setNotes] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
 
-  const [status, setStatus] = useState<'new' | 'contacted' | 'confirmed'>('new');
+  const [status, setStatus] = useState<'new' | 'contacted' | 'confirmed'>('confirmed');  
   const [paymentOption, setPaymentOption] = useState<PaymentOption>('later');
   const [amount, setAmount] = useState<string>('');
   const [currency, setCurrency] = useState<string>('XOF');

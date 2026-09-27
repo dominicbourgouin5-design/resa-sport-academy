@@ -587,7 +587,7 @@ export async function createCampRegistrationManually(payload: {
     // ✉️ Envoyer email dans 2 cas :
     //   - Payé immédiatement (email + PDF)
     //   - Confirmé mais non payé (email sans PDF)
-    const shouldEmail = isPaid || payload.status === 'confirmed';
+    const shouldEmail = payload.status !== 'cancelled';
     if (shouldEmail) {
       try {
         const { sendCampSuccessEmails } = await import('@/lib/camp-emails');

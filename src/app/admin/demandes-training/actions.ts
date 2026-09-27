@@ -648,8 +648,8 @@ export async function createTrainingRequestManually(payload: {
     // ✉️ Envoyer email dans 2 cas :
     //   - Payé immédiatement (email + PDF)
     //   - Réservé mais non payé (email sans PDF)
-    const shouldEmail = isPaid || payload.status === 'booked';
-    if (shouldEmail) {
+    // ✉️ Envoyer systématiquement (sauf annulé)
+    const shouldEmail = payload.status !== 'cancelled';    if (shouldEmail) {
       try {
         await sendTrainingSuccessEmail(created.id);
       } catch (err) {
