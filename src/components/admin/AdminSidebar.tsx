@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Logo from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
 import { useAdminSidebar } from './AdminShell';
@@ -110,18 +111,59 @@ const SECTIONS: Section[] = [
   }
 ];
 
+type FloatingMenu = {
+  label: string;
+  items: SubItem[];
+  top: number;
+  left: number;
+};
+
 export default function AdminSidebar({ role }: { role: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [floating, setFloating] = useState<FloatingMenu | null>(null);
+  const [mounted, setMounted] = useState(false);
   const { mobileOpen, setMobileOpen, collapsed, toggleCollapsed } = useAdminSidebar();
 
-  // Ferme le drawer mobile au changement de page
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isCollapsed = collapsed && !mobileOpen;
+
+  // Ferme le drawer mobile + le popover au changement de page
   useEffect(() => {
     setMobileOpen(false);
+    setFloating(null);
   }, [pathname, setMobileOpen]);
 
-  // En drawer mobile : toujours étendu (peu importe la préférence desktop)
-  const isCollapsed = collapsed && !mobileOpen;
+  // Ferme le popover au clic extérieur
+  useEffect(() => {
+    if (!floating) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const pop = document.getElementById('resa-sidebar-popover');
+      if (pop && pop.contains(target)) return;
+      const side = document.getElementById('resa-admin-sidebar');
+      if (side && side.contains(target)) return;
+      setFloating(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [floating]);
+
+  // Ferme le popover au scroll (évite qu'il flotte à côté)
+  useEffect(() => {
+    if (!floating) return;
+    const handler = () => setFloating(null);
+    window.addEventListener('scroll', handler, true);
+    return () => window.removeEventListener('scroll', handler, true);
+  }, [floating]);
+
+  // Ferme le popover si on étend la sidebar
+  useEffect(() => {
+    if (!isCollapsed) setFloating(null);
+  }, [isCollapsed]);
 
   const isActive = (href: string) => {
     if (href === '/admin') return pathname === '/admin';
@@ -132,6 +174,26 @@ export default function AdminSidebar({ role }: { role: string }) {
     item.href
       ? isActive(item.href)
       : item.children?.some((c: SubItem) => pathname.startsWith(c.href));
+
+  const handleGroupClick = (item: any, e: React.MouseEvent<HTMLButtonElement>) => {
+    if (isCollapsed) {
+      // Mode réduit → popover flottant à droite
+      if (floating?.label === item.label) {
+        setFloating(null);
+        return;
+      }
+      const rect = e.currentTarget.getBoundingClientRect();
+      setFloating({
+        label: item.label,
+        items: item.children!,
+        top: rect.top,
+        left: rect.right + 10
+      });
+      return;
+    }
+    // Mode étendu → toggle normal
+    setOpen((o) => ({ ...o, [item.label]: !o[item.label] }));
+  };
 
   return (
     <>
@@ -145,27 +207,24 @@ export default function AdminSidebar({ role }: { role: string }) {
       )}
 
       <aside
+        id="resa-admin-sidebar"
         className={cn(
           'flex h-screen shrink-0 flex-col border-r border-white/5 bg-resa-navy text-white',
           'fixed inset-y-0 left-0 z-50',
           'transition-[width,transform] duration-300 ease-out',
-          // Largeur : mobile toujours 15rem, desktop selon collapsed
           'w-60',
           collapsed ? 'lg:w-16' : 'lg:w-60',
-          // Mobile
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
           'lg:translate-x-0'
         )}
       >
         {/* ═══ HEADER ═══ */}
         {isCollapsed ? (
-          // ─── Mode réduit : logo centré + toggle dessous ───
           <div className="flex flex-col items-center gap-2 border-b border-white/5 py-3">
             <Link href="/admin" aria-label="RESA Admin">
               <Logo size="sm" />
             </Link>
 
-            {/* Toggle desktop */}
             <button
               onClick={toggleCollapsed}
               className="hidden lg:grid h-6 w-6 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white"
@@ -177,7 +236,6 @@ export default function AdminSidebar({ role }: { role: string }) {
               </svg>
             </button>
 
-            {/* Close mobile */}
             <button
               onClick={() => setMobileOpen(false)}
               className="grid h-6 w-6 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white lg:hidden"
@@ -189,7 +247,6 @@ export default function AdminSidebar({ role }: { role: string }) {
             </button>
           </div>
         ) : (
-          // ─── Mode étendu : logo + texte + toggle à droite ───
           <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
             <Link href="/admin" className="flex items-center gap-3">
               <Logo size="sm" />
@@ -203,7 +260,6 @@ export default function AdminSidebar({ role }: { role: string }) {
               </div>
             </Link>
 
-            {/* Toggle desktop */}
             <button
               onClick={toggleCollapsed}
               className="hidden lg:grid h-8 w-8 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white"
@@ -215,7 +271,6 @@ export default function AdminSidebar({ role }: { role: string }) {
               </svg>
             </button>
 
-            {/* Close mobile */}
             <button
               onClick={() => setMobileOpen(false)}
               className="grid h-8 w-8 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white lg:hidden"
@@ -255,8 +310,9 @@ export default function AdminSidebar({ role }: { role: string }) {
                     const groupActive = isGroupActive(item);
                     const hasChildren = !!item.children?.length;
                     const isOpen = open[item.label];
+                    const isFloatingOpen = floating?.label === item.label;
 
-                    // ─── Item simple sans enfants ───
+                    // ─── Item simple ───
                     if (!hasChildren && item.href) {
                       return (
                         <li key={item.label}>
@@ -282,23 +338,17 @@ export default function AdminSidebar({ role }: { role: string }) {
                     return (
                       <li key={item.label}>
                         <button
-                          onClick={() => {
-                            // ⚠️ En mode réduit : clic simple ne fait RIEN (pas d'expand)
-                            // L'utilisateur doit d'abord cliquer sur la flèche
-                            if (isCollapsed) return;
-                            setOpen((o) => ({ ...o, [item.label]: !o[item.label] }));
-                          }}
+                          onClick={(e) => handleGroupClick(item, e)}
                           title={isCollapsed ? item.label : undefined}
                           className={cn(
-                            'flex w-full items-center rounded-md py-2 text-[13px] font-medium transition',
+                            'group flex w-full items-center rounded-md py-2 text-[13px] font-medium transition',
                             isCollapsed ? 'justify-center px-0' : 'gap-2.5 px-3',
-                            groupActive
-                              ? 'text-white'
-                              : 'text-white/60 hover:bg-white/5 hover:text-white',
-                            isCollapsed ? 'cursor-default' : 'cursor-pointer'
+                            (groupActive || isFloatingOpen)
+                              ? 'bg-white/10 text-white'
+                              : 'text-white/60 hover:bg-white/5 hover:text-white'
                           )}
                         >
-                          <Icon name={item.icon} active={groupActive} />
+                          <Icon name={item.icon} active={groupActive || isFloatingOpen} />
                           {!isCollapsed && (
                             <>
                               <span className="flex-1 text-left">{item.label}</span>
@@ -363,6 +413,43 @@ export default function AdminSidebar({ role }: { role: string }) {
           </Link>
         </div>
       </aside>
+
+      {/* ═══ POPOVER FLOTTANT (mode réduit) ═══ */}
+      {mounted && floating && createPortal(
+        <div
+          id="resa-sidebar-popover"
+          style={{
+            position: 'fixed',
+            top: floating.top,
+            left: floating.left,
+            zIndex: 100
+          }}
+          className="min-w-[210px] overflow-hidden rounded-xl border border-black/5 bg-white py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.25)] anim-fade-in"
+        >
+          <div className="px-4 pb-1 pt-1.5 text-[10px] font-black uppercase tracking-widest text-resa-text/40">
+            {floating.label}
+          </div>
+          <ul>
+            {floating.items.map((c) => (
+              <li key={c.href}>
+                <Link
+                  href={c.href}
+                  onClick={() => setFloating(null)}
+                  className={cn(
+                    'block px-4 py-2 text-[13px] transition',
+                    isActive(c.href)
+                      ? 'bg-resa-navy/5 font-semibold text-resa-navy'
+                      : 'text-resa-text/70 hover:bg-resa-gray/60 hover:text-resa-navy'
+                  )}
+                >
+                  {c.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>,
+        document.body
+      )}
     </>
   );
 }
