@@ -63,9 +63,13 @@ function formatPaymentMethod(method?: string | null): string {
   const m = method.toLowerCase();
   if (m === 'stripe') return 'Carte bancaire (Stripe)';
   if (m === 'paypal') return 'PayPal';
-  if (m === 'fedapay' || m.startsWith('momo')) return 'Mobile Money';
+  if (m === 'fedapay' || m.startsWith('momo') && !m.includes('offline')) return 'Mobile Money';
+  if (m === 'cash') return 'Espèces';
+  if (m === 'momo_offline') return 'Mobile Money (hors ligne)';
+  if (m === 'bank_transfer') return 'Virement bancaire';
+  if (m === 'check') return 'Chèque';
   if (m === 'manual') return 'Paiement manuel';
-  return method; // fallback : affiche la valeur brute plutôt que d'inventer
+  return method;
 }
 
 export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array> {

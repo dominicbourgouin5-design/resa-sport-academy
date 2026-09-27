@@ -215,6 +215,7 @@ export default function CampRegistrationsTable({
           playerName={markPaidRegistration.player_name}
           defaultAmount={markPaidRegistration.payment_amount}
           defaultCurrency={markPaidRegistration.payment_currency}
+          campId={camp.id}
           onClose={() => setMarkPaidRegistration(null)}
           onSuccess={() => {
             // Le parent page utilise Server Component → rechargement suffit

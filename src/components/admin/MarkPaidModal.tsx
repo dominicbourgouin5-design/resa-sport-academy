@@ -1,9 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Modal from '@/components/admin/Modal';
-import { markTrainingRequestPaid } from '@/app/admin/demandes-training/actions';
-import { markCampRegistrationPaid } from '@/app/admin/camps/actions';
+import {
+  markTrainingRequestPaid,
+  getTrainingProgramRate
+} from '@/app/admin/demandes-training/actions';
+import {
+  markCampRegistrationPaid,
+  getCampPriceById
+} from '@/app/admin/camps/actions';
 
 type EntityType = 'camp' | 'training';
 
@@ -22,6 +28,8 @@ export default function MarkPaidModal({
   playerName,
   defaultAmount,
   defaultCurrency,
+  programSlug,
+  campId,
   onClose,
   onSuccess
 }: {
@@ -31,20 +39,60 @@ export default function MarkPaidModal({
   playerName?: string;
   defaultAmount?: number | null;
   defaultCurrency?: string | null;
+  programSlug?: string | null;
+  campId?: string | null;
   onClose: () => void;
   onSuccess?: () => void;
 }) {
   const isCamp = type === 'camp';
 
   const [amount, setAmount] = useState<string>(
-    defaultAmount ? String(defaultAmount) : isCamp ? '25000' : '25000'
+    defaultAmount ? String(defaultAmount) : ''
   );
   const [currency, setCurrency] = useState<string>(
     defaultCurrency ?? 'XOF'
   );
   const [method, setMethod] = useState<string>('cash');
+  const [loadingPrice, setLoadingPrice] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; error?: string } | null>(null);
+
+  // ✅ Auto-charger le tarif par défaut (programme training OU camp)
+  useEffect(() => {
+    if (amount) return; // déjà rempli (payment_amount ou saisie)
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        setLoadingPrice(true);
+        if (!isCamp && programSlug) {
+          const rate = await getTrainingProgramRate(programSlug);
+          if (!cancelled && rate) {
+            setAmount(String(rate));
+            setCurrency('XOF');
+          }
+        } else if (isCamp && campId) {
+          const { xof, usd } = await getCampPriceById(campId);
+          if (cancelled) return;
+          // Priorité au tarif XOF (cas le plus fréquent pour un paiement manuel)
+          if (xof) {
+            setAmount(String(xof));
+            setCurrency('XOF');
+          } else if (usd) {
+            setAmount(String(usd));
+            setCurrency('USD');
+          }
+        }
+      } catch (err) {
+        console.warn('[MarkPaidModal] lookup error:', err);
+      } finally {
+        if (!cancelled) setLoadingPrice(false);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [programSlug, campId, isCamp, amount]);
 
   const handleSubmit = async () => {
     const num = Number(amount);
@@ -78,7 +126,6 @@ export default function MarkPaidModal({
     }
   };
 
-  // ═══ Écran succès ═══
   if (result?.ok) {
     return (
       <Modal open onClose={onClose}>
@@ -130,13 +177,14 @@ export default function MarkPaidModal({
           <div>
             <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
               Montant payé *
+              {loadingPrice && <span className="ml-2 text-resa-text/40">⏳ chargement…</span>}
             </label>
             <div className="flex gap-2">
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="25000"
+                placeholder={currency === 'XOF' ? '25000' : '25.00'}
                 min={1}
                 step={currency === 'XOF' ? '1' : '0.01'}
                 className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[15px] font-bold text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
