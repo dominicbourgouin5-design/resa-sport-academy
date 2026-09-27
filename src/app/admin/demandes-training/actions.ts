@@ -463,3 +463,38 @@ export async function markTrainingRequestPaid(
     return { error: err.message ?? 'Erreur inconnue' };
   }
 }
+
+
+
+// ═══════════════════════════════════════════════════════════
+// Fallback : récupérer le tarif par titre de programme
+// (utile quand program_slug est null en DB)
+// ═══════════════════════════════════════════════════════════
+export async function getTrainingProgramRateByTitle(
+  title: string
+): Promise<number | null> {
+  if (!title) return null;
+  const supabase = await createClient();
+
+  // Cherche un programme dont le titre FR ou EN matche (insensible à la casse)
+  const { data } = await supabase
+    .from('training_programs')
+    .select('rates, title_fr, title_en, slug')
+    .or(`title_fr.ilike.%${title}%,title_en.ilike.%${title}%`)
+    .limit(1)
+    .maybeSingle();
+
+  if (!data?.rates) return null;
+
+  const rates = Array.isArray(data.rates) ? data.rates : [];
+  for (const r of rates) {
+    if (r?.price_fr) {
+      const match = String(r.price_fr).match(/([\d\s]+)/);
+      if (match) {
+        const num = parseInt(match[1].replace(/\s/g, ''), 10);
+        if (Number.isFinite(num) && num > 0) return num;
+      }
+    }
+  }
+  return null;
+}

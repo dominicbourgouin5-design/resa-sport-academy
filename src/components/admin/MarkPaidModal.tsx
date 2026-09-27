@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import Modal from '@/components/admin/Modal';
 import {
   markTrainingRequestPaid,
-  getTrainingProgramRate
+  getTrainingProgramRate,
+  getTrainingProgramRateByTitle
 } from '@/app/admin/demandes-training/actions';
+
 import {
   markCampRegistrationPaid,
   getCampPriceById
@@ -29,6 +31,7 @@ export default function MarkPaidModal({
   defaultAmount,
   defaultCurrency,
   programSlug,
+  programTitle,
   campId,
   onClose,
   onSuccess
@@ -40,6 +43,7 @@ export default function MarkPaidModal({
   defaultAmount?: number | null;
   defaultCurrency?: string | null;
   programSlug?: string | null;
+  programTitle?: string | null;
   campId?: string | null;
   onClose: () => void;
   onSuccess?: () => void;
@@ -65,8 +69,18 @@ export default function MarkPaidModal({
     const load = async () => {
       try {
         setLoadingPrice(true);
-        if (!isCamp && programSlug) {
-          const rate = await getTrainingProgramRate(programSlug);
+
+        if (!isCamp) {
+          // Training : on tente par slug, puis par titre en fallback
+          let rate: number | null = null;
+
+          if (programSlug) {
+            rate = await getTrainingProgramRate(programSlug);
+          }
+          if (!rate && programTitle) {
+            rate = await getTrainingProgramRateByTitle(programTitle);
+          }
+
           if (!cancelled && rate) {
             setAmount(String(rate));
             setCurrency('XOF');
@@ -74,7 +88,6 @@ export default function MarkPaidModal({
         } else if (isCamp && campId) {
           const { xof, usd } = await getCampPriceById(campId);
           if (cancelled) return;
-          // Priorité au tarif XOF (cas le plus fréquent pour un paiement manuel)
           if (xof) {
             setAmount(String(xof));
             setCurrency('XOF');
@@ -92,7 +105,7 @@ export default function MarkPaidModal({
 
     load();
     return () => { cancelled = true; };
-  }, [programSlug, campId, isCamp, amount]);
+  }, [programSlug, programTitle, campId, isCamp, amount]);
 
   const handleSubmit = async () => {
     const num = Number(amount);

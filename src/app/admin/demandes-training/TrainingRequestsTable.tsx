@@ -201,6 +201,7 @@ export default function TrainingRequestsTable({ requests }: { requests: any[] })
           defaultAmount={markPaidRequest.payment_amount}
           defaultCurrency={markPaidRequest.payment_currency}
           programSlug={markPaidRequest.program_slug}
+          programTitle={markPaidRequest.program_title}
           onClose={() => setMarkPaidRequest(null)}
           onSuccess={() => {
             router.refresh();
