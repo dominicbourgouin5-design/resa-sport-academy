@@ -210,7 +210,7 @@ ${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
 }
 
 // ═══════════════════════════════════════════════════════════
-// PRIX CAMP (auto-charger dans modal paiement)
+// PRIX CAMP
 // ═══════════════════════════════════════════════════════════
 export async function getCampPriceById(
   campId: string
@@ -229,7 +229,7 @@ export async function getCampPriceById(
 }
 
 // ═══════════════════════════════════════════════════════════
-// PAYMENT — Envoyer/renvoyer un lien FedaPay
+// PAYMENT — FedaPay
 // ═══════════════════════════════════════════════════════════
 export async function sendCampPaymentLink(
   registrationId: string,
@@ -314,7 +314,7 @@ export async function sendCampPaymentLink(
 }
 
 // ═══════════════════════════════════════════════════════════
-// PAYMENT — Envoyer/renvoyer un lien PayPal
+// PAYMENT — PayPal
 // ═══════════════════════════════════════════════════════════
 export async function sendCampPayPalLink(
   registrationId: string,
@@ -387,7 +387,7 @@ export async function sendCampPayPalLink(
 }
 
 // ═══════════════════════════════════════════════════════════
-// PAYMENT — Envoyer un lien de paiement Stripe (Camp)
+// PAYMENT — Stripe
 // ═══════════════════════════════════════════════════════════
 export async function sendCampStripeLink(
   registrationId: string,
@@ -460,7 +460,7 @@ export async function sendCampStripeLink(
 }
 
 // ═══════════════════════════════════════════════════════════
-// Marquer manuellement une inscription camp comme payée (hors ligne)
+// Marquer manuellement une inscription camp comme payée
 // ═══════════════════════════════════════════════════════════
 export async function markCampRegistrationPaid(
   registrationId: string,
@@ -557,6 +557,8 @@ export async function createCampRegistrationManually(payload: {
 
     const nowIso = new Date().toISOString();
 
+    console.log(`[Create Camp] 📝 Création pour ${payload.parent_email} (statut: ${payload.status}, payé: ${isPaid})`);
+
     const { data: created, error: insertErr } = await supabase
       .from('camp_registrations')
       .insert({
@@ -575,33 +577,40 @@ export async function createCampRegistrationManually(payload: {
         payment_method: isPaid ? payload.payment_method! : 'manual',
         payment_amount: isPaid ? payload.payment_amount! : null,
         payment_currency: isPaid ? payload.payment_currency! : 'XOF',
-        paid_at: isPaid ? nowIso : null
+        paid_at: isPaid ? nowIso : null,
+        // ⚠️ CRITIQUE : forcer null sinon sendCampSuccessEmails est bloqué
+        success_email_sent_at: null,
+        failure_email_sent_at: null
       })
       .select('id')
       .single();
 
     if (insertErr || !created) {
+      console.error('[Create Camp] ❌ Erreur insert:', insertErr);
       return { error: insertErr?.message ?? 'Erreur à la création.' };
     }
 
-    // ✉️ Envoyer email dans 2 cas :
-    //   - Payé immédiatement (email + PDF)
-    //   - Confirmé mais non payé (email sans PDF)
-    const shouldEmail = payload.status !== 'cancelled';
-    if (shouldEmail) {
+    console.log('[Create Camp] ✅ Ligne insérée:', created.id);
+
+    // ✉️ Envoyer sauf si annulé
+    if (payload.status !== 'cancelled') {
       try {
+        console.log('[Create Camp] 🚀 Envoi email pour', created.id);
         const { sendCampSuccessEmails } = await import('@/lib/camp-emails');
-        await sendCampSuccessEmails(created.id);
+        const r = await sendCampSuccessEmails(created.id);
+        console.log('[Create Camp] 📬 Résultat email:', r);
       } catch (err) {
-        console.error('[Create Camp] Email échec:', err);
+        console.error('[Create Camp] ❌ Exception email:', err);
       }
+    } else {
+      console.log('[Create Camp] ℹ️ Annulé, pas d\'email');
     }
 
     revalidatePath('/admin/camps');
     revalidatePath(`/admin/camps/${payload.camp_id}/inscriptions`);
     return { ok: true, id: created.id };
   } catch (err: any) {
-    console.error('[Create Camp] Error:', err);
+    console.error('[Create Camp] ❌ Erreur globale:', err);
     return { error: err.message ?? 'Erreur inconnue' };
   }
 }

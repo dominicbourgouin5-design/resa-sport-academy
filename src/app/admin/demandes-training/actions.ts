@@ -636,7 +636,9 @@ export async function createTrainingRequestManually(payload: {
         payment_method: isPaid ? payload.payment_method! : 'manual',
         payment_amount: isPaid ? payload.payment_amount! : null,
         payment_currency: isPaid ? payload.payment_currency! : 'XOF',
-        paid_at: isPaid ? nowIso : null
+        paid_at: isPaid ? nowIso : null,
+         success_email_sent_at: null,
+        failure_email_sent_at: null
       })
       .select('id')
       .single();
@@ -649,11 +651,16 @@ export async function createTrainingRequestManually(payload: {
     //   - Payé immédiatement (email + PDF)
     //   - Réservé mais non payé (email sans PDF)
     // ✉️ Envoyer systématiquement (sauf annulé)
-    const shouldEmail = payload.status !== 'cancelled';    if (shouldEmail) {
+    console.log(`[Create Training] 📝 Création pour ${payload.parent_email} (statut: ${payload.status})`);
+    console.log('[Create Training] ✅ Ligne insérée:', created.id);
+
+    if (payload.status !== 'cancelled') {
       try {
-        await sendTrainingSuccessEmail(created.id);
+        console.log('[Create Training] 🚀 Envoi email pour', created.id);
+        const r = await sendTrainingSuccessEmail(created.id);
+        console.log('[Create Training] 📬 Résultat email:', r);
       } catch (err) {
-        console.error('[Create Training] Email échec:', err);
+        console.error('[Create Training] ❌ Exception email:', err);
       }
     }
 
