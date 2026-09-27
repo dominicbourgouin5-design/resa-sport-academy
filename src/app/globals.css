@@ -723,4 +723,107 @@ h1, h2, h3, h4, .font-display {
 
 
 
- 
+ /* ═══════════════════════════════════════════════════════════
+   PAGE TRANSITIONS — Niveau 2
+   1. View Transitions API : cross-fade natif old ↔ new
+   2. Fallback : fade + slide du wrapper (navigateurs < 2024)
+   3. Stagger : entrée en cascade des sections de la page
+   4. Header/Footer exclus du cross-fade (ne clignotent pas)
+═══════════════════════════════════════════════════════════ */
+
+/* ── 1. Cross-fade natif (Chrome / Edge / Safari 18+) ── */
+::view-transition-old(root) {
+  animation: 320ms cubic-bezier(0.65, 0, 0.35, 1) both resa-fade-out;
+}
+::view-transition-new(root) {
+  animation: 420ms cubic-bezier(0.22, 1, 0.36, 1) both resa-fade-in;
+}
+
+@keyframes resa-fade-out {
+  to {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0) scale(0.995);
+  }
+}
+@keyframes resa-fade-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+}
+
+/* ── 2. Fallback wrapper (navigateurs sans View Transitions) ── */
+@keyframes resa-page-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.resa-page-enter {
+  animation: resa-page-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+/* Si View Transitions est supporté → on désactive le fallback
+   (évite un double fade qui rendrait la transition baveuse) */
+@supports (view-transition-name: root) {
+  .resa-page-enter {
+    animation: none;
+  }
+}
+
+/* ── 3. Stagger : les sections de la page apparaissent en cascade ── */
+@keyframes resa-stagger {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.resa-page-enter > * {
+  animation: resa-stagger 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.resa-page-enter > *:nth-child(1) { animation-delay:  40ms; }
+.resa-page-enter > *:nth-child(2) { animation-delay: 100ms; }
+.resa-page-enter > *:nth-child(3) { animation-delay: 160ms; }
+.resa-page-enter > *:nth-child(4) { animation-delay: 220ms; }
+.resa-page-enter > *:nth-child(5) { animation-delay: 280ms; }
+.resa-page-enter > *:nth-child(6) { animation-delay: 340ms; }
+.resa-page-enter > *:nth-child(n+7) { animation-delay: 380ms; }
+
+/* ── 4. Header & Footer exclus du cross-fade (restent fixes) ── */
+header {
+  view-transition-name: site-header;
+}
+footer {
+  view-transition-name: site-footer;
+}
+
+::view-transition-old(site-header),
+::view-transition-new(site-header),
+::view-transition-old(site-footer),
+::view-transition-new(site-footer) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* ── Accessibilité ── */
+@media (prefers-reduced-motion: reduce) {
+  .resa-page-enter,
+  .resa-page-enter > *,
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}

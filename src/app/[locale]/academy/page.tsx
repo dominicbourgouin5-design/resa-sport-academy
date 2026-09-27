@@ -169,7 +169,6 @@ function AcademyContent() {
               <div key={p.key} className="w-full px-3 pb-6 sm:w-1/2 lg:w-1/4">
                 <Reveal variant="up" delay={i * 100}>
                   <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg">
-                    {/* Image header */}
                     <div className="relative h-40 overflow-hidden">
                       <div className={`absolute inset-0 bg-gradient-to-br ${p.gradient}`} />
                       <img
@@ -219,7 +218,6 @@ function AcademyContent() {
             <div key={p.key} className="w-full px-3 pb-6 sm:w-1/2">
               <Reveal variant="up" delay={i * 100}>
                 <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg md:flex-row">
-                  {/* Image à gauche (vertical strip) */}
                   <div className="relative h-48 overflow-hidden md:h-auto md:w-48 md:shrink-0">
                     <div className={`absolute inset-0 bg-gradient-to-br ${p.gradient}`} />
                     <img
@@ -230,13 +228,11 @@ function AcademyContent() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-resa-navy/60 via-transparent to-transparent md:bg-gradient-to-r" />
 
-                    {/* Icône badge */}
                     <div className="absolute left-4 top-4 grid h-12 w-12 place-items-center rounded-xl border border-white/15 bg-white/10 text-2xl backdrop-blur-md md:bottom-4 md:top-auto">
                       {p.icon}
                     </div>
                   </div>
 
-                  {/* Contenu */}
                   <div className="flex flex-1 flex-col p-6 md:p-7">
                     <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-resa-red">
                       {p.range}
@@ -292,7 +288,6 @@ function AcademyContent() {
           {regions.map((r, i) => (
             <Reveal key={r.key} variant="up" delay={i * 120}>
               <article className="relative flex h-64 items-center gap-6 overflow-hidden rounded-3xl shadow-resa-lg md:h-72">
-                {/* Image en fond */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${r.gradient}`} />
                 <img
                   src={r.image}
@@ -368,14 +363,14 @@ function AcademyContent() {
           <Reveal variant="up" delay={240}>
             <div className="mt-10 flex flex-wrap justify-center gap-3">
               <Link
-                href="/inscriptions"
+                href="/inscriptions#form"
                 className="group inline-flex items-center gap-2 rounded-full bg-resa-red px-7 py-3.5 text-sm font-bold uppercase tracking-wide text-white shadow-resa-lg transition-all duration-300 hover:bg-red-700 hover:scale-[1.03]"
               >
                 {t('ctaTrial')}
                 <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
               </Link>
               <Link
-                href="/contact"
+                href="/contact#form"
                 className="group inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/5 px-7 py-3.5 text-sm font-bold uppercase tracking-wide text-white backdrop-blur transition-all duration-300 hover:bg-white hover:text-resa-navy hover:scale-[1.03]"
               >
                 {t('ctaContact')}

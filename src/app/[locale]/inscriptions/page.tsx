@@ -3,12 +3,18 @@ import { getCategories } from '@/lib/queries';
 import InscriptionForm from './InscriptionForm';
 
 export default async function InscriptionsPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ mode?: string }>;
 }) {
   const { locale } = await params;
+  const { mode } = await searchParams;
   setRequestLocale(locale);
+
   const categories = await getCategories();
-  return <InscriptionForm categories={categories} />;
+  const initialMode = mode === 'individual' ? 'individual' : 'school';
+
+  return <InscriptionForm categories={categories} initialMode={initialMode} />;
 }

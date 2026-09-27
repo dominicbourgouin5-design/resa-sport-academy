@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'images.pexels.com' }
     ]
   },
+  // ❌ experimental.viewTransition RETIRÉ — incompatible React 19.0.0
   async headers() {
     return [
       {

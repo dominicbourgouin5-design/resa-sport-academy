@@ -108,10 +108,10 @@ export default function PartnerRequestForm() {
   ];
 
   return (
-    <form
-      onSubmit={(e) => e.preventDefault()}
-      className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa-lg"
-    >
+        <form
+        onSubmit={(e) => e.preventDefault()}
+        className="overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-12px_rgba(0,0,0,0.4)]"
+        >
       {/* ═══ Header ═══ */}
       <div className="border-b border-black/5 px-6 py-4 md:px-8">
         <div className="flex items-center justify-between gap-3">

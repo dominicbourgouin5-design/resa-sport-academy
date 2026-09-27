@@ -8,9 +8,15 @@ import InscriptionsHero from './InscriptionsHero';
 
 type Mode = 'school' | 'individual';
 
-export default function InscriptionForm({ categories }: { categories: any[] }) {
+  export default function InscriptionForm({
+    categories,
+    initialMode = 'school'
+  }: {
+    categories: any[];
+    initialMode?: Mode;
+  }) {
   const t = useTranslations('inscriptions');
-  const [mode, setMode] = React.useState<Mode>('school');
+  const [mode, setMode] = React.useState<Mode>(initialMode);
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   const [form, setForm] = React.useState({

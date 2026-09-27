@@ -87,7 +87,10 @@ function ContactContent({
       </section>
 
       {/* ─── Formulaire centré ─── */}
-      <section className="mx-auto max-w-3xl px-4 py-14 md:px-6 md:py-20">
+      <section
+        id="form"
+        className="mx-auto max-w-3xl scroll-mt-24 px-4 py-14 md:px-6 md:py-20"
+      >
         <ContactForm
           programs={sortedPrograms}
           coaches={coaches}

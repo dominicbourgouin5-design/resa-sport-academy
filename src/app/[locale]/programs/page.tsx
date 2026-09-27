@@ -124,56 +124,57 @@ function ProgramsContent({ programs }: { programs: any[] }) {
     <>
       <ProgramsHero />
 
-      {/* ═══════════ 4 GRANDES PORTES ═══════════ */}
-      <section className="mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-20">
-        <Reveal variant="right">
-          <div className="mb-12 max-w-3xl">
-            <div className="mb-3 h-1 w-14 bg-resa-red" />
-            <h2 className="font-display text-3xl font-black text-resa-navy md:text-4xl">
-              {t('doorsTitle')}
-            </h2>
-            <p className="mt-3 text-base text-resa-text/70">
-              {t('doorsSubtitle')}
-            </p>
-          </div>
-        </Reveal>
+      {/* ═══════ 1 · 4 GRANDES PORTES — CLAIR ═══════ */}
+      <section className="relative overflow-hidden bg-white py-24 md:py-32">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.035]">
+          <div className="h-full w-full bg-grid" />
+        </div>
+        <svg
+          aria-hidden
+          className="pointer-events-none absolute -right-32 -top-32 h-[520px] w-[520px] text-resa-navy/[0.05]"
+        >
+          <circle cx="50%" cy="50%" r="20%" fill="none" stroke="currentColor" strokeWidth="1" />
+          <circle cx="50%" cy="50%" r="32%" fill="none" stroke="currentColor" strokeWidth="1" />
+          <circle cx="50%" cy="50%" r="44%" fill="none" stroke="currentColor" strokeWidth="1" />
+        </svg>
 
-        <div className="-mx-3 flex flex-wrap">
-          {doors.map((d, i) => (
-            <div key={d.key} className="w-full px-3 pb-6 sm:w-1/2">
-              <Reveal variant="up" delay={i * 100}>
+        <div className="relative mx-auto max-w-7xl px-4 md:px-6">
+          <Reveal variant="right">
+            <div className="mb-14 max-w-3xl">
+              <div className="mb-3 h-1 w-14 bg-resa-red" />
+              <h2 className="font-display text-3xl font-black text-resa-navy md:text-4xl">
+                {t('doorsTitle')}
+              </h2>
+              <p className="mt-3 text-base text-resa-text/70">
+                {t('doorsSubtitle')}
+              </p>
+            </div>
+          </Reveal>
+
+          <div className="grid gap-6 sm:grid-cols-2 md:gap-8">
+            {doors.map((d, i) => (
+              <Reveal key={d.key} variant="up" delay={i * 100} className="h-full">
                 <Link href={d.href as any} className="group block h-full">
                   <article
-                    className={`relative flex h-80 flex-col justify-end overflow-hidden rounded-3xl bg-gradient-to-br ${d.gradient} shadow-resa-lg transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_60px_rgba(10,31,68,.28)] md:h-96`}
+                    className={`relative flex h-80 flex-col justify-end overflow-hidden rounded-3xl bg-linear-to-br ${d.gradient} shadow-resa-lg transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_60px_rgba(10,31,68,.28)] md:h-96`}
                   >
-                    {/* Image de fond (apparaît si présente) */}
                     <img
                       src={d.image}
                       alt=""
                       className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                       loading="lazy"
                     />
-
-                    {/* Pattern overlay (visible surtout quand pas d'image) */}
                     <div className="absolute inset-0 opacity-40">
                       {d.pattern === 'grid'    && <div className="h-full w-full bg-grid" />}
                       {d.pattern === 'dots'    && <div className="h-full w-full bg-dots" />}
                       {d.pattern === 'stripes' && <div className="h-full w-full bg-stripes" />}
                       {d.pattern === 'halo'    && <div className="h-full w-full bg-halo" />}
                     </div>
-
-                    {/* Overlay vertical navy */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-resa-navy via-resa-navy/55 to-resa-navy/10" />
-
-                    {/* Halo décoratif */}
+                    <div className="absolute inset-0 bg-linear-to-t from-resa-navy via-resa-navy/55 to-resa-navy/10" />
                     <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-
-                    {/* Icône badge top-left */}
                     <div className="absolute left-5 top-5 grid h-14 w-14 place-items-center rounded-2xl border border-white/15 bg-white/10 text-white backdrop-blur-md transition-transform duration-500 group-hover:scale-110 md:left-6 md:top-6 md:h-16 md:w-16">
                       <div className="h-7 w-7 md:h-8 md:w-8">{d.icon}</div>
                     </div>
-
-                    {/* Contenu bottom */}
                     <div className="relative p-6 md:p-8">
                       <h3 className="font-display text-2xl font-black leading-tight text-white md:text-3xl">
                         {t(`door${d.key.charAt(0).toUpperCase() + d.key.slice(1)}Title` as any)}
@@ -189,17 +190,79 @@ function ProgramsContent({ programs }: { programs: any[] }) {
                   </article>
                 </Link>
               </Reveal>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ═══════════ PROGRAMMES TRAINING (depuis DB) ═══════════ */}
+      {/* ═══════ 2 · PROGRAMS TRAINING — TERRAIN VERTICAL EN BACKGROUND ═══════ */}
       {programs.length > 0 && (
-        <section className="bg-resa-gray py-16 md:py-20">
-          <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <section className="relative overflow-hidden bg-linear-to-br from-resa-gray/60 via-white to-resa-gray/40 py-24 md:py-32">
+
+          {/* ── Terrain de foot VERTICAL EN BACKGROUND COMPLET ── */}
+          <svg
+            aria-hidden
+            viewBox="0 0 400 600"
+            preserveAspectRatio="xMidYMid slice"
+            className="pointer-events-none absolute inset-0 h-full w-full text-resa-navy/[0.06]"
+          >
+            {/* Contour terrain */}
+            <rect x="20" y="20" width="360" height="560" rx="4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+
+            {/* Ligne médiane (horizontale) */}
+            <line x1="20" y1="300" x2="380" y2="300" stroke="currentColor" strokeWidth="1.5" />
+
+            {/* Cercle d'engagement */}
+            <circle cx="200" cy="300" r="55" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <circle cx="200" cy="300" r="3" fill="currentColor" />
+
+            {/* Surface de réparation HAUT */}
+            <rect x="100" y="20" width="200" height="80" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <rect x="140" y="20" width="120" height="30" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M 155 100 A 45 45 0 0 0 245 100" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <circle cx="200" cy="70" r="3" fill="currentColor" />
+
+            {/* Surface de réparation BAS */}
+            <rect x="100" y="500" width="200" height="80" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <rect x="140" y="550" width="120" height="30" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M 155 500 A 45 45 0 0 1 245 500" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <circle cx="200" cy="530" r="3" fill="currentColor" />
+
+            {/* Arcs de corner */}
+            <path d="M 20 40 A 20 20 0 0 0 40 20" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M 360 20 A 20 20 0 0 1 380 40" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M 20 560 A 20 20 0 0 1 40 580" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M 360 580 A 20 20 0 0 0 380 560" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+
+          {/* ── Halos radiaux colorés (royal + rouge) ── */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                'radial-gradient(45% 40% at 12% 15%, rgba(30,58,138,0.08) 0%, transparent 65%), radial-gradient(40% 35% at 92% 88%, rgba(220,38,38,0.06) 0%, transparent 65%)'
+            }}
+          />
+
+          {/* ── Voile blanc central pour garantir la lisibilité du contenu ── */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                'radial-gradient(70% 60% at 50% 45%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.35) 55%, transparent 80%)'
+            }}
+          />
+
+          {/* ── Trame dots très subtile ── */}
+          <div className="pointer-events-none absolute inset-0 opacity-[0.03]">
+            <div className="h-full w-full bg-dots" />
+          </div>
+
+          <div className="relative mx-auto max-w-7xl px-4 md:px-6">
             <Reveal variant="right">
-              <div className="mb-12 max-w-3xl">
+              <div className="mb-14 max-w-3xl">
                 <div className="mb-3 h-1 w-14 bg-resa-red" />
                 <h2 className="font-display text-3xl font-black text-resa-navy md:text-4xl">
                   {t('trainingTitle')}
@@ -210,147 +273,69 @@ function ProgramsContent({ programs }: { programs: any[] }) {
               </div>
             </Reveal>
 
-            <div className="-mx-3 flex flex-wrap">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 md:gap-8">
               {programs.map((p, i) => {
                 const title = isFr ? p.title_fr : p.title_en;
                 const description = isFr ? p.description_fr : p.description_en;
 
                 return (
-                  <div key={p.id} className="w-full px-3 pb-6 sm:w-1/2 lg:w-1/3">
-                    <Reveal variant="up" delay={i * 60}>
-                      <Link
-                        href={`/private-training/${p.slug}` as any}
-                        className="group block h-full"
-                      >
-                        <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg">
-                          {/* Image header */}
-                          <div className="relative h-44 overflow-hidden">
-                            {/* Fallback gradient */}
-                            <div
-                              className={`absolute inset-0 bg-gradient-to-br ${
-                                p.accent ?? 'from-resa-navy to-resa-royal'
-                              }`}
-                            />
-
-                            {/* Image de fond (apparaît si présente) */}
-                            <img
-                              src={`/images/programs/training/${p.slug}.jpg`}
-                              alt=""
-                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                              loading="lazy"
-                            />
-
-                            {/* Pattern overlay */}
-                            <div className="absolute inset-0 bg-grid opacity-25" />
-
-                            {/* Overlay navy */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-resa-navy/90 via-resa-navy/30 to-transparent" />
-
-                            {/* Icône badge */}
-                            <div className="absolute left-4 top-4 grid h-12 w-12 place-items-center rounded-xl border border-white/15 bg-white/10 text-2xl backdrop-blur-md transition-transform duration-500 group-hover:scale-110">
-                              <span>{p.icon ?? '⚽'}</span>
-                            </div>
-
-                            {/* Lien "Réserver" top-right */}
-                            <div className="absolute right-4 top-4 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
-                              {t('trainingCta')}
-                            </div>
+                  <Reveal key={p.id} variant="up" delay={i * 60} className="h-full">
+                    <Link href={`/private-training/${p.slug}` as any} className="group block h-full">
+                      <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg">
+                        <div className="relative h-44 overflow-hidden">
+                          <div className={`absolute inset-0 bg-linear-to-br ${p.accent ?? 'from-resa-navy to-resa-royal'}`} />
+                          <img
+                            src={`/images/programs/training/${p.slug}.jpg`}
+                            alt=""
+                            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-grid opacity-25" />
+                          <div className="absolute inset-0 bg-linear-to-t from-resa-navy/90 via-resa-navy/30 to-transparent" />
+                          <div className="absolute left-4 top-4 grid h-12 w-12 place-items-center rounded-xl border border-white/15 bg-white/10 text-2xl backdrop-blur-md transition-transform duration-500 group-hover:scale-110">
+                            <span>{p.icon ?? '⚽'}</span>
                           </div>
-
-                          {/* Contenu */}
-                          <div className="flex flex-1 flex-col p-5">
-                            <h3 className="font-display text-base font-black text-resa-navy transition-colors group-hover:text-resa-red md:text-lg">
-                              {title}
-                            </h3>
-                            <p className="mt-2 flex-1 text-sm leading-relaxed text-resa-text/65 line-clamp-2">
-                              {description}
-                            </p>
-                            <div className="mt-4 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-resa-red">
-                              {t('trainingCta')}
-                              <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-                            </div>
+                          <div className="absolute right-4 top-4 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+                            {t('trainingCta')}
                           </div>
-                        </article>
-                      </Link>
-                    </Reveal>
-                  </div>
+                        </div>
+                        <div className="flex flex-1 flex-col p-5">
+                          <h3 className="font-display text-base font-black text-resa-navy transition-colors group-hover:text-resa-red md:text-lg">
+                            {title}
+                          </h3>
+                          <p className="mt-2 flex-1 text-sm leading-relaxed text-resa-text/65 line-clamp-2">
+                            {description}
+                          </p>
+                          <div className="mt-4 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-resa-red">
+                            {t('trainingCta')}
+                            <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+                          </div>
+                        </div>
+                      </article>
+                    </Link>
+                  </Reveal>
                 );
               })}
             </div>
-
-            <Reveal variant="up">
-              <div className="mt-8 text-center">
-                <Link
-                  href="/private-training"
-                  className="group inline-flex items-center gap-2 rounded-full border border-resa-navy/15 bg-white px-6 py-3 text-xs font-bold uppercase tracking-wide text-resa-navy transition-all duration-300 hover:scale-[1.03] hover:bg-resa-navy hover:text-white"
-                >
-                  {t('trainingSeeAll')}
-                  <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-                </Link>
-              </div>
-            </Reveal>
           </div>
         </section>
       )}
 
-      {/* ═══════════ POUR QUI ? ═══════════ */}
-      <section className="mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-20">
-        <Reveal variant="right">
-          <div className="mb-12 max-w-3xl">
-            <div className="mb-3 h-1 w-14 bg-resa-red" />
-            <h2 className="font-display text-3xl font-black text-resa-navy md:text-4xl">
-              {t('profilesTitle')}
-            </h2>
-            <p className="mt-3 text-base text-resa-text/70">
-              {t('profilesSubtitle')}
-            </p>
-          </div>
-        </Reveal>
+      {/* ═══════ 3 · PLAYER PATHWAY — SOMBRE ═══════ */}
+      <section className="relative overflow-hidden bg-fade-navy py-24 text-white md:py-32">
+        <svg
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[140%] w-[140%] -translate-x-1/2 -translate-y-1/2 opacity-[0.07]"
+        >
+          <circle cx="50%" cy="50%" r="18%" fill="none" stroke="white" strokeWidth="0.5" strokeDasharray="4 10" />
+          <circle cx="50%" cy="50%" r="30%" fill="none" stroke="white" strokeWidth="0.5" strokeDasharray="4 10" />
+          <circle cx="50%" cy="50%" r="42%" fill="none" stroke="white" strokeWidth="0.5" strokeDasharray="4 10" />
+          <circle cx="50%" cy="50%" r="55%" fill="none" stroke="white" strokeWidth="0.5" strokeDasharray="4 10" />
+        </svg>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {profiles.map((p, i) => (
-            <Reveal key={p.key} variant="up" delay={i * 100}>
-              <Link href={p.href as any} className="group block h-full">
-                <article className="flex h-full flex-col items-center rounded-2xl border border-black/5 bg-white p-6 text-center shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg">
-                  {/* Avatar avec fallback gradient */}
-                  <div
-                    className={`relative mb-4 grid h-24 w-24 place-items-center overflow-hidden rounded-full bg-gradient-to-br ${p.gradient} shadow-resa-lg transition-transform duration-500 group-hover:scale-105`}
-                  >
-                    {/* Image de fond (apparaît si présente) */}
-                    <img
-                      src={p.image}
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                    {/* Fallback icône (visible seulement si image absente → z-0, sinon caché par img z-1) */}
-                    <span className="relative z-[-1] text-4xl">{p.icon}</span>
-                    {/* Overlay subtle pour contraste */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                  </div>
-
-                  <h3 className="font-display text-base font-black text-resa-navy transition-colors group-hover:text-resa-red">
-                    {t(`profile${p.key}Title` as any)}
-                  </h3>
-                  <p className="mt-2 flex-1 text-xs leading-relaxed text-resa-text/60">
-                    {t(`profile${p.key}Text` as any)}
-                  </p>
-                  <div className="mt-4 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-resa-red">
-                    {t('profileCta')}
-                    <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-                  </div>
-                </article>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* ═══════════ PLAYER PATHWAY ═══════════ */}
-      <section className="bg-fade-navy py-16 text-white md:py-20">
-        <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <div className="relative mx-auto max-w-7xl px-4 md:px-6">
           <Reveal variant="right">
-            <div className="mb-12 max-w-2xl">
+            <div className="mb-14 max-w-2xl">
               <div className="mb-3 h-1 w-14 bg-resa-red" />
               <h2 className="font-display text-3xl font-black md:text-4xl">
                 {t('pathwayTitle')}
@@ -365,34 +350,117 @@ function ProgramsContent({ programs }: { programs: any[] }) {
         </div>
       </section>
 
-      {/* ═══════════ CTA FINAL ═══════════ */}
-      <section className="relative overflow-hidden bg-resa-navy py-20 text-white md:py-28">
-        <div className="absolute inset-0 bg-dots opacity-30" />
-        <div className="pointer-events-none absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-resa-red/15 blur-3xl anim-float" />
+      {/* ═══════ 4 · POUR QUI ? — CLAIR ═══════ */}
+      <section className="relative overflow-hidden bg-white py-24 md:py-32">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.05]">
+          <div className="h-full w-full bg-dots" />
+        </div>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(60% 55% at 50% 40%, rgba(30,58,138,0.05) 0%, transparent 70%)'
+          }}
+        />
+
+        <div className="relative mx-auto max-w-7xl px-4 md:px-6">
+          <Reveal variant="right">
+            <div className="mb-14 max-w-3xl">
+              <div className="mb-3 h-1 w-14 bg-resa-red" />
+              <h2 className="font-display text-3xl font-black text-resa-navy md:text-4xl">
+                {t('profilesTitle')}
+              </h2>
+              <p className="mt-3 text-base text-resa-text/70">
+                {t('profilesSubtitle')}
+              </p>
+            </div>
+          </Reveal>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 md:gap-8">
+            {profiles.map((p, i) => (
+              <Reveal key={p.key} variant="up" delay={i * 100} className="h-full">
+                <Link href={p.href as any} className="group block h-full">
+                  <article className="flex h-full flex-col items-center rounded-2xl border border-black/5 bg-linear-to-br from-white to-resa-gray/60 p-6 text-center shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg">
+                    <div
+                      className={`relative mb-4 grid h-24 w-24 place-items-center overflow-hidden rounded-full bg-linear-to-br ${p.gradient} shadow-resa-lg transition-transform duration-500 group-hover:scale-105`}
+                    >
+                      <img
+                        src={p.image}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                      <span className="relative z-[-1] text-4xl">{p.icon}</span>
+                      <div className="absolute inset-0 bg-linear-to-t from-black/30 to-transparent" />
+                    </div>
+                    <h3 className="font-display text-base font-black text-resa-navy transition-colors group-hover:text-resa-red">
+                      {t(`profile${p.key}Title` as any)}
+                    </h3>
+                    <p className="mt-2 flex-1 text-xs leading-relaxed text-resa-text/60">
+                      {t(`profile${p.key}Text` as any)}
+                    </p>
+                    <div className="mt-4 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-resa-red">
+                      {t('profileCta')}
+                      <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+                    </div>
+                  </article>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ 5 · CTA FINAL — SOMBRE ═══════ */}
+      <section className="relative overflow-hidden bg-linear-to-b from-resa-navy via-resa-navy to-resa-navy-deep py-28 text-white md:py-40">
+        <div className="absolute inset-0 bg-dots opacity-20" />
+        <svg
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[130%] w-[130%] -translate-x-1/2 -translate-y-1/2 opacity-[0.06]"
+        >
+          <circle cx="50%" cy="50%" r="22%" fill="none" stroke="white" strokeWidth="0.5" />
+          <circle cx="50%" cy="50%" r="36%" fill="none" stroke="white" strokeWidth="0.5" />
+          <circle cx="50%" cy="50%" r="50%" fill="none" stroke="white" strokeWidth="0.5" />
+        </svg>
+        <div className="pointer-events-none absolute -top-32 left-1/4 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-resa-red/15 blur-3xl anim-float" />
+        <div
+          className="pointer-events-none absolute -bottom-40 right-1/4 h-96 w-96 translate-x-1/2 rounded-full bg-resa-royal/25 blur-3xl anim-float"
+          style={{ animationDelay: '1.5s' }}
+        />
 
         <div className="relative mx-auto max-w-4xl px-4 text-center md:px-6">
-          <Reveal variant="zoom">
-            <h2 className="font-display text-4xl font-black md:text-5xl">
+          <Reveal variant="up">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/75 backdrop-blur-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-resa-red anim-glow" />
+              {isFr ? 'Prochaine étape' : 'Next step'}
+            </span>
+          </Reveal>
+
+          <Reveal variant="zoom" delay={80}>
+            <h2 className="mt-6 font-display text-4xl font-black md:text-6xl">
               {t('ctaTitle')}
             </h2>
           </Reveal>
-          <Reveal variant="up" delay={120}>
+
+          <Reveal variant="up" delay={160}>
             <p className="mx-auto mt-6 max-w-2xl text-lg text-white/75">
               {t('ctaText')}
             </p>
           </Reveal>
+
           <Reveal variant="up" delay={240}>
-            <div className="mt-10 flex flex-wrap justify-center gap-4">
+            <div className="mt-12 flex flex-wrap justify-center gap-4">
               <Link
-                href="/inscriptions"
+                href="/inscriptions#form"
                 className="group inline-flex items-center gap-2 rounded-full bg-resa-red px-8 py-4 text-sm font-bold uppercase tracking-wide text-white shadow-resa-lg transition-all duration-300 hover:scale-[1.04] hover:bg-red-700"
               >
                 {t('ctaRegister')}
                 <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
               </Link>
               <Link
-                href="/contact"
-                className="group inline-flex items-center gap-2 rounded-full border border-white/25 px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:scale-[1.04] hover:bg-white hover:text-resa-navy"
+                href="/contact#form"
+                className="group inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/5 px-8 py-4 text-sm font-bold uppercase tracking-wide text-white backdrop-blur-sm transition-all duration-300 hover:scale-[1.04] hover:bg-white hover:text-resa-navy"
               >
                 {t('ctaContact')}
                 <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
