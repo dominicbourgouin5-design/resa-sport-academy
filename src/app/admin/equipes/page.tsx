@@ -1,24 +1,37 @@
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { getActiveSeason } from '@/lib/queries';
-import Link from 'next/link';
 import Collapsible from '@/components/admin/Collapsible';
 import TeamsTable from './TeamsTable';
+import ListFiltersBar from '@/components/admin/ListFiltersBar';
 
-export default async function AdminTeamsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function AdminTeamsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ dateFrom?: string; dateTo?: string }>;
+}) {
+  const { dateFrom, dateTo } = await searchParams;
   const supabase = await createClient();
   const season = await getActiveSeason();
 
-  const { data: teams } = await supabase
+  let query = supabase
     .from('teams')
     .select(`
-      id, name, group_name, coach_name, is_active,
+      id, name, group_name, coach_name, is_active, logo_url, created_at,
       category:categories(id, code, sort_order),
       school:schools(id, name, slug)
     `)
-    .eq('season_id', season?.id ?? '')
-    .order('name');
+    .eq('season_id', season?.id ?? '');
 
-   // Groupes par catégorie
+  if (dateFrom) query = query.gte('created_at', `${dateFrom}T00:00:00.000Z`);
+  if (dateTo)   query = query.lte('created_at', `${dateTo}T23:59:59.999Z`);
+
+  const { data: teams } = await query
+    .order('name')
+    .limit(500);
+
   const byCat: Record<string, any[]> = {};
   for (const t of (teams ?? []) as any[]) {
     const code = t.category?.code ?? 'Autres';
@@ -33,23 +46,16 @@ export default async function AdminTeamsPage() {
     Autres: 'Équipes sans catégorie'
   };
   const catIcons: Record<string, string> = {
-    U7: '🟦',
-    U9: '🟥',
-    U11: '⬛',
-    Autres: '⚪'
+    U7: '🟦', U9: '🟥', U11: '⬛', Autres: '⚪'
   };
   const catAccents: Record<string, 'red' | 'royal' | 'navy' | 'emerald' | 'amber'> = {
-    U7: 'royal',
-    U9: 'red',
-    U11: 'navy',
-    Autres: 'amber'
+    U7: 'royal', U9: 'red', U11: 'navy', Autres: 'amber'
   };
 
   const total = teams?.length ?? 0;
 
   return (
     <div className="mx-auto max-w-6xl">
-      {/* Header */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
@@ -64,7 +70,10 @@ export default async function AdminTeamsPage() {
         </div>
       </div>
 
-      {/* Sections par catégorie */}
+      <Suspense fallback={<div className="mb-4 h-[76px] animate-pulse rounded-xl bg-resa-gray/40" />}>
+        <ListFiltersBar entity="equipes" />
+      </Suspense>
+
       <div className="space-y-4">
         {catOrder.map((code) => {
           const list = byCat[code] ?? [];

@@ -1,20 +1,35 @@
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import Collapsible from '@/components/admin/Collapsible';
 import SchoolsTable from './SchoolsTable';
+import ListFiltersBar from '@/components/admin/ListFiltersBar';
 
-export default async function AdminSchoolsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function AdminSchoolsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ dateFrom?: string; dateTo?: string }>;
+}) {
+  const { dateFrom, dateTo } = await searchParams;
   const supabase = await createClient();
 
-  const { data: schools } = await supabase
+  let query = supabase
     .from('schools')
     .select(`
       id, slug, name, city, district,
       contact_name, contact_phone, contact_email,
       is_active,
       teams:teams(count)
-    `)
-    .order('name');
+    `);
+
+  if (dateFrom) query = query.gte('created_at', `${dateFrom}T00:00:00.000Z`);
+  if (dateTo)   query = query.lte('created_at', `${dateTo}T23:59:59.999Z`);
+
+  const { data: schools } = await query
+    .order('name')
+    .limit(500);
 
   const list = (schools ?? []) as any[];
 
@@ -25,7 +40,6 @@ export default async function AdminSchoolsPage() {
   return (
     <div className="mx-auto max-w-6xl">
 
-      {/* Header */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
@@ -47,7 +61,10 @@ export default async function AdminSchoolsPage() {
         </Link>
       </div>
 
-      {/* Collapsibles par statut */}
+      <Suspense fallback={<div className="mb-4 h-[76px] animate-pulse rounded-xl bg-resa-gray/40" />}>
+        <ListFiltersBar entity="ecoles" />
+      </Suspense>
+
       <div className="space-y-4">
         <Collapsible
           title="Écoles actives"

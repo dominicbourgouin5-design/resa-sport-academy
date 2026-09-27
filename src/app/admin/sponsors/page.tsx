@@ -1,7 +1,11 @@
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import Collapsible from '@/components/admin/Collapsible';
 import SponsorsTable from './SponsorsTable';
+import ListFiltersBar from '@/components/admin/ListFiltersBar';
+
+export const dynamic = 'force-dynamic';
 
 const TIER_CONFIG: Record<string, {
   label: string;
@@ -16,18 +20,26 @@ const TIER_CONFIG: Record<string, {
   official: { label: 'Officiel', subtitle: 'Partenaires de la Ligue',   accent: 'emerald', icon: '🤝', order: 4 }
 };
 
-export default async function AdminSponsorsPage() {
+export default async function AdminSponsorsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ dateFrom?: string; dateTo?: string }>;
+}) {
+  const { dateFrom, dateTo } = await searchParams;
   const supabase = await createClient();
 
-  const { data: sponsors } = await supabase
-    .from('sponsors')
-    .select('*')
+  let query = supabase.from('sponsors').select('*');
+
+  if (dateFrom) query = query.gte('created_at', `${dateFrom}T00:00:00.000Z`);
+  if (dateTo)   query = query.lte('created_at', `${dateTo}T23:59:59.999Z`);
+
+  const { data: sponsors } = await query
     .order('tier')
-    .order('sort_order');
+    .order('sort_order')
+    .limit(500);
 
   const list = (sponsors ?? []) as any[];
 
-  // Groupes par tier
   const byTier: Record<string, any[]> = {};
   for (const s of list) {
     const tier = s.tier ?? 'official';
@@ -40,7 +52,6 @@ export default async function AdminSponsorsPage() {
   return (
     <div className="mx-auto max-w-6xl">
 
-      {/* Header */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
@@ -62,13 +73,16 @@ export default async function AdminSponsorsPage() {
         </Link>
       </div>
 
-      {/* Collapsibles par tier */}
+      <Suspense fallback={<div className="mb-4 h-[76px] animate-pulse rounded-xl bg-resa-gray/40" />}>
+        <ListFiltersBar entity="sponsors" />
+      </Suspense>
+
       <div className="space-y-4">
         {Object.entries(TIER_CONFIG)
           .sort((a, b) => a[1].order - b[1].order)
           .map(([tier, config]) => {
-            const list = byTier[tier] ?? [];
-            if (list.length === 0) return null;
+            const tierList = byTier[tier] ?? [];
+            if (tierList.length === 0) return null;
 
             return (
               <Collapsible
@@ -78,14 +92,13 @@ export default async function AdminSponsorsPage() {
                 icon={config.icon}
                 accent={config.accent}
                 defaultOpen={tier === 'platinum' || tier === 'gold'}
-                badge={list.length}
+                badge={tierList.length}
               >
-                <SponsorsTable sponsors={list} tier={tier} />
+                <SponsorsTable sponsors={tierList} tier={tier} />
               </Collapsible>
             );
           })}
 
-        {/* Section sponsors non classés (au cas où) */}
         {byTier['other']?.length > 0 && (
           <Collapsible
             title="Autres"

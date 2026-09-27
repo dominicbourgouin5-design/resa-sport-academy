@@ -20,11 +20,11 @@ export default function RequestsListManager({
   const [active, setActive] = useState<Section>('pending');
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState<number>(initialCounts.pending);
+  const [counts, setCounts] = useState<Record<Section, number>>(initialCounts);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
 
-  // Filtres période
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
   const [appliedFrom, setAppliedFrom] = useState<string>('');
@@ -61,6 +61,15 @@ export default function RequestsListManager({
         }
         setTotal(json.total ?? 0);
         setHasMore(batch.length === 100);
+
+        if (json.counts) {
+          setCounts({
+            pending: json.counts.pending ?? 0,
+            contacted: json.counts.contacted ?? 0,
+            reserved: json.counts.reserved ?? 0,
+            cancelled: json.counts.cancelled ?? 0
+          });
+        }
       } catch (err) {
         console.error('[RequestsListManager] fetch error:', err);
       } finally {
@@ -71,7 +80,6 @@ export default function RequestsListManager({
     [type, campId, appliedFrom, appliedTo]
   );
 
-  // Changement d'onglet / dates / reload → reset
   useEffect(() => {
     setItems([]);
     setHasMore(true);
@@ -79,7 +87,6 @@ export default function RequestsListManager({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, reloadKey, appliedFrom, appliedTo]);
 
-  // Scroll infini
   useEffect(() => {
     if (!hasMore || loading) return;
     const el = sentinelRef.current;
@@ -111,14 +118,10 @@ export default function RequestsListManager({
   };
 
   const exportCsv = () => {
-    const params = new URLSearchParams({
-      type,
-      section: active
-    });
+    const params = new URLSearchParams({ type, section: active });
     if (campId) params.set('campId', campId);
     if (appliedFrom) params.set('dateFrom', appliedFrom);
     if (appliedTo) params.set('dateTo', appliedTo);
-
     window.open(`/api/admin/requests/export?${params.toString()}`, '_blank');
   };
 
@@ -133,7 +136,7 @@ export default function RequestsListManager({
 
   return (
     <div>
-      {/* ═══ Barre filtre + export ═══ */}
+      {/* Barre filtre + export */}
       <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-black/5 bg-white p-4">
         <div>
           <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
@@ -176,7 +179,7 @@ export default function RequestsListManager({
           </button>
         )}
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto">
           <button
             onClick={exportCsv}
             className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-5 py-2 text-xs font-bold uppercase tracking-wide text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100"
@@ -194,10 +197,10 @@ export default function RequestsListManager({
         </p>
       )}
 
-      {/* ═══ Onglets ═══ */}
+      {/* Onglets */}
       <div className="mb-4 flex flex-wrap gap-2 border-b border-black/5 pb-3">
         {sections.map((s) => {
-          const count = initialCounts[s.key] ?? 0;
+          const count = counts[s.key] ?? 0;
           const isActive = active === s.key;
           return (
             <button

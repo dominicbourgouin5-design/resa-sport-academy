@@ -1,26 +1,40 @@
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import Collapsible from '@/components/admin/Collapsible';
 import PlayersView from './PlayersView';
+import ListFiltersBar from '@/components/admin/ListFiltersBar';
 
-export default async function AdminPlayersPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function AdminPlayersPage({
+  searchParams
+}: {
+  searchParams: Promise<{ dateFrom?: string; dateTo?: string }>;
+}) {
+  const { dateFrom, dateTo } = await searchParams;
   const supabase = await createClient();
 
-  const { data: players } = await supabase
+  let query = supabase
     .from('players')
     .select(`
-      id, first_name, last_initial, birth_date, jersey_number, position,
+      id, first_name, last_initial, birth_date, jersey_number, position, photo_url, created_at,
       team:teams!inner(
         id, name,
         category:categories(id, code, sort_order),
         school:schools(id, name, slug)
       )
-    `)
-    .order('jersey_number', { ascending: true });
+    `);
+
+  if (dateFrom) query = query.gte('created_at', `${dateFrom}T00:00:00.000Z`);
+  if (dateTo)   query = query.lte('created_at', `${dateTo}T23:59:59.999Z`);
+
+  const { data: players } = await query
+    .order('jersey_number', { ascending: true })
+    .limit(500);
 
   const list = (players ?? []) as any[];
 
-  // Grouper par catégorie
   const byCat: Record<string, any[]> = {};
   for (const p of list) {
     const code = (p.team as any)?.category?.code ?? 'Autres';
@@ -44,7 +58,6 @@ export default async function AdminPlayersPage() {
   return (
     <div className="mx-auto max-w-6xl">
 
-      {/* Header */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
@@ -66,7 +79,10 @@ export default async function AdminPlayersPage() {
         </Link>
       </div>
 
-      {/* Collapsibles par catégorie */}
+      <Suspense fallback={<div className="mb-4 h-[76px] animate-pulse rounded-xl bg-resa-gray/40" />}>
+        <ListFiltersBar entity="joueurs" />
+      </Suspense>
+
       <div className="space-y-4">
         {CAT_ORDER.map((code) => {
           const catList = byCat[code] ?? [];

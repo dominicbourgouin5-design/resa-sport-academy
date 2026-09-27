@@ -1,6 +1,10 @@
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import Collapsible from '@/components/admin/Collapsible';
 import RegistrationsTable from './RegistrationsTable';
+import ListFiltersBar from '@/components/admin/ListFiltersBar';
+
+export const dynamic = 'force-dynamic';
 
 const STATUS_CONFIG: Record<string, {
   label: string;
@@ -9,23 +13,31 @@ const STATUS_CONFIG: Record<string, {
   icon: string;
   order: number;
 }> = {
-  pending:   { label: 'En attente',   subtitle: 'Demandes à traiter',            accent: 'amber',   icon: '⏳', order: 1 },
-  reviewing: { label: 'En cours',     subtitle: 'Demandes en cours d\'examen',   accent: 'royal',   icon: '👀', order: 2 },
-  approved:  { label: 'Approuvées',   subtitle: 'Demandes validées',             accent: 'emerald', icon: '✅', order: 3 },
-  rejected:  { label: 'Refusées',     subtitle: 'Demandes non retenues',         accent: 'red',     icon: '❌', order: 4 }
+  pending:   { label: 'En attente',   subtitle: 'Demandes à traiter',          accent: 'amber',   icon: '⏳', order: 1 },
+  reviewing: { label: 'En cours',     subtitle: "Demandes en cours d'examen",   accent: 'royal',   icon: '👀', order: 2 },
+  approved:  { label: 'Approuvées',   subtitle: 'Demandes validées',           accent: 'emerald', icon: '✅', order: 3 },
+  rejected:  { label: 'Refusées',     subtitle: 'Demandes non retenues',       accent: 'red',     icon: '❌', order: 4 }
 };
 
-export default async function AdminRegistrationsPage() {
+export default async function AdminRegistrationsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ dateFrom?: string; dateTo?: string }>;
+}) {
+  const { dateFrom, dateTo } = await searchParams;
   const supabase = await createClient();
 
-  const { data: registrations } = await supabase
-    .from('registrations')
-    .select('*')
-    .order('created_at', { ascending: false });
+  let query = supabase.from('registrations').select('*');
+
+  if (dateFrom) query = query.gte('created_at', `${dateFrom}T00:00:00.000Z`);
+  if (dateTo)   query = query.lte('created_at', `${dateTo}T23:59:59.999Z`);
+
+  const { data: registrations } = await query
+    .order('created_at', { ascending: false })
+    .limit(500);
 
   const list = (registrations ?? []) as any[];
 
-  // Grouper par statut
   const byStatus: Record<string, any[]> = {};
   for (const r of list) {
     const status = r.status ?? 'pending';
@@ -38,7 +50,6 @@ export default async function AdminRegistrationsPage() {
   return (
     <div className="mx-auto max-w-6xl">
 
-      {/* Header */}
       <div className="mb-8">
         <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
           Établissements
@@ -51,7 +62,10 @@ export default async function AdminRegistrationsPage() {
         </p>
       </div>
 
-      {/* Alerte si pending */}
+      <Suspense fallback={<div className="mb-4 h-[76px] animate-pulse rounded-xl bg-resa-gray/40" />}>
+        <ListFiltersBar entity="inscriptions" />
+      </Suspense>
+
       {pendingCount > 0 && (
         <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-amber-500 text-white text-sm">
@@ -68,13 +82,12 @@ export default async function AdminRegistrationsPage() {
         </div>
       )}
 
-      {/* Collapsibles par statut */}
       <div className="space-y-4">
         {Object.entries(STATUS_CONFIG)
           .sort((a, b) => a[1].order - b[1].order)
           .map(([status, config]) => {
-            const list = byStatus[status] ?? [];
-            if (list.length === 0) return null;
+            const statusList = byStatus[status] ?? [];
+            if (statusList.length === 0) return null;
 
             return (
               <Collapsible
@@ -84,13 +97,14 @@ export default async function AdminRegistrationsPage() {
                 icon={config.icon}
                 accent={config.accent}
                 defaultOpen={status === 'pending'}
-                badge={list.length}
+                badge={statusList.length}
               >
                 <RegistrationsTable
-                  registrations={list}
+                  registrations={statusList}
                   currentStatus={status as 'pending' | 'reviewing' | 'approved' | 'rejected'}
-                />              </Collapsible>
-                            );
+                />
+              </Collapsible>
+            );
           })}
 
         {total === 0 && (

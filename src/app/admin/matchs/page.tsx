@@ -1,14 +1,23 @@
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { getActiveSeason } from '@/lib/queries';
 import Link from 'next/link';
 import Collapsible from '@/components/admin/Collapsible';
 import MatchesTable from './MatchesTable';
+import ListFiltersBar from '@/components/admin/ListFiltersBar';
 
-export default async function AdminMatchesPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function AdminMatchesPage({
+  searchParams
+}: {
+  searchParams: Promise<{ dateFrom?: string; dateTo?: string }>;
+}) {
+  const { dateFrom, dateTo } = await searchParams;
   const supabase = await createClient();
   const season = await getActiveSeason();
 
-  const { data: matches } = await supabase
+  let query = supabase
     .from('matches')
     .select(`
       id, match_date, venue, status, home_score, away_score,
@@ -22,8 +31,14 @@ export default async function AdminMatchesPage() {
         school:schools(id, name)
       )
     `)
-    .eq('season_id', season?.id ?? '')
-    .order('match_date', { ascending: true });
+    .eq('season_id', season?.id ?? '');
+
+  if (dateFrom) query = query.gte('match_date', `${dateFrom}T00:00:00.000Z`);
+  if (dateTo)   query = query.lte('match_date', `${dateTo}T23:59:59.999Z`);
+
+  const { data: matches } = await query
+    .order('match_date', { ascending: true })
+    .limit(500);
 
   const list = (matches ?? []) as any[];
 
@@ -34,7 +49,6 @@ export default async function AdminMatchesPage() {
   return (
     <div className="mx-auto max-w-6xl">
 
-      {/* Header */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
@@ -44,7 +58,7 @@ export default async function AdminMatchesPage() {
             Matchs & scores
           </h1>
           <p className="mt-1 text-sm text-resa-text/50">
-            {list.length} match(s) au calendrier · {played.length} joué(s)
+            {list.length} match(s) · {played.length} joué(s)
           </p>
         </div>
 
@@ -56,7 +70,10 @@ export default async function AdminMatchesPage() {
         </Link>
       </div>
 
-      {/* Collapsibles */}
+      <Suspense fallback={<div className="mb-4 h-[76px] animate-pulse rounded-xl bg-resa-gray/40" />}>
+        <ListFiltersBar entity="matchs" />
+      </Suspense>
+
       <div className="space-y-4">
         <Collapsible
           title="Matchs à venir"
