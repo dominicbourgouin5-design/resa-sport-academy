@@ -582,3 +582,113 @@ export async function getTrainingProgramRates(
     amount_usd: parseAmountUsd(r?.price_en)
   }));
 }
+
+
+
+
+// ═══════════════════════════════════════════════════════════
+// Créer manuellement une demande de training (admin)
+// ═══════════════════════════════════════════════════════════
+export async function createTrainingRequestManually(payload: {
+  parent_name: string;
+  parent_email: string;
+  parent_phone?: string | null;
+  parent_country?: string | null;
+  player_name: string;
+  player_age?: number | null;
+  player_level?: string | null;
+  region: 'africa' | 'usa' | 'both';
+  program_slug: string;
+  program_title: string;
+  preferred_coach?: string | null;
+  availability?: string | null;
+  message?: string | null;
+  admin_notes?: string | null;
+  status: 'pending' | 'contacted' | 'booked' | 'cancelled';
+  payment_option: 'later' | 'paid';
+  payment_amount?: number | null;
+  payment_currency?: string | null;
+  payment_method?: string | null;
+}): Promise<{ ok?: boolean; error?: string; id?: string }> {
+  try {
+    await requireRole(['admin', 'league_manager']);
+
+    if (!payload.parent_name?.trim() || !payload.parent_email?.trim() || !payload.player_name?.trim()) {
+      return { error: 'Nom parent, email et nom joueur sont obligatoires.' };
+    }
+    if (!payload.program_slug || !payload.program_title) {
+      return { error: 'Programme obligatoire.' };
+    }
+
+    const supabase = createAdminClient();
+
+    const isPaid = payload.payment_option === 'paid';
+    if (isPaid) {
+      if (!payload.payment_amount || payload.payment_amount <= 0) {
+        return { error: 'Montant invalide pour un paiement immédiat.' };
+      }
+      if (!payload.payment_currency) {
+        return { error: 'Devise manquante.' };
+      }
+      if (!payload.payment_method) {
+        return { error: 'Méthode de paiement manquante.' };
+      }
+    }
+
+    const nowIso = new Date().toISOString();
+
+    const { data: created, error: insertErr } = await supabase
+      .from('training_requests')
+      .insert({
+        parent_name: payload.parent_name.trim(),
+        parent_email: payload.parent_email.trim().toLowerCase(),
+        parent_phone: payload.parent_phone?.trim() || null,
+        parent_country: payload.parent_country?.trim() || null,
+        player_name: payload.player_name.trim(),
+        player_age: payload.player_age ?? null,
+        player_level: payload.player_level ?? null,
+        region: payload.region,
+        program_slug: payload.program_slug,
+        program_title: payload.program_title,
+        preferred_coach: payload.preferred_coach?.trim() || null,
+        availability: payload.availability?.trim() || null,
+        message: payload.message?.trim() || null,
+        admin_notes: payload.admin_notes?.trim() || null,
+        status: payload.status,
+        payment_status: isPaid ? 'paid' : 'pending',
+        payment_method: isPaid ? payload.payment_method! : 'manual',
+        payment_amount: isPaid ? payload.payment_amount! : null,
+        payment_currency: isPaid ? payload.payment_currency! : 'XOF',
+        paid_at: isPaid ? nowIso : null
+      })
+      .select('id')
+      .single();
+
+    if (insertErr || !created) {
+      return { error: insertErr?.message ?? 'Erreur à la création.' };
+    }
+
+    // Si payé immédiatement → email succès + PDF
+    if (isPaid) {
+      try {
+        await sendTrainingSuccessEmail(created.id);
+      } catch (err) {
+        console.error('[Create Training] Email succès échec:', err);
+      }
+    } else {
+      // Envoi email de confirmation d'inscription (mode "à payer plus tard")
+      try {
+        const { sendTrainingPaymentLinkEmail } = await import('@/lib/training-emails');
+        // On n'envoie PAS de lien de paiement ici — juste un email de bienvenue basique
+        // Le parent sera contacté par l'équipe
+        void sendTrainingPaymentLinkEmail; // évite unused import
+      } catch { /* noop */ }
+    }
+
+    revalidatePath('/admin/demandes-training');
+    return { ok: true, id: created.id };
+  } catch (err: any) {
+    console.error('[Create Training] Error:', err);
+    return { error: err.message ?? 'Erreur inconnue' };
+  }
+}

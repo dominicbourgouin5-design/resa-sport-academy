@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import Collapsible from '@/components/admin/Collapsible';
 import TrainingRequestsTable from './TrainingRequestsTable';
 import TrainingRequestsRealtime from '@/components/admin/TrainingRequestsRealtime';
+import NewTrainingRequestButton from '@/components/admin/NewTrainingRequestButton';
 
 export default async function AdminTrainingRequestsPage() {
   const supabase = await createClient();
@@ -14,6 +15,14 @@ export default async function AdminTrainingRequestsPage() {
     .from('training_requests')
     .select('*')
     .order('created_at', { ascending: false });
+
+  const { data: programsData } = await supabase
+    .from('training_programs')
+    .select('slug, title_fr, display_order')
+    .eq('is_active', true)
+    .order('display_order');
+
+  const programs = (programsData ?? []) as { slug: string; title_fr: string }[];
 
   const list = (requests ?? []) as any[];
   const total       = list.length;
@@ -29,16 +38,19 @@ export default async function AdminTrainingRequestsPage() {
       <TrainingRequestsRealtime />
 
       {/* Header */}
-      <div className="mb-8">
-        <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
-          Private Training
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-resa-red">
+            Private Training
+          </div>
+          <h1 className="font-display text-3xl font-black text-resa-navy">
+            Demandes de réservation
+          </h1>
+          <p className="mt-1 text-sm text-resa-text/50">
+            {total} demande(s) · {pending.length} en attente · {booked.length} réservée(s)
+          </p>
         </div>
-        <h1 className="font-display text-3xl font-black text-resa-navy">
-          Demandes de réservation
-        </h1>
-        <p className="mt-1 text-sm text-resa-text/50">
-          {total} demande(s) · {pending.length} en attente · {booked.length} réservée(s)
-        </p>
+        <NewTrainingRequestButton programs={programs} />
       </div>
 
       {/* Stats rapides */}

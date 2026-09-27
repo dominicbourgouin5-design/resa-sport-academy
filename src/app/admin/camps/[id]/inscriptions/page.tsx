@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import CampRegistrationsTable from './CampRegistrationsTable';
 import CampRegistrationsRealtime from '@/components/admin/CampRegistrationsRealtime';
+import NewCampRegistrationButton from '@/components/admin/NewCampRegistrationButton';
 
 export default async function CampRegistrationsPage({
   params
@@ -17,7 +18,7 @@ export default async function CampRegistrationsPage({
 
   const { data: camp } = await supabase
     .from('camps')
-    .select('id, title_fr, slug, date_start, location, price_fr, price_amount')
+    .select('id, title_fr, slug, date_start, location, price_fr, price_amount, price_amount_usd')
     .eq('id', id)
     .single();
 
@@ -45,13 +46,16 @@ export default async function CampRegistrationsPage({
         <span className="font-bold text-resa-navy">Inscriptions</span>
       </div>
 
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-black text-resa-navy">
-          Inscriptions — {camp.title_fr}
-        </h1>
-        <p className="mt-1 text-sm text-resa-text/50">
-          {list.length} inscription(s) · {list.filter((r) => r.payment_status === 'paid').length} payée(s)
-        </p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-black text-resa-navy">
+            Inscriptions — {camp.title_fr}
+          </h1>
+          <p className="mt-1 text-sm text-resa-text/50">
+            {list.length} inscription(s) · {list.filter((r) => r.payment_status === 'paid').length} payée(s)
+          </p>
+        </div>
+        <NewCampRegistrationButton camp={camp} />
       </div>
 
       <CampRegistrationsTable registrations={list} camp={camp} />

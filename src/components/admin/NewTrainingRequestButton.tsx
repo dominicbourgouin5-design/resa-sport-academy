@@ -1,0 +1,33 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import NewTrainingRequestModal from './NewTrainingRequestModal';
+
+export default function NewTrainingRequestButton({
+  programs
+}: {
+  programs: { slug: string; title_fr: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-2 rounded-full bg-resa-red px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-red-700"
+      >
+        ➕ Nouvelle demande
+      </button>
+
+      {open && (
+        <NewTrainingRequestModal
+          programs={programs}
+          onClose={() => setOpen(false)}
+          onSuccess={() => router.refresh()}
+        />
+      )}
+    </>
+  );
+}

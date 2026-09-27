@@ -518,3 +518,96 @@ export async function markCampRegistrationPaid(
     return { error: err.message ?? 'Erreur inconnue' };
   }
 }
+
+
+
+
+// ═══════════════════════════════════════════════════════════
+// Créer manuellement une inscription camp (admin)
+// ═══════════════════════════════════════════════════════════
+export async function createCampRegistrationManually(payload: {
+  camp_id: string;
+  parent_name: string;
+  parent_email: string;
+  parent_phone?: string | null;
+  parent_country?: string | null;
+  player_name: string;
+  player_age?: number | null;
+  player_birth_date?: string | null;
+  notes?: string | null;
+  admin_notes?: string | null;
+  status: 'new' | 'contacted' | 'confirmed' | 'cancelled';
+  payment_option: 'later' | 'paid';
+  payment_amount?: number | null;
+  payment_currency?: string | null;
+  payment_method?: string | null;
+}): Promise<{ ok?: boolean; error?: string; id?: string }> {
+  try {
+    await requireRole(['admin', 'league_manager']);
+
+    if (!payload.camp_id) return { error: 'Camp manquant.' };
+    if (!payload.parent_name?.trim() || !payload.parent_email?.trim() || !payload.player_name?.trim()) {
+      return { error: 'Nom parent, email et nom joueur sont obligatoires.' };
+    }
+
+    const supabase = createAdminClient();
+
+    const isPaid = payload.payment_option === 'paid';
+    if (isPaid) {
+      if (!payload.payment_amount || payload.payment_amount <= 0) {
+        return { error: 'Montant invalide pour un paiement immédiat.' };
+      }
+      if (!payload.payment_currency) {
+        return { error: 'Devise manquante.' };
+      }
+      if (!payload.payment_method) {
+        return { error: 'Méthode de paiement manquante.' };
+      }
+    }
+
+    const nowIso = new Date().toISOString();
+
+    const { data: created, error: insertErr } = await supabase
+      .from('camp_registrations')
+      .insert({
+        camp_id: payload.camp_id,
+        parent_name: payload.parent_name.trim(),
+        parent_email: payload.parent_email.trim().toLowerCase(),
+        parent_phone: payload.parent_phone?.trim() || null,
+        parent_country: payload.parent_country?.trim() || 'ci',
+        player_name: payload.player_name.trim(),
+        player_age: payload.player_age ?? null,
+        player_birth_date: payload.player_birth_date || null,
+        notes: payload.notes?.trim() || null,
+        admin_notes: payload.admin_notes?.trim() || null,
+        status: payload.status,
+        payment_status: isPaid ? 'paid' : 'pending',
+        payment_method: isPaid ? payload.payment_method! : 'manual',
+        payment_amount: isPaid ? payload.payment_amount! : null,
+        payment_currency: isPaid ? payload.payment_currency! : 'XOF',
+        paid_at: isPaid ? nowIso : null
+      })
+      .select('id')
+      .single();
+
+    if (insertErr || !created) {
+      return { error: insertErr?.message ?? 'Erreur à la création.' };
+    }
+
+    if (isPaid) {
+      try {
+        const { sendCampSuccessEmails } = await import('@/lib/camp-emails');
+        await sendCampSuccessEmails(created.id);
+      } catch (err) {
+        console.error('[Create Camp] Email succès échec:', err);
+      }
+    }
+
+    revalidatePath('/admin/camps');
+    revalidatePath(`/admin/camps/${payload.camp_id}/inscriptions`);
+    return { ok: true, id: created.id };
+  } catch (err: any) {
+    console.error('[Create Camp] Error:', err);
+    return { error: err.message ?? 'Erreur inconnue' };
+  }
+}
