@@ -15,7 +15,6 @@ export default function EcosystemCta({ isFr }: { isFr: boolean }) {
     const update = () => {
       if (!ref.current) return;
       const rect = ref.current.getBoundingClientRect();
-      // Le fond est positionné pour rester collé au viewport
       setBgTop(-rect.top);
       setBgHeight(window.innerHeight);
     };
@@ -70,8 +69,10 @@ export default function EcosystemCta({ isFr }: { isFr: boolean }) {
           {t('ctaText')}
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-4">
+          {/* ✅ AJOUT : #form + scroll={false} */}
           <Link
-            href="/inscriptions"
+            href="/inscriptions#form"
+            scroll={false}
             className="group inline-flex items-center gap-2 rounded-full bg-resa-red px-8 py-4 text-sm font-bold uppercase tracking-wide text-white shadow-resa-lg transition-all duration-300 hover:scale-[1.04] hover:bg-red-700"
           >
             {isFr ? "S'inscrire" : 'Register'}
@@ -79,8 +80,11 @@ export default function EcosystemCta({ isFr }: { isFr: boolean }) {
               →
             </span>
           </Link>
+
+          {/* ✅ AJOUT : #devenir-partenaire + scroll={false} */}
           <Link
-            href="/sponsors"
+            href="/sponsors#devenir-partenaire"
+            scroll={false}
             className="group inline-flex items-center gap-2 rounded-full border border-white/25 px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:scale-[1.04] hover:bg-white hover:text-resa-navy"
           >
             {t('ctaPartner')}
