@@ -120,6 +120,9 @@ export default function AdminSidebar({ role }: { role: string }) {
     setMobileOpen(false);
   }, [pathname, setMobileOpen]);
 
+  // En drawer mobile : toujours étendu (peu importe la préférence desktop)
+  const isCollapsed = collapsed && !mobileOpen;
+
   const isActive = (href: string) => {
     if (href === '/admin') return pathname === '/admin';
     return pathname === href || pathname.startsWith(href + '/');
@@ -143,30 +146,53 @@ export default function AdminSidebar({ role }: { role: string }) {
 
       <aside
         className={cn(
-          // Base
           'flex h-screen shrink-0 flex-col border-r border-white/5 bg-resa-navy text-white',
-          // Largeur dynamique
-          'transition-[width] duration-300 ease-out',
-          collapsed ? 'w-16' : 'w-60',
-          // Toujours en fixed
           'fixed inset-y-0 left-0 z-50',
-          // Mobile : caché par défaut
+          'transition-[width,transform] duration-300 ease-out',
+          // Largeur : mobile toujours 15rem, desktop selon collapsed
+          'w-60',
+          collapsed ? 'lg:w-16' : 'lg:w-60',
+          // Mobile
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
-          // Desktop : toujours visible
-          'lg:translate-x-0',
-          'transition-transform duration-300 ease-out'
+          'lg:translate-x-0'
         )}
       >
-        {/* Logo + toggle */}
-        <div
-          className={cn(
-            'flex items-center border-b border-white/5 px-3 py-4',
-            collapsed ? 'justify-center' : 'justify-between px-5'
-          )}
-        >
-          <Link href="/admin" className="flex items-center gap-3">
-            <Logo size="sm" />
-            {!collapsed && (
+        {/* ═══ HEADER ═══ */}
+        {isCollapsed ? (
+          // ─── Mode réduit : logo centré + toggle dessous ───
+          <div className="flex flex-col items-center gap-2 border-b border-white/5 py-3">
+            <Link href="/admin" aria-label="RESA Admin">
+              <Logo size="sm" />
+            </Link>
+
+            {/* Toggle desktop */}
+            <button
+              onClick={toggleCollapsed}
+              className="hidden lg:grid h-6 w-6 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white"
+              aria-label="Étendre le menu"
+              title="Étendre le menu"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-3.5 w-3.5">
+                <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+
+            {/* Close mobile */}
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="grid h-6 w-6 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white lg:hidden"
+              aria-label="Fermer le menu"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-3.5 w-3.5">
+                <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          // ─── Mode étendu : logo + texte + toggle à droite ───
+          <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+            <Link href="/admin" className="flex items-center gap-3">
+              <Logo size="sm" />
               <div className="flex flex-col">
                 <span className="font-display text-base font-black tracking-tight text-white">
                   RESA
@@ -175,45 +201,38 @@ export default function AdminSidebar({ role }: { role: string }) {
                   Admin
                 </span>
               </div>
-            )}
-          </Link>
+            </Link>
 
-          {/* Bouton collapse (desktop) */}
-          <button
-            onClick={toggleCollapsed}
-            className={cn(
-              'hidden lg:grid h-8 w-8 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white',
-              collapsed && 'absolute right-1 top-4'
-            )}
-            aria-label={collapsed ? 'Étendre le menu' : 'Réduire le menu'}
-            title={collapsed ? 'Étendre le menu' : 'Réduire le menu'}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-              {collapsed ? (
-                <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-              ) : (
+            {/* Toggle desktop */}
+            <button
+              onClick={toggleCollapsed}
+              className="hidden lg:grid h-8 w-8 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white"
+              aria-label="Réduire le menu"
+              title="Réduire le menu"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
                 <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-              )}
-            </svg>
-          </button>
+              </svg>
+            </button>
 
-          {/* Bouton fermer (mobile) */}
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="grid h-8 w-8 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white lg:hidden"
-            aria-label="Fermer le menu"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-              <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-            </svg>
-          </button>
-        </div>
+            {/* Close mobile */}
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="grid h-8 w-8 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white lg:hidden"
+              aria-label="Fermer le menu"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+        )}
 
-        {/* Nav */}
+        {/* ═══ NAV ═══ */}
         <nav
           className={cn(
             'flex-1 overflow-y-auto py-4',
-            collapsed ? 'px-2' : 'px-3',
+            isCollapsed ? 'px-2' : 'px-3',
             '[&::-webkit-scrollbar]:w-1',
             '[&::-webkit-scrollbar-track]:bg-transparent',
             '[&::-webkit-scrollbar-thumb]:bg-white/10',
@@ -225,8 +244,7 @@ export default function AdminSidebar({ role }: { role: string }) {
 
             return (
               <div key={section.label} className={sIdx > 0 ? 'mt-4' : ''}>
-                {/* Titre section : caché en mode collapsed */}
-                {!collapsed && (
+                {!isCollapsed && (
                   <div className="mb-1 px-3 text-[9px] font-bold uppercase tracking-[0.15em] text-white/30">
                     {section.label}
                   </div>
@@ -238,55 +256,50 @@ export default function AdminSidebar({ role }: { role: string }) {
                     const hasChildren = !!item.children?.length;
                     const isOpen = open[item.label];
 
-                    // Item simple sans enfants
+                    // ─── Item simple sans enfants ───
                     if (!hasChildren && item.href) {
                       return (
                         <li key={item.label}>
                           <Link
                             href={item.href}
-                            title={collapsed ? item.label : undefined}
+                            title={isCollapsed ? item.label : undefined}
                             className={cn(
                               'group flex items-center rounded-md py-2 text-[13px] font-medium transition',
-                              collapsed ? 'justify-center px-0' : 'gap-2.5 px-3',
+                              isCollapsed ? 'justify-center px-0' : 'gap-2.5 px-3',
                               isActive(item.href)
                                 ? 'bg-white/10 text-white'
                                 : 'text-white/60 hover:bg-white/5 hover:text-white'
                             )}
                           >
                             <Icon name={item.icon} active={isActive(item.href)} />
-                            {!collapsed && <span>{item.label}</span>}
+                            {!isCollapsed && <span>{item.label}</span>}
                           </Link>
                         </li>
                       );
                     }
 
-                    // Item avec enfants
+                    // ─── Item avec enfants ───
                     return (
                       <li key={item.label}>
                         <button
                           onClick={() => {
-                            // En mode collapsed : on étend + on ouvre le groupe
-                            if (collapsed) {
-                              // import direct du contexte : on a toggleCollapsed dans le hook
-                              // on étend via le contexte parent
-                              const ev = new CustomEvent('resa:admin:expand-sidebar');
-                              window.dispatchEvent(ev);
-                              setOpen((o) => ({ ...o, [item.label]: true }));
-                              return;
-                            }
+                            // ⚠️ En mode réduit : clic simple ne fait RIEN (pas d'expand)
+                            // L'utilisateur doit d'abord cliquer sur la flèche
+                            if (isCollapsed) return;
                             setOpen((o) => ({ ...o, [item.label]: !o[item.label] }));
                           }}
-                          title={collapsed ? item.label : undefined}
+                          title={isCollapsed ? item.label : undefined}
                           className={cn(
                             'flex w-full items-center rounded-md py-2 text-[13px] font-medium transition',
-                            collapsed ? 'justify-center px-0' : 'gap-2.5 px-3',
+                            isCollapsed ? 'justify-center px-0' : 'gap-2.5 px-3',
                             groupActive
                               ? 'text-white'
-                              : 'text-white/60 hover:bg-white/5 hover:text-white'
+                              : 'text-white/60 hover:bg-white/5 hover:text-white',
+                            isCollapsed ? 'cursor-default' : 'cursor-pointer'
                           )}
                         >
                           <Icon name={item.icon} active={groupActive} />
-                          {!collapsed && (
+                          {!isCollapsed && (
                             <>
                               <span className="flex-1 text-left">{item.label}</span>
                               <svg
@@ -305,8 +318,7 @@ export default function AdminSidebar({ role }: { role: string }) {
                           )}
                         </button>
 
-                        {/* Sous-items : uniquement en mode étendu */}
-                        {!collapsed && isOpen && (
+                        {!isCollapsed && isOpen && (
                           <ul className="ml-5 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
                             {item.children!.map((c) => (
                               <li key={c.href}>
@@ -338,16 +350,16 @@ export default function AdminSidebar({ role }: { role: string }) {
         <div className="border-t border-white/5 p-3">
           <Link
             href="/fr"
-            title={collapsed ? 'Retour au site' : undefined}
+            title={isCollapsed ? 'Retour au site' : undefined}
             className={cn(
               'flex items-center rounded-md py-2 text-[12px] font-medium text-white/50 transition hover:bg-white/5 hover:text-white',
-              collapsed ? 'justify-center px-0' : 'gap-2 px-3'
+              isCollapsed ? 'justify-center px-0' : 'gap-2 px-3'
             )}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5 shrink-0">
               <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            {!collapsed && <span>Retour au site</span>}
+            {!isCollapsed && <span>Retour au site</span>}
           </Link>
         </div>
       </aside>

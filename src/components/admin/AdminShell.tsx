@@ -51,15 +51,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
   const toggleCollapsed = () => setCollapsed(!collapsed);
 
-  // Écoute l'event custom émis par la sidebar
-  // (quand un groupe est cliqué en mode réduit → on étend la sidebar)
-  useEffect(() => {
-    const handler = () => setCollapsed(false);
-    window.addEventListener('resa:admin:expand-sidebar', handler);
-    return () => window.removeEventListener('resa:admin:expand-sidebar', handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Verrouille le scroll quand le drawer mobile est ouvert
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
