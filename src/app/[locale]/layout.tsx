@@ -10,6 +10,7 @@ import Footer from '@/components/layout/Footer';
 import WhatsAppButton from '@/components/layout/WhatsAppButton';
 import ServiceWorkerPublic from '@/components/ServiceWorkerPublic';
 import ScrollToHash from '@/components/ScrollToHash';
+import PageTransition from '@/components/PageTransition';
 
 import '../globals.css';
 
@@ -52,7 +53,9 @@ export default async function LocaleLayout({
           <ServiceWorkerPublic />
           <ScrollToHash />
           <Header />
-          <main>{children}</main>
+          <main>
+            <PageTransition>{children}</PageTransition>
+          </main>
           <Footer />
           <WhatsAppButton />
         </NextIntlClientProvider>

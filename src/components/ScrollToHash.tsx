@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 export default function ScrollToHash() {
   const pathname = usePathname();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const hash = window.location.hash;
     if (!hash) return;
 
@@ -15,32 +15,28 @@ export default function ScrollToHash() {
     if (!targetId) return;
 
     let attempts = 0;
-    const maxAttempts = 30; // 30 * 50ms = 1.5s max
+    const maxAttempts = 30; // 1.5s max
 
     const tryScroll = () => {
       const element = document.getElementById(targetId);
 
       if (element) {
-        // scrollIntoView respecte nativement `scroll-mt-*` de Tailwind
+        // behavior "instant" : le scroll se fait AVANT que l'utilisateur voie la page
         element.scrollIntoView({
-          behavior: 'smooth',
+          behavior: 'instant' as ScrollBehavior,
           block: 'start'
         });
       } else if (attempts < maxAttempts) {
         attempts++;
-        timerRef.current = setTimeout(tryScroll, 50);
+        timerRef.current = setTimeout(tryScroll, 30);
       }
     };
 
-    // Petit délai initial pour laisser React monter le DOM
-    timerRef.current = setTimeout(tryScroll, 60);
-
-    const onHashChange = () => tryScroll();
-    window.addEventListener('hashchange', onHashChange);
+    // Tentative immédiate (dans le même tick que le render)
+    tryScroll();
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
-      window.removeEventListener('hashchange', onHashChange);
     };
   }, [pathname]);
 
