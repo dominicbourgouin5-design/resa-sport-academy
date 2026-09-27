@@ -3,6 +3,7 @@ export const revalidate = 0;
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import Collapsible from '@/components/admin/Collapsible';
+import PartnerRequestsRealtime from './PartnerRequestsRealtime';
 import PartnerRequestsTable from './PartnerRequestsTable';
 
 const STATUS_CONFIG: Record<string, {
@@ -53,6 +54,9 @@ export default async function AdminPartnerRequestsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
+
+    <PartnerRequestsRealtime />
+
 
       {/* Header */}
       <div className="mb-8">
