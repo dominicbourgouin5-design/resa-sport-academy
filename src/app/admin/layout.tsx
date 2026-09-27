@@ -33,14 +33,14 @@ export default async function AdminLayout({
         <AdminShell>
           <ServiceWorkerRegister />
           <div className="min-h-screen">
-          <AdminSidebar role={profile.role} />
-          <div className="flex min-h-screen flex-col lg:pl-60">
-            <AdminTopbar profile={profile} />
-            <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8">
-              {children}
-            </main>
+            <AdminSidebar role={profile.role} />
+            <div className="flex min-h-screen flex-col transition-[padding-left] duration-300 ease-out lg:pl-[var(--admin-sidebar-w,15rem)]">
+              <AdminTopbar profile={profile} />
+              <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
         </AdminShell>
       </body>
     </html>
