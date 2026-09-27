@@ -130,88 +130,98 @@ export async function sendTrainingSuccessEmail(
   if (req.success_email_sent_at) return { ok: true, skipped: true };
 
   const adminEmail = process.env.BREVO_SENDER_EMAIL ?? 'contact@cataria-systems.com';
+  const isPaid = req.payment_status === 'paid';
   const amountLabel = req.payment_amount
     ? `${Number(req.payment_amount).toLocaleString('fr-FR')} ${req.payment_currency ?? 'XOF'}`
     : '—';
 
+  const headline = isPaid
+    ? 'Paiement confirmé ✅'
+    : '🎉 Votre place est réservée !';
+
+  const intro = isPaid
+    ? `Nous avons bien reçu votre paiement. La séance${req.program_title ? ` <strong>${req.program_title}</strong>` : ''} est <strong>définitivement réservée</strong>${req.player_name ? ` pour <strong>${req.player_name}</strong>` : ''} 🎉`
+    : `Bonne nouvelle ! Votre séance${req.program_title ? ` <strong>${req.program_title}</strong>` : ''} est <strong>réservée</strong>${req.player_name ? ` pour <strong>${req.player_name}</strong>` : ''}. Notre équipe vous contactera prochainement pour finaliser les détails.`;
+
+  const badgeLabel = isPaid ? '✓ Paiement confirmé' : '✓ Séance réservée';
+  const badgeColor = isPaid ? '#10B981' : '#1E3A8A';
+  const badgeBg = isPaid ? '#ECFDF5' : '#EFF6FF';
+
   const inner = `
-<h1 style="font-size:24px;font-weight:900;color:#0A1F44;margin:0 0 8px;">Paiement confirmé ✅</h1>
+<h1 style="font-size:24px;font-weight:900;color:#0A1F44;margin:0 0 8px;">${headline}</h1>
 <p style="color:#64748B;margin:0 0 24px;font-size:14px;">Bonjour ${req.parent_name},</p>
-<p style="font-size:16px;">
-  Nous avons bien reçu votre paiement. La séance${req.program_title ? ` <strong>${req.program_title}</strong>` : ''} est <strong>définitivement réservée</strong>${req.player_name ? ` pour <strong>${req.player_name}</strong>` : ''} 🎉
-</p>
-<div style="background:#ECFDF5;border-left:4px solid #10B981;padding:18px 22px;border-radius:10px;margin:28px 0;">
-  <div style="font-weight:800;color:#10B981;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">✓ Paiement confirmé</div>
+<p style="font-size:16px;">${intro}</p>
+<div style="background:${badgeBg};border-left:4px solid ${badgeColor};padding:18px 22px;border-radius:10px;margin:28px 0;">
+  <div style="font-weight:800;color:${badgeColor};font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">${badgeLabel}</div>
   ${req.program_title ? `<div><strong>Programme :</strong> ${req.program_title}</div>` : ''}
   ${req.player_name ? `<div style="margin-top:6px;"><strong>Joueur :</strong> ${req.player_name}${req.player_age ? ` (${req.player_age} ans)` : ''}</div>` : ''}
   ${req.preferred_coach ? `<div style="margin-top:6px;"><strong>Coach :</strong> ${req.preferred_coach}</div>` : ''}
-  <div style="margin-top:12px;"><strong>Montant payé :</strong> ${amountLabel}</div>
+  ${isPaid ? `<div style="margin-top:12px;"><strong>Montant payé :</strong> ${amountLabel}</div>` : ''}
   ${req.payment_reference ? `<div style="margin-top:6px;font-size:11px;color:#64748B;">Réf. : ${req.payment_reference}</div>` : ''}
 </div>
-<p><strong>📄 Votre reçu de paiement est attaché à cet email</strong> — conservez-le précieusement.</p>
+${isPaid ? '<p><strong>📄 Votre reçu de paiement est attaché à cet email</strong> — conservez-le précieusement.</p>' : ''}
 <p>Notre équipe vous enverra sous peu les détails pratiques (adresse exacte, horaire précis, à apporter).</p>
 ${contactButtons(`Training confirmé - ${req.program_title ?? 'RESA'}`, "💬 Une question ? WhatsApp", "https://wa.me/2250700000000")}
 <p style="margin-top:28px;">À très vite sur le terrain,<br/><strong>L'équipe RESA Sport Academy</strong> ⚽</p>`;
 
-  // ─── Générer le PDF de reçu ───
+  // PDF seulement si payé
   let attachments: EmailAttachment[] | undefined;
-  try {
-    console.log('[Training Emails] 📄 Début de génération du reçu PDF...');
+  if (isPaid) {
+    try {
+      const pdfBytes = await generateReceiptPDF({
+        type: 'training',
+        reference: req.payment_reference ?? `RESA-${req.id.slice(0, 8).toUpperCase()}`,
+        date: req.paid_at ?? new Date().toISOString(),
+        amount: Number(req.payment_amount ?? 0),
+        currency: req.payment_currency ?? 'XOF',
+        method: req.payment_method ?? undefined,
+        clientName: req.parent_name,
+        clientEmail: req.parent_email,
+        clientPhone: req.parent_phone ?? undefined,
+        programTitle: req.program_title ?? undefined,
+        playerName: req.player_name ?? undefined,
+        playerAge: req.player_age ?? undefined,
+        coach: req.preferred_coach ?? undefined,
+        availability: req.availability ?? undefined
+      });
 
-    const pdfBytes = await generateReceiptPDF({
-      type: 'training',
-      reference: req.payment_reference ?? `RESA-${req.id.slice(0, 8).toUpperCase()}`,
-      date: req.paid_at ?? new Date().toISOString(),
-      amount: Number(req.payment_amount ?? 0),          // ← MODIF : cast Number
-      currency: req.payment_currency ?? 'XOF',
-      method: req.payment_method ?? undefined,           // ← AJOUT : moyen de paiement
-      clientName: req.parent_name,
-      clientEmail: req.parent_email,
-      clientPhone: req.parent_phone ?? undefined,
-      programTitle: req.program_title ?? undefined,
-      playerName: req.player_name ?? undefined,
-      playerAge: req.player_age ?? undefined,
-      coach: req.preferred_coach ?? undefined,
-      availability: req.availability ?? undefined
-    });
+      const base64Content = uint8ToBase64(pdfBytes);
+      const safeTitle = (req.program_title ?? 'training')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9_-]/g, '-')
+        .toLowerCase();
 
-    console.log(`[Training Emails] 📄 PDF généré avec succès (${pdfBytes.byteLength} octets)`);
-
-    const base64Content = uint8ToBase64(pdfBytes);
-
-    const safeTitle = (req.program_title ?? 'training')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-zA-Z0-9_-]/g, '-')
-      .toLowerCase();
-
-    attachments = [{
-      name: `recu-${safeTitle}.pdf`,
-      content: base64Content
-    }];
-
-    console.log(`[Training Emails] 📎 Pièce jointe prête: recu-${safeTitle}.pdf (${base64Content.length} chars base64)`);
-  } catch (pdfErr) {
-    console.error('[Training Emails] ⚠️ Génération PDF échec critique:', pdfErr);
+      attachments = [{
+        name: `recu-${safeTitle}.pdf`,
+        content: base64Content
+      }];
+    } catch (pdfErr) {
+      console.error('[Training Emails] PDF error:', pdfErr);
+    }
   }
+
+  const subject = isPaid
+    ? `✅ Séance confirmée — ${req.program_title ?? 'Training RESA'}`
+    : `🎉 Votre place est réservée — ${req.program_title ?? 'Training RESA'}`;
 
   try {
     await sendEmail({
       to: [{ email: req.parent_email, name: req.parent_name }],
-      subject: `✅ Séance confirmée — ${req.program_title ?? 'Training RESA'}`,
+      subject,
       htmlContent: layout(inner),
       replyTo: { email: adminEmail, name: 'RESA Sport Academy' },
       attachments
     });
 
     await notifyAdmins({
-      type: 'training_paid',
-      title: `💳 Paiement training reçu`,
+      type: isPaid ? 'training_paid' : 'training_booked',
+      title: isPaid ? '💳 Paiement training reçu' : '✅ Training réservé',
       body: `${req.parent_name} — ${req.program_title ?? 'Training'}`,
       link: '/admin/demandes-training'
     });
   } catch (err) {
-    console.error('[Training Emails] ⚠️ Succès email échec:', err);
+    console.error('[Training Emails] email échec:', err);
   }
 
   await supabase

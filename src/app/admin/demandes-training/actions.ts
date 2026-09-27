@@ -364,7 +364,6 @@ export async function sendTrainingStripeLink(
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
     const returnUrl = `${siteUrl}/fr/paiement/stripe/return`;
-    // ✅ MODIF : on passe {CHECKOUT_SESSION_ID} dans cancelUrl pour identifier la session annulée
     const cancelUrl = `${siteUrl}/fr/paiement/stripe/return?cancelled=1&session_id={CHECKOUT_SESSION_ID}`;
 
     const session = await createStripeSession({
@@ -407,11 +406,8 @@ export async function sendTrainingStripeLink(
   }
 }
 
-
-
 // ═══════════════════════════════════════════════════════════
 // Marquer manuellement un training comme payé (hors ligne)
-// + envoie automatiquement email succès + PDF reçu
 // ═══════════════════════════════════════════════════════════
 export async function markTrainingRequestPaid(
   requestId: string,
@@ -447,13 +443,11 @@ export async function markTrainingRequestPaid(
         payment_amount: amount,
         payment_currency: currency,
         paid_at: new Date().toISOString(),
-        // Reset pour forcer l'envoi de l'email succès + PDF
         success_email_sent_at: null,
         failure_email_sent_at: null
       })
       .eq('id', requestId);
 
-    // Envoi email succès + PDF (idempotent via success_email_sent_at)
     await sendTrainingSuccessEmail(requestId);
 
     revalidatePath('/admin/demandes-training');
@@ -464,15 +458,8 @@ export async function markTrainingRequestPaid(
   }
 }
 
-
-
 // ═══════════════════════════════════════════════════════════
 // Fallback : récupérer le tarif par titre de programme
-// (utile quand program_slug est null en DB)
-// ═══════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════
-// Fallback : récupérer le tarif par titre de programme
-// (utile quand program_slug est null en DB)
 // ═══════════════════════════════════════════════════════════
 export async function getTrainingProgramRateByTitle(
   title: string
@@ -480,8 +467,6 @@ export async function getTrainingProgramRateByTitle(
   if (!title) return null;
   const supabase = await createClient();
 
-  // On récupère tous les programmes puis on matche côté client
-  // (plus fiable que `.or(...ilike...)` qui peut échouer sur certains caractères)
   const { data } = await supabase
     .from('training_programs')
     .select('rates, title_fr, title_en, slug');
@@ -509,7 +494,6 @@ export async function getTrainingProgramRateByTitle(
   }
   return null;
 }
-
 
 // ═══════════════════════════════════════════════════════════
 // Récupérer TOUTES les formules d'un programme (slug ou titre)
@@ -548,7 +532,6 @@ export async function getTrainingProgramRates(
 
   let program: any = null;
 
-  // 1) Par slug si fourni
   if (slug) {
     const { data } = await supabase
       .from('training_programs')
@@ -558,7 +541,6 @@ export async function getTrainingProgramRates(
     program = data;
   }
 
-  // 2) Fallback par titre (match exact en lowercase)
   if (!program && title) {
     const { data } = await supabase
       .from('training_programs')
@@ -582,9 +564,6 @@ export async function getTrainingProgramRates(
     amount_usd: parseAmountUsd(r?.price_en)
   }));
 }
-
-
-
 
 // ═══════════════════════════════════════════════════════════
 // Créer manuellement une demande de training (admin)
@@ -636,8 +615,6 @@ export async function createTrainingRequestManually(payload: {
 
     const nowIso = new Date().toISOString();
 
-    // ⚠️ training_requests n'a PAS de colonne parent_country ni player_birth_date.
-    // On n'envoie que les colonnes qui existent.
     const { data: created, error: insertErr } = await supabase
       .from('training_requests')
       .insert({
@@ -668,12 +645,15 @@ export async function createTrainingRequestManually(payload: {
       return { error: insertErr?.message ?? 'Erreur à la création.' };
     }
 
-    // Si payé immédiatement → email succès + PDF
-    if (isPaid) {
+    // ✉️ Envoyer email dans 2 cas :
+    //   - Payé immédiatement (email + PDF)
+    //   - Réservé mais non payé (email sans PDF)
+    const shouldEmail = isPaid || payload.status === 'booked';
+    if (shouldEmail) {
       try {
         await sendTrainingSuccessEmail(created.id);
       } catch (err) {
-        console.error('[Create Training] Email succès échec:', err);
+        console.error('[Create Training] Email échec:', err);
       }
     }
 

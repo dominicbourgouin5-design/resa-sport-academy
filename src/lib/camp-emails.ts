@@ -51,7 +51,7 @@ function contactButtons(mailSubject: string, primaryLabel: string, primaryUrl: s
 }
 
 // ═══════════════════════════════════════════════════════════
-// EMAILS DE SUCCÈS
+// EMAILS DE SUCCÈS (gère 2 cas : payé / réservé non payé)
 // ═══════════════════════════════════════════════════════════
 export async function sendCampSuccessEmails(
   registrationId: string
@@ -109,7 +109,7 @@ ${contactButtons(`Question - ${campTitle}`, "Voir les détails du camp", campUrl
       ? `🎉 C'est confirmé — ${reg.player_name} au ${campTitle} !`
       : `🙌 Bienvenue ${reg.parent_name} — ${campTitle}`;
 
-    // Générer le PDF si le paiement est confirmé
+    // PDF uniquement si payé
     let attachments: { name: string; content: string }[] | undefined;
     if (isPaid) {
       try {
@@ -117,10 +117,8 @@ ${contactButtons(`Question - ${campTitle}`, "Voir les détails du camp", campUrl
           type: 'camp',
           reference: reg.payment_reference ?? `RESA-${reg.id.slice(0, 8).toUpperCase()}`,
           date: reg.paid_at ?? new Date().toISOString(),
-          // ✅ MODIF : montant/Devise réellement payés (fallback sur le prix catalogue si absents)
           amount: Number(reg.payment_amount ?? camp?.price_amount ?? 0),
           currency: reg.payment_currency ?? 'XOF',
-          // ✅ AJOUT : moyen de paiement de la dernière transaction
           method: reg.payment_method ?? undefined,
           clientName: reg.parent_name,
           clientEmail: reg.parent_email,
@@ -135,9 +133,8 @@ ${contactButtons(`Question - ${campTitle}`, "Voir les détails du camp", campUrl
           name: `recu-${reg.player_name?.replace(/\s+/g, '-') ?? 'resa'}.pdf`,
           content: uint8ToBase64(pdfBytes)
         }];
-        console.log('[Camp Emails] 📄 Reçu PDF généré');
       } catch (pdfErr) {
-        console.error('[Camp Emails] ⚠️ Génération PDF échec:', pdfErr);
+        console.error('[Camp Emails] PDF échec:', pdfErr);
       }
     }
 
@@ -148,46 +145,44 @@ ${contactButtons(`Question - ${campTitle}`, "Voir les détails du camp", campUrl
       replyTo: { email: adminEmail, name: 'RESA Sport Academy' },
       attachments
     });
-    console.log('[Camp Emails] 📧 Email succès parent envoyé');
-    
-  } catch (err) {
-    console.error('[Camp Emails] ⚠️ Email parent échec:', err);
-  }
 
-  // Email admin
-  try {
-    const htmlAdmin = `
+    // Email admin
+    try {
+      const htmlAdmin = `
 <div style="font-family:Arial,sans-serif;max-width:600px;">
 <h2 style="color:#0A1F44;">📥 Nouvelle inscription camp</h2>
 <p><strong>Événement :</strong> ${campTitle}</p>
 <p><strong>Parent :</strong> ${reg.parent_name} (${reg.parent_email}${reg.parent_phone ? ` · ${reg.parent_phone}` : ''})</p>
 <p><strong>Joueur :</strong> ${reg.player_name}${reg.player_age ? ` (${reg.player_age} ans)` : ''}</p>
 ${reg.notes ? `<p><strong>Notes :</strong> ${reg.notes}</p>` : ''}
-<p><strong>Statut :</strong> ${isPaid ? '✅ Payé en ligne' : '📝 Réservation manuelle (à contacter)'}</p>
+<p><strong>Statut :</strong> ${isPaid ? '✅ Payé' : '📝 À régler'}</p>
 ${isPaid && reg.payment_reference ? `<p><strong>Réf. :</strong> ${reg.payment_reference}</p>` : ''}
 <p style="margin-top:24px;"><a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin/camps/${camp.id}/inscriptions" style="background:#0A1F44;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;">Voir dans l'admin</a></p>
 </div>`;
 
-    await sendEmail({
-      to: [{ email: adminEmail, name: 'RESA Admin' }],
-      subject: `📥 Inscription ${campTitle}${isPaid ? ' — Payée' : ''}`,
-      htmlContent: htmlAdmin,
-      replyTo: { email: reg.parent_email, name: reg.parent_name }
-    });
-    console.log('[Camp Emails] 📧 Email succès admin envoyé');
-  } catch (err) {
-    console.error('[Camp Emails] ⚠️ Email admin échec:', err);
-  }
+      await sendEmail({
+        to: [{ email: adminEmail, name: 'RESA Admin' }],
+        subject: `📥 Inscription ${campTitle}${isPaid ? ' — Payée' : ''}`,
+        htmlContent: htmlAdmin,
+        replyTo: { email: reg.parent_email, name: reg.parent_name }
+      });
+    } catch (err) {
+      console.error('[Camp Emails] Email admin échec:', err);
+    }
 
-  try {
-    await notifyAdmins({
-      type: 'camp_registration',
-      title: `Inscription ${campTitle}${isPaid ? ' 💳' : ''}`,
-      body: `${reg.parent_name} — ${reg.player_name}${isPaid ? ' · payé' : ''}`,
-      link: `/admin/camps/${camp.id}/inscriptions`
-    });
+    // Notif in-app
+    try {
+      await notifyAdmins({
+        type: 'camp_registration',
+        title: `Inscription ${campTitle}${isPaid ? ' 💳' : ''}`,
+        body: `${reg.parent_name} — ${reg.player_name}${isPaid ? ' · payé' : ''}`,
+        link: `/admin/camps/${camp.id}/inscriptions`
+      });
+    } catch (err) {
+      console.error('[Camp Emails] Notif admin échec:', err);
+    }
   } catch (err) {
-    console.error('[Camp Emails] ⚠️ Notif in-app échec:', err);
+    console.error('[Camp Emails] Email parent échec:', err);
   }
 
   await supabase
@@ -295,9 +290,8 @@ ${contactButtons(`Paiement échoué - ${campTitle}`, "Réessayer le paiement", c
       htmlContent: emailWrap(inner),
       replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
     });
-    console.log(`[Camp Emails] 📧 Email ${reason} parent envoyé`);
   } catch (err) {
-    console.error('[Camp Emails] ⚠️ Email parent échec:', err);
+    console.error('[Camp Emails] Email parent échec:', err);
   }
 
   // Email admin
@@ -319,9 +313,8 @@ ${reg.payment_reference ? `<p><strong>Réf. :</strong> ${reg.payment_reference}<
       htmlContent: htmlAdmin,
       replyTo: { email: reg.parent_email, name: reg.parent_name }
     });
-    console.log('[Camp Emails] 📧 Email échec admin envoyé');
   } catch (err) {
-    console.error('[Camp Emails] ⚠️ Email admin échec:', err);
+    console.error('[Camp Emails] Email admin échec:', err);
   }
 
   try {
@@ -332,7 +325,7 @@ ${reg.payment_reference ? `<p><strong>Réf. :</strong> ${reg.payment_reference}<
       link: `/admin/camps/${camp.id}/inscriptions`
     });
   } catch (err) {
-    console.error('[Camp Emails] ⚠️ Notif in-app échec:', err);
+    console.error('[Camp Emails] Notif admin échec:', err);
   }
 
   await supabase
@@ -405,10 +398,9 @@ ${contactButtons(`Paiement camp - ${campTitle}`, "💳 Payer maintenant", paymen
       htmlContent: emailWrap(inner),
       replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
     });
-    console.log(`[Camp Emails] 📧 Email lien paiement ${isResend ? '(renvoi) ' : ''}envoyé`);
     return { ok: true };
   } catch (err) {
-    console.error('[Camp Emails] ⚠️ Lien email échec:', err);
+    console.error('[Camp Emails] Lien email échec:', err);
     return { ok: false };
   }
 }
@@ -474,10 +466,9 @@ ${contactButtons(`Paiement PayPal - ${campTitle}`, "💳 Payer avec PayPal", pay
       htmlContent: emailWrap(inner),
       replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
     });
-    console.log(`[Camp Emails] 📧 Email PayPal ${isResend ? '(renvoi) ' : ''}envoyé`);
     return { ok: true };
   } catch (err) {
-    console.error('[Camp Emails] ⚠️ PayPal email échec:', err);
+    console.error('[Camp Emails] PayPal email échec:', err);
     return { ok: false };
   }
 }
@@ -545,10 +536,9 @@ ${contactButtons(`Paiement Stripe - ${campTitle}`, "💳 Payer par carte", payme
       htmlContent: emailWrap(inner),
       replyTo: { email: adminEmail, name: 'RESA Sport Academy' }
     });
-    console.log(`[Camp Emails] 📧 Email Stripe ${isResend ? '(renvoi) ' : ''}envoyé`);
     return { ok: true };
   } catch (err) {
-    console.error('[Camp Emails] ⚠️ Stripe email échec:', err);
+    console.error('[Camp Emails] Stripe email échec:', err);
     return { ok: false };
   }
 }

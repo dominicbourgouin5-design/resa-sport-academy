@@ -417,7 +417,6 @@ export async function sendCampStripeLink(
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
     const returnUrl = `${siteUrl}/fr/paiement/stripe/return`;
-    // ✅ MODIF : on passe {CHECKOUT_SESSION_ID} dans cancelUrl pour identifier la session annulée
     const cancelUrl = `${siteUrl}/fr/paiement/stripe/return?cancelled=1&session_id={CHECKOUT_SESSION_ID}`;
 
     const session = await createStripeSession({
@@ -460,12 +459,8 @@ export async function sendCampStripeLink(
   }
 }
 
-
-
-
 // ═══════════════════════════════════════════════════════════
 // Marquer manuellement une inscription camp comme payée (hors ligne)
-// + envoie automatiquement email succès + PDF reçu
 // ═══════════════════════════════════════════════════════════
 export async function markCampRegistrationPaid(
   registrationId: string,
@@ -501,13 +496,11 @@ export async function markCampRegistrationPaid(
         payment_amount: amount,
         payment_currency: currency,
         paid_at: new Date().toISOString(),
-        // Reset pour forcer l'envoi de l'email succès + PDF
         success_email_sent_at: null,
         failure_email_sent_at: null
       })
       .eq('id', registrationId);
 
-    // Envoi email succès + PDF (idempotent)
     const { sendCampSuccessEmails } = await import('@/lib/camp-emails');
     await sendCampSuccessEmails(registrationId);
 
@@ -518,9 +511,6 @@ export async function markCampRegistrationPaid(
     return { error: err.message ?? 'Erreur inconnue' };
   }
 }
-
-
-
 
 // ═══════════════════════════════════════════════════════════
 // Créer manuellement une inscription camp (admin)
@@ -594,12 +584,16 @@ export async function createCampRegistrationManually(payload: {
       return { error: insertErr?.message ?? 'Erreur à la création.' };
     }
 
-    if (isPaid) {
+    // ✉️ Envoyer email dans 2 cas :
+    //   - Payé immédiatement (email + PDF)
+    //   - Confirmé mais non payé (email sans PDF)
+    const shouldEmail = isPaid || payload.status === 'confirmed';
+    if (shouldEmail) {
       try {
         const { sendCampSuccessEmails } = await import('@/lib/camp-emails');
         await sendCampSuccessEmails(created.id);
       } catch (err) {
-        console.error('[Create Camp] Email succès échec:', err);
+        console.error('[Create Camp] Email échec:', err);
       }
     }
 
