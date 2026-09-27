@@ -23,49 +23,61 @@ export default function RequestsListManager({
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
+
+  // Filtres période
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+  const [appliedFrom, setAppliedFrom] = useState<string>('');
+  const [appliedTo, setAppliedTo] = useState<string>('');
+
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
 
-  const load = useCallback(async (section: Section, offset: number) => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    setLoading(true);
+  const load = useCallback(
+    async (section: Section, offset: number) => {
+      if (loadingRef.current) return;
+      loadingRef.current = true;
+      setLoading(true);
 
-    try {
-      const params = new URLSearchParams({
-        type,
-        section,
-        offset: String(offset),
-        limit: '100'
-      });
-      if (campId) params.set('campId', campId);
+      try {
+        const params = new URLSearchParams({
+          type,
+          section,
+          offset: String(offset),
+          limit: '100'
+        });
+        if (campId) params.set('campId', campId);
+        if (appliedFrom) params.set('dateFrom', appliedFrom);
+        if (appliedTo) params.set('dateTo', appliedTo);
 
-      const res = await fetch(`/api/admin/requests?${params.toString()}`);
-      const json = await res.json();
+        const res = await fetch(`/api/admin/requests?${params.toString()}`);
+        const json = await res.json();
 
-      const batch = json.data ?? [];
-      if (offset === 0) {
-        setItems(batch);
-      } else {
-        setItems((prev) => [...prev, ...batch]);
+        const batch = json.data ?? [];
+        if (offset === 0) {
+          setItems(batch);
+        } else {
+          setItems((prev) => [...prev, ...batch]);
+        }
+        setTotal(json.total ?? 0);
+        setHasMore(batch.length === 100);
+      } catch (err) {
+        console.error('[RequestsListManager] fetch error:', err);
+      } finally {
+        loadingRef.current = false;
+        setLoading(false);
       }
-      setTotal(json.total ?? 0);
-      setHasMore(batch.length === 100);
-    } catch (err) {
-      console.error('[RequestsListManager] fetch error:', err);
-    } finally {
-      loadingRef.current = false;
-      setLoading(false);
-    }
-  }, [type, campId]);
+    },
+    [type, campId, appliedFrom, appliedTo]
+  );
 
-  // Changement d'onglet ou reload → reset
+  // Changement d'onglet / dates / reload → reset
   useEffect(() => {
     setItems([]);
     setHasMore(true);
     load(active, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, reloadKey]);
+  }, [active, reloadKey, appliedFrom, appliedTo]);
 
   // Scroll infini
   useEffect(() => {
@@ -86,6 +98,32 @@ export default function RequestsListManager({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore, loading, items.length, active]);
 
+  const applyDates = () => {
+    setAppliedFrom(dateFrom);
+    setAppliedTo(dateTo);
+  };
+
+  const clearDates = () => {
+    setDateFrom('');
+    setDateTo('');
+    setAppliedFrom('');
+    setAppliedTo('');
+  };
+
+  const exportCsv = () => {
+    const params = new URLSearchParams({
+      type,
+      section: active
+    });
+    if (campId) params.set('campId', campId);
+    if (appliedFrom) params.set('dateFrom', appliedFrom);
+    if (appliedTo) params.set('dateTo', appliedTo);
+
+    window.open(`/api/admin/requests/export?${params.toString()}`, '_blank');
+  };
+
+  const hasDateFilter = !!(appliedFrom || appliedTo);
+
   const sections: { key: Section; label: string; icon: string }[] = [
     { key: 'pending',   label: 'En attente', icon: '⏳' },
     { key: 'contacted', label: 'Contactés',  icon: '📞' },
@@ -95,7 +133,68 @@ export default function RequestsListManager({
 
   return (
     <div>
-      {/* Onglets */}
+      {/* ═══ Barre filtre + export ═══ */}
+      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-black/5 bg-white p-4">
+        <div>
+          <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
+            Date début
+          </label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="rounded-lg border border-black/10 bg-white px-3 py-2 text-[13px] text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-resa-text/50">
+            Date fin
+          </label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="rounded-lg border border-black/10 bg-white px-3 py-2 text-[13px] text-resa-navy outline-none focus:border-resa-navy/40 focus:ring-2 focus:ring-resa-navy/10"
+          />
+        </div>
+
+        <button
+          onClick={applyDates}
+          disabled={!dateFrom && !dateTo}
+          className="rounded-full bg-resa-navy px-5 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-resa transition hover:bg-resa-royal disabled:opacity-50"
+        >
+          Appliquer
+        </button>
+
+        {hasDateFilter && (
+          <button
+            onClick={clearDates}
+            className="rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-resa-text/60 transition hover:bg-resa-gray"
+          >
+            Effacer
+          </button>
+        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={exportCsv}
+            className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-5 py-2 text-xs font-bold uppercase tracking-wide text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100"
+          >
+            ⬇️ Exporter CSV
+          </button>
+        </div>
+      </div>
+
+      {hasDateFilter && (
+        <p className="mb-3 text-[11px] text-resa-text/50">
+          Filtre actif :
+          {appliedFrom && <> du <strong>{new Date(appliedFrom).toLocaleDateString('fr-FR')}</strong></>}
+          {appliedTo && <> au <strong>{new Date(appliedTo).toLocaleDateString('fr-FR')}</strong></>}
+        </p>
+      )}
+
+      {/* ═══ Onglets ═══ */}
       <div className="mb-4 flex flex-wrap gap-2 border-b border-black/5 pb-3">
         {sections.map((s) => {
           const count = initialCounts[s.key] ?? 0;
@@ -124,12 +223,10 @@ export default function RequestsListManager({
         })}
       </div>
 
-      {/* Résumé */}
       <p className="mb-3 text-[11px] text-resa-text/50">
         {total} résultat(s) — {items.length} affiché(s)
       </p>
 
-      {/* Liste */}
       {items.length === 0 && !loading ? (
         <div className="rounded-2xl border border-dashed border-black/10 p-12 text-center">
           <p className="text-sm text-resa-text/60">Aucun résultat dans cette section.</p>
@@ -147,7 +244,6 @@ export default function RequestsListManager({
         />
       )}
 
-      {/* Sentinel scroll */}
       {hasMore && (
         <div ref={sentinelRef} className="py-8 text-center">
           {loading && <p className="text-xs text-resa-text/50">Chargement…</p>}

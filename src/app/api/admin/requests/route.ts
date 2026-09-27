@@ -16,6 +16,8 @@ export async function GET(req: NextRequest) {
   const section = searchParams.get('section') ?? 'pending';
   const offset = parseInt(searchParams.get('offset') ?? '0', 10);
   const limit = Math.min(parseInt(searchParams.get('limit') ?? '100', 10), 100);
+  const dateFrom = searchParams.get('dateFrom'); // 'YYYY-MM-DD'
+  const dateTo = searchParams.get('dateTo');     // 'YYYY-MM-DD'
 
   if (type !== 'training' && type !== 'camp') {
     return NextResponse.json({ error: 'Type invalide' }, { status: 400 });
@@ -37,6 +39,15 @@ export async function GET(req: NextRequest) {
     query = query.eq('camp_id', campId);
   }
 
+  // Filtre période (sur created_at)
+  if (dateFrom) {
+    query = query.gte('created_at', `${dateFrom}T00:00:00.000Z`);
+  }
+  if (dateTo) {
+    query = query.lte('created_at', `${dateTo}T23:59:59.999Z`);
+  }
+
+  // Filtre section
   if (section === 'pending') {
     if (type === 'camp') {
       query = query.eq('status', 'new').neq('payment_status', 'paid').is('paid_at', null);
