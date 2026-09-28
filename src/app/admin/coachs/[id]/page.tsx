@@ -42,7 +42,7 @@ export default async function EditCoachPage({
             href={`/admin/coachs/${coach.id}/temoignages`}
             className="group flex items-center gap-4 rounded-xl border border-black/5 bg-white p-5 shadow-resa transition hover:-translate-y-1 hover:shadow-resa-lg"
           >
-            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-2xl text-white">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-linear-to-br from-amber-500 to-amber-700 text-2xl text-white">
               💬
             </div>
             <div className="flex-1">
@@ -66,7 +66,7 @@ export default async function EditCoachPage({
             href={`/admin/coachs/${coach.id}/media`}
             className="group flex items-center gap-4 rounded-xl border border-black/5 bg-white p-5 shadow-resa transition hover:-translate-y-1 hover:shadow-resa-lg"
           >
-            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-resa-royal to-resa-navy text-2xl text-white">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-linear-to-br from-resa-royal to-resa-navy text-2xl text-white">
               🎥
             </div>
             <div className="flex-1">

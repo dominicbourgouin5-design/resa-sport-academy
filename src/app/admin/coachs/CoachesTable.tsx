@@ -81,7 +81,7 @@ export default function CoachesTable({ coaches }: { coaches: any[] }) {
                             className="h-9 w-9 shrink-0 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-resa-navy to-resa-royal font-display text-[11px] font-black text-white">
+                          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-linear-to-br from-resa-navy to-resa-royal font-display text-[11px] font-black text-white">
                             {initials}
                           </div>
                         )}

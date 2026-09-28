@@ -499,7 +499,7 @@ function Section({
   return (
     <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
       <header
-        className={`flex items-center gap-3 border-b border-black/5 bg-gradient-to-r ${gradient} to-transparent px-5 py-3`}
+        className={`flex items-center gap-3 border-b border-black/5 bg-linear-to-r ${gradient} to-transparent px-5 py-3`}
       >
         <div className={`h-4 w-1 rounded-full ${bar}`} />
         <h2 className="text-sm font-bold text-resa-navy">{title}</h2>

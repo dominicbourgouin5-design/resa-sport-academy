@@ -74,7 +74,7 @@ function SponsorDetail({
     <>
       {/* ═══ HERO ═══ */}
       <section className="relative overflow-hidden bg-resa-navy text-white">
-        <div className={`absolute inset-0 bg-gradient-to-br ${tierColor} opacity-30`} />
+        <div className={`absolute inset-0 bg-linear-to-br ${tierColor} opacity-30`} />
         <div className="absolute inset-0 bg-grid opacity-20" />
         <div className="pointer-events-none absolute -right-20 top-1/4 h-96 w-96 rounded-full bg-resa-red/10 blur-3xl anim-float" />
 
@@ -102,7 +102,7 @@ function SponsorDetail({
             </div>
 
             <div className="flex-1 text-center md:text-left">
-              <div className={`mb-3 inline-block rounded-full bg-gradient-to-r ${tierColor} px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-lg`}>
+              <div className={`mb-3 inline-block rounded-full bg-linear-to-r ${tierColor} px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-lg`}>
                 {tierLabel}
               </div>
 
@@ -222,7 +222,7 @@ function SponsorDetail({
                       className="mx-auto h-16 w-16 rounded-xl object-contain"
                     />
                   ) : (
-                    <div className="mx-auto grid h-16 w-16 place-items-center rounded-xl bg-gradient-to-br from-resa-navy to-resa-royal font-display text-2xl font-black text-white">
+                    <div className="mx-auto grid h-16 w-16 place-items-center rounded-xl bg-linear-to-br from-resa-navy to-resa-royal font-display text-2xl font-black text-white">
                       {s.name.charAt(0).toUpperCase()}
                     </div>
                   )}

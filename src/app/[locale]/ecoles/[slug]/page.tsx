@@ -122,7 +122,7 @@ function SchoolContent({
               className="h-20 w-20 shrink-0 rounded-2xl border border-white/10 bg-white object-cover shadow-resa-lg anim-zoom-in md:h-24 md:w-24"
             />
           ) : (
-            <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-resa-red to-red-800 font-display text-3xl font-black text-white shadow-resa-lg anim-zoom-in md:h-24 md:w-24 md:text-4xl">
+            <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-resa-red to-red-800 font-display text-3xl font-black text-white shadow-resa-lg anim-zoom-in md:h-24 md:w-24 md:text-4xl">
               {school.name.charAt(0).toUpperCase()}
             </div>
           )}

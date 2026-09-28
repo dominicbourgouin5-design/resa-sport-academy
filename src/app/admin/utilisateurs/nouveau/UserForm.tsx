@@ -24,10 +24,10 @@ export default function UserForm() {
     <div className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa-lg">
 
       {/* Barre top */}
-      <div className="h-1 bg-gradient-to-r from-resa-navy via-resa-royal to-resa-navy" />
+      <div className="h-1 bg-linear-to-r from-resa-navy via-resa-royal to-resa-navy" />
 
       {/* Header */}
-      <div className="border-b border-black/5 bg-gradient-to-r from-resa-navy/5 to-transparent px-6 py-5">
+      <div className="border-b border-black/5 bg-linear-to-r from-resa-navy/5 to-transparent px-6 py-5">
         <h2 className="text-sm font-bold text-resa-navy">
           Informations du compte
         </h2>

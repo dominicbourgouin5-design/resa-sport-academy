@@ -191,7 +191,7 @@ function ResaContent() {
             {values.map((v, i) => (
               <Reveal key={v.key} variant="up" delay={i * 100} className="h-full">
                 <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white p-8 shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg">
-                  <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${v.accent}`} />
+                  <div className={`absolute inset-x-0 top-0 h-1 bg-linear-to-r ${v.accent}`} />
                   <div className="mb-6 text-4xl transition-transform duration-500 group-hover:scale-110">
                     {v.icon}
                   </div>
@@ -258,7 +258,7 @@ function ResaContent() {
             {activities.map((a, i) => (
               <Reveal key={a.key} variant="up" delay={i * 120} className="h-full">
                 <article className="group relative flex h-full gap-7 overflow-hidden rounded-2xl border border-black/5 bg-white p-8 shadow-resa transition-all duration-500 hover:-translate-y-1 hover:shadow-resa-lg">
-                  <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-resa-navy to-resa-royal text-3xl text-white shadow-resa transition-transform duration-500 group-hover:scale-105">
+                  <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-resa-navy to-resa-royal text-3xl text-white shadow-resa transition-transform duration-500 group-hover:scale-105">
                     {a.icon}
                   </div>
                   <div className="flex flex-1 flex-col">

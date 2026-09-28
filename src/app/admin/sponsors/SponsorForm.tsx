@@ -108,7 +108,7 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
 
         {/* Section 1 : Niveau */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-navy/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-navy/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-navy" />
             <h2 className="text-sm font-bold text-resa-navy">Niveau de partenariat</h2>
           </header>
@@ -128,7 +128,7 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
                       : 'border-black/10 bg-white hover:border-resa-navy/30'
                   )}
                 >
-                  <div className={cn('h-1 w-full rounded-full bg-gradient-to-r', t.color)} />
+                  <div className={cn('h-1 w-full rounded-full bg-linear-to-r', t.color)} />
                   <div className="mt-2.5 font-display text-sm font-black text-resa-navy">
                     {t.label}
                   </div>
@@ -148,7 +148,7 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
 
         {/* Section 2 : Identité */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-royal/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-royal/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-royal" />
             <h2 className="text-sm font-bold text-resa-navy">Identité</h2>
           </header>
@@ -195,7 +195,7 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
 
         {/* Section 3 : Logo */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-amber-500/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-amber-500/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-amber-500" />
             <h2 className="text-sm font-bold text-resa-navy">Logo du partenaire</h2>
           </header>
@@ -216,7 +216,7 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
 
         {/* Section 4 : Description courte */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-red/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-red/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-red" />
             <h2 className="text-sm font-bold text-resa-navy">Description courte</h2>
           </header>
@@ -257,7 +257,7 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
 
         {/* Section 5 : Description longue (page dédiée) */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-royal/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-royal/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-royal" />
             <h2 className="text-sm font-bold text-resa-navy">
               Page dédiée — Présentation longue ({lang.toUpperCase()})
@@ -290,7 +290,7 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
 
         {/* Section 6 : Réseaux sociaux */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-navy/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-navy/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-navy" />
             <h2 className="text-sm font-bold text-resa-navy">Réseaux sociaux</h2>
           </header>
@@ -330,7 +330,7 @@ export default function SponsorForm({ sponsor }: { sponsor?: any }) {
 
         {/* Section 7 : Site web & paramètres */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-emerald-500/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-emerald-500/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-emerald-500" />
             <h2 className="text-sm font-bold text-resa-navy">Site web & paramètres</h2>
           </header>

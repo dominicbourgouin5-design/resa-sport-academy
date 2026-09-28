@@ -135,7 +135,7 @@ function TestimonialForm({
 
   return (
     <div className="overflow-hidden rounded-xl border border-resa-navy/20 bg-white shadow-resa-lg">
-      <div className="border-b border-black/5 bg-gradient-to-r from-resa-navy/5 to-transparent px-5 py-3">
+      <div className="border-b border-black/5 bg-linear-to-r from-resa-navy/5 to-transparent px-5 py-3">
         <h2 className="text-sm font-bold text-resa-navy">
           {isEdit ? 'Modifier le témoignage' : 'Nouveau témoignage'}
         </h2>

@@ -93,10 +93,10 @@ export default function PageHero({
       />
 
       {/* Dégradé vertical léger : transition douce vers le contenu en bas */}
-      <div className="absolute inset-0 bg-gradient-to-t from-resa-navy via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-t from-resa-navy via-transparent to-transparent" />
 
       {/* Dégradé top léger : lisibilité de la navbar au-dessus */}
-      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-resa-navy/40 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-resa-navy/40 to-transparent" />
 
       {/* Grille discrète */}
       <div className="absolute inset-0 bg-grid opacity-15" />

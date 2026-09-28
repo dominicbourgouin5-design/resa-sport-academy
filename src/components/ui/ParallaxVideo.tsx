@@ -70,7 +70,7 @@ export default function ParallaxVideo({
 
       {/* Overlay navy pour lisibilité */}
       <div className="absolute inset-0 bg-resa-navy/65" />
-      <div className="absolute inset-0 bg-gradient-to-t from-resa-navy via-resa-navy/40 to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-t from-resa-navy via-resa-navy/40 to-transparent" />
 
       {/* Motifs décoratifs */}
       <div className="absolute inset-0 bg-grid opacity-20" />

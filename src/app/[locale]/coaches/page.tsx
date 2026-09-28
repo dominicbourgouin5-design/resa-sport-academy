@@ -59,13 +59,13 @@ function CoachesContent({ coaches }: { coaches: any[] }) {
                       <div
                         className={`h-1.5 w-full ${
                           c.is_featured
-                            ? 'bg-gradient-to-r from-amber-500 to-amber-700'
-                            : 'bg-gradient-to-r from-resa-navy to-resa-royal'
+                            ? 'bg-linear-to-r from-amber-500 to-amber-700'
+                            : 'bg-linear-to-r from-resa-navy to-resa-royal'
                         }`}
                       />
 
                       {/* Photo header */}
-                      <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-resa-navy to-resa-royal">
+                      <div className="relative aspect-[4/5] overflow-hidden bg-linear-to-br from-resa-navy to-resa-royal">
                         {/* Fallback : initiales visibles si l'img ne charge pas */}
                         <div className="absolute inset-0 grid place-items-center font-display text-6xl font-black text-white/90">
                           {initials}
@@ -80,7 +80,7 @@ function CoachesContent({ coaches }: { coaches: any[] }) {
                         />
 
                         {/* Overlay gradient bas pour lisibilité des badges */}
-                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-resa-navy/90 to-transparent" />
+                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-resa-navy/90 to-transparent" />
 
                         {/* Badge pays */}
                         {c.flag && (
@@ -159,7 +159,7 @@ function CoachesContent({ coaches }: { coaches: any[] }) {
           <Reveal variant="up">
             <article className="relative flex flex-col items-center gap-8 overflow-hidden rounded-3xl bg-white p-10 text-center shadow-resa-lg md:flex-row md:p-14 md:text-left">
               <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-resa-red/5" />
-              <div className="relative grid h-24 w-24 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-resa-red to-red-800 text-5xl text-white shadow-resa">
+              <div className="relative grid h-24 w-24 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-resa-red to-red-800 text-5xl text-white shadow-resa">
                 🎓
               </div>
               <div className="relative flex-1">

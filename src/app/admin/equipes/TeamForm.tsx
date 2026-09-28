@@ -41,7 +41,7 @@ export default function TeamForm({ team }: { team: any }) {
 
         {/* Section 1 : Logo */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-navy/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-navy/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-navy" />
             <h2 className="text-sm font-bold text-resa-navy">Logo de l'équipe</h2>
           </header>
@@ -62,7 +62,7 @@ export default function TeamForm({ team }: { team: any }) {
 
         {/* Section 2 : Informations */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-royal/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-royal/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-royal" />
             <h2 className="text-sm font-bold text-resa-navy">Informations</h2>
           </header>

@@ -489,7 +489,7 @@ export default function ContactForm({
                   ].map((opt) => (
                     <label
                       key={opt.value}
-                      className="group flex cursor-pointer items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-2 text-[12.5px] transition has-[:checked]:border-resa-red has-[:checked]:bg-resa-red/5"
+                      className="group flex cursor-pointer items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-2 text-[12.5px] transition has-checked:border-resa-red has-checked:bg-resa-red/5"
                     >
                       <input
                         type="radio"
@@ -497,7 +497,7 @@ export default function ContactForm({
                         value={opt.value}
                         className="h-3.5 w-3.5 border-black/20 text-resa-red focus:ring-resa-red/30"
                       />
-                      <span className="font-medium text-resa-navy group-has-[:checked]:font-bold">
+                      <span className="font-medium text-resa-navy group-has-checked:font-bold">
                         {t(opt.key as any)}
                       </span>
                     </label>
@@ -604,7 +604,7 @@ export default function ContactForm({
                     ].map((opt) => (
                       <label
                         key={opt.value}
-                        className="group flex cursor-pointer items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-2 text-[12.5px] transition has-[:checked]:border-resa-red has-[:checked]:bg-resa-red/5"
+                        className="group flex cursor-pointer items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-2 text-[12.5px] transition has-checked:border-resa-red has-checked:bg-resa-red/5"
                       >
                         <input
                           type="radio"
@@ -613,7 +613,7 @@ export default function ContactForm({
                           defaultChecked={opt.value === 'africa'}
                           className="h-3.5 w-3.5 border-black/20 text-resa-red focus:ring-resa-red/30"
                         />
-                        <span className="font-medium text-resa-navy group-has-[:checked]:font-bold">
+                        <span className="font-medium text-resa-navy group-has-checked:font-bold">
                           {opt.label}
                         </span>
                       </label>

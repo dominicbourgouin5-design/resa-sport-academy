@@ -45,13 +45,13 @@ export default function BallLoader({
       <div className={cn('relative w-full', config.wrapper)}>
         
         {/* Halo d'ambiance */}
-        <div className="absolute -top-6 left-1/2 h-14 w-3/4 -translate-x-1/2 bg-gradient-to-b from-emerald-400/20 to-transparent blur-xl pointer-events-none" />
+        <div className="absolute -top-6 left-1/2 h-14 w-3/4 -translate-x-1/2 bg-linear-to-b from-emerald-400/20 to-transparent blur-xl pointer-events-none" />
 
         {/* Pelouse de stade */}
         <div
           className={cn(
             'relative w-full overflow-hidden rounded-2xl border border-black/5',
-            'bg-gradient-to-r from-emerald-950/5 via-emerald-900/10 to-emerald-950/5 p-2',
+            'bg-linear-to-r from-emerald-950/5 via-emerald-900/10 to-emerald-950/5 p-2',
             'shadow-[inset_0_1px_2px_rgba(255,255,255,0.7),0_8px_20px_-4px_rgba(10,31,68,0.08)]',
             config.fieldH
           )}
@@ -65,7 +65,7 @@ export default function BallLoader({
           />
 
           {/* Ligne de touche en craie */}
-          <div className="absolute inset-x-3 bottom-2 h-px bg-gradient-to-r from-black/5 via-black/20 to-black/5" />
+          <div className="absolute inset-x-3 bottom-2 h-px bg-linear-to-r from-black/5 via-black/20 to-black/5" />
 
           {/* Rond central */}
           <div className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/10" />

@@ -42,7 +42,7 @@ export default function BallLoader({
         {/* Terrain */}
         <div className={cn(
           'relative overflow-hidden rounded-2xl',
-          'bg-gradient-to-b from-emerald-50 via-white to-emerald-50/40',
+          'bg-linear-to-b from-emerald-50 via-white to-emerald-50/40',
           'ring-2 ring-resa-navy/10',
           'shadow-lg shadow-resa-navy/5',
           config.field
@@ -79,7 +79,7 @@ export default function BallLoader({
           {/* Cage gauche (point de départ) */}
           <div className="absolute left-1.5 top-1/2 -translate-y-1/2">
             <div className={cn(
-              'rounded-sm bg-gradient-to-b from-resa-navy to-resa-navy/70 shadow-sm',
+              'rounded-sm bg-linear-to-b from-resa-navy to-resa-navy/70 shadow-sm',
               config.goal
             )} />
           </div>
@@ -87,7 +87,7 @@ export default function BallLoader({
           {/* Cage droite (but à atteindre) */}
           <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
             <div className={cn(
-              'rounded-sm bg-gradient-to-b from-resa-red to-red-700 shadow-sm ball-loader-goal',
+              'rounded-sm bg-linear-to-b from-resa-red to-red-700 shadow-sm ball-loader-goal',
               config.goal
             )} />
           </div>
@@ -110,7 +110,7 @@ export default function BallLoader({
             {/* Ballon avec rotation */}
             <div className={cn(
               'relative rounded-full',
-              'bg-gradient-to-br from-white via-white to-gray-100',
+              'bg-linear-to-br from-white via-white to-gray-100',
               'shadow-md shadow-resa-navy/30',
               'ring-1 ring-resa-navy/60',
               config.ball

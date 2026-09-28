@@ -108,7 +108,7 @@ export default function PartnerRequestWizard({
       />
 
       <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] anim-fade-up">
-        <div className="h-1 bg-gradient-to-r from-resa-red via-resa-royal to-resa-red" />
+        <div className="h-1 bg-linear-to-r from-resa-red via-resa-royal to-resa-red" />
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-black/5 px-6 py-4">

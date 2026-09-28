@@ -289,7 +289,7 @@ type Mode = 'school' | 'individual';
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
             <div className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa">
-              <div className="bg-gradient-to-br from-[#25D366] to-[#128C7E] p-6 text-white">
+              <div className="bg-linear-to-br from-[#25D366] to-[#128C7E] p-6 text-white">
                 <div className="mb-3 grid h-11 w-11 place-items-center rounded-full bg-white/20 backdrop-blur">
                   💬
                 </div>

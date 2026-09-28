@@ -49,7 +49,7 @@ export default function Collapsible({
       <button
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'flex w-full items-center gap-3 bg-gradient-to-r to-transparent px-5 py-4 text-left transition hover:bg-resa-gray/30',
+          'flex w-full items-center gap-3 bg-linear-to-r to-transparent px-5 py-4 text-left transition hover:bg-resa-gray/30',
           accentBg[accent]
         )}
         aria-expanded={open}

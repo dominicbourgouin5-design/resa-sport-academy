@@ -40,10 +40,10 @@ function CoachProfile({ coach }: { coach: any }) {
           {coach.cover_url ? (
             <img src={coach.cover_url} alt="" className="h-full w-full object-cover opacity-40" />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-resa-navy via-resa-navy-deep to-black" />
+            <div className="h-full w-full bg-linear-to-br from-resa-navy via-resa-navy-deep to-black" />
           )}
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-resa-navy via-resa-navy/70 to-resa-navy/40" />
+        <div className="absolute inset-0 bg-linear-to-t from-resa-navy via-resa-navy/70 to-resa-navy/40" />
         <div className="absolute inset-0 bg-grid opacity-20" />
         <div className="pointer-events-none absolute -right-20 top-1/4 h-96 w-96 rounded-full bg-resa-red/10 blur-3xl anim-float" />
 
@@ -59,7 +59,7 @@ function CoachProfile({ coach }: { coach: any }) {
 
           <div className="flex flex-col items-center gap-8 md:flex-row md:items-end">
             {/* Photo */}
-            <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-full border-4 border-white/10 bg-gradient-to-br from-resa-navy to-resa-royal shadow-resa-lg md:h-48 md:w-48">
+            <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-full border-4 border-white/10 bg-linear-to-br from-resa-navy to-resa-royal shadow-resa-lg md:h-48 md:w-48">
               {coach.photo_url ? (
                 <img src={coach.photo_url} alt={coach.name} className="h-full w-full object-cover" />
               ) : (

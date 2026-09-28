@@ -81,10 +81,10 @@ function RogerContent({
               className="h-full w-full object-cover opacity-40"
             />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-resa-navy via-resa-navy-deep to-black" />
+            <div className="h-full w-full bg-linear-to-br from-resa-navy via-resa-navy-deep to-black" />
           )}
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-resa-navy via-resa-navy/80 to-resa-navy/40" />
+        <div className="absolute inset-0 bg-linear-to-t from-resa-navy via-resa-navy/80 to-resa-navy/40" />
         <div className="absolute inset-0 bg-grid opacity-20" />
         <div className="pointer-events-none absolute -right-20 top-1/4 h-96 w-96 rounded-full bg-resa-red/15 blur-3xl anim-float" />
 
@@ -100,7 +100,7 @@ function RogerContent({
 
           <div className="flex flex-col items-center gap-10 md:flex-row md:items-end md:gap-12">
             {/* Photo */}
-            <div className="relative h-48 w-48 shrink-0 overflow-hidden rounded-full border-4 border-white/10 bg-gradient-to-br from-resa-navy to-resa-royal shadow-resa-lg md:h-56 md:w-56">
+            <div className="relative h-48 w-48 shrink-0 overflow-hidden rounded-full border-4 border-white/10 bg-linear-to-br from-resa-navy to-resa-royal shadow-resa-lg md:h-56 md:w-56">
               {coach.photo_url ? (
                 <img
                   src={coach.photo_url}
@@ -334,7 +334,7 @@ function RogerContent({
                     >
                       <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg">
                         <div
-                          className={`h-1.5 w-full bg-gradient-to-r ${
+                          className={`h-1.5 w-full bg-linear-to-r ${
                             p.accent ?? 'from-resa-navy to-resa-royal'
                           }`}
                         />
@@ -422,7 +422,7 @@ function RogerContent({
                       </blockquote>
 
                       <div className="mt-5 flex items-center gap-3 border-t border-black/5 pt-5">
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-resa-navy to-resa-royal font-display text-sm font-black text-white">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-linear-to-br from-resa-navy to-resa-royal font-display text-sm font-black text-white">
                           {tm.author_name.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
@@ -479,7 +479,7 @@ function RogerContent({
                                   className="h-full w-full object-cover opacity-70 transition-transform duration-700 group-hover:scale-105"
                                 />
                               ) : (
-                                <div className="h-full w-full bg-gradient-to-br from-resa-navy to-resa-royal" />
+                                <div className="h-full w-full bg-linear-to-br from-resa-navy to-resa-royal" />
                               )}
                               {/* Play button */}
                               <div className="absolute inset-0 grid place-items-center">

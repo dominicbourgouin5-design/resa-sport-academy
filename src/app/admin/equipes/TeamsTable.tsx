@@ -73,7 +73,7 @@ export default function TeamsTable({ teams }: { teams: any[] }) {
                             className="h-8 w-8 shrink-0 rounded-lg border border-black/5 bg-white object-cover"
                           />
                         ) : (
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-resa-navy to-resa-royal font-display text-[11px] font-black text-white">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-linear-to-br from-resa-navy to-resa-royal font-display text-[11px] font-black text-white">
                             {(t.school?.name ?? '?').charAt(0).toUpperCase()}
                           </div>
                         )}

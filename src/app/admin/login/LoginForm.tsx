@@ -19,7 +19,7 @@ export default function LoginForm({ redirectTo }: { redirectTo: string }) {
       <div className="absolute inset-0 bg-resa-navy/45" />
 
       {/* ─── Dégradé latéral pour la lisibilité du texte ─── */}
-      <div className="absolute inset-0 bg-gradient-to-br from-resa-navy/70 via-transparent to-resa-navy/60" />
+      <div className="absolute inset-0 bg-linear-to-br from-resa-navy/70 via-transparent to-resa-navy/60" />
 
       {/* ─── Vignettage cinéma (coins assombris) ─── */}
       <div

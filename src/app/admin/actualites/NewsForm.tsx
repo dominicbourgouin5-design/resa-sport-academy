@@ -106,7 +106,7 @@ export default function NewsForm({ article }: { article?: any }) {
 
         {/* Section 1 : Contenu */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-navy/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-navy/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-navy" />
             <h2 className="text-sm font-bold text-resa-navy">
               Contenu {lang === 'fr' ? 'principal' : 'anglais'}
@@ -190,7 +190,7 @@ export default function NewsForm({ article }: { article?: any }) {
         {/* Section 1bis : TYPE DE CONTENU                       */}
         {/* ═══════════════════════════════════════════════════ */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-royal/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-royal/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-royal" />
             <h2 className="text-sm font-bold text-resa-navy">Type de contenu</h2>
           </header>
@@ -234,7 +234,7 @@ export default function NewsForm({ article }: { article?: any }) {
 
         {/* Section 2 : Publication */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-royal/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-royal/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-royal" />
             <h2 className="text-sm font-bold text-resa-navy">Publication</h2>
           </header>
@@ -265,7 +265,7 @@ export default function NewsForm({ article }: { article?: any }) {
 
         {/* Section 3 : Statut */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-emerald-500/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-emerald-500/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-emerald-500" />
             <h2 className="text-sm font-bold text-resa-navy">Statut</h2>
           </header>
@@ -359,7 +359,7 @@ export default function NewsForm({ article }: { article?: any }) {
         />
 
         <div className="relative flex h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] anim-fade-up">
-          <div className="h-1 bg-gradient-to-r from-resa-red via-resa-royal to-resa-red" />
+          <div className="h-1 bg-linear-to-r from-resa-red via-resa-royal to-resa-red" />
 
           <div className="flex items-center justify-between border-b border-black/5 px-6 py-4">
             <div className="flex items-center gap-3">

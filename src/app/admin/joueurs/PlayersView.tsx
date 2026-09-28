@@ -104,7 +104,7 @@ export default function PlayersView({ players }: { players: any[] }) {
             <div key={group.team?.id ?? 'unknown'} className="px-5 py-4">
               {/* En-tête école */}
               <div className="mb-3 flex items-center gap-3">
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-resa-navy to-resa-royal font-display text-[11px] font-black text-white">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-linear-to-br from-resa-navy to-resa-royal font-display text-[11px] font-black text-white">
                   {(group.team?.school?.name ?? '?').charAt(0).toUpperCase()}
                 </div>
                 <div className="text-[13px] font-bold text-resa-navy">

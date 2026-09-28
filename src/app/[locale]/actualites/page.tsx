@@ -171,7 +171,7 @@ function FeaturedArticle({
       className="group block overflow-hidden rounded-3xl border border-black/5 bg-white shadow-resa-lg transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_32px_64px_rgba(10,31,68,.18)]"
     >
       <div className="grid gap-0 lg:grid-cols-5">
-        <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-resa-navy via-resa-royal to-resa-navy lg:col-span-3 lg:aspect-auto lg:min-h-[380px]">
+        <div className="relative aspect-[16/10] overflow-hidden bg-linear-to-br from-resa-navy via-resa-royal to-resa-navy lg:col-span-3 lg:aspect-auto lg:min-h-[380px]">
           <div className="absolute inset-0 bg-grid opacity-50" />
           <div className="absolute inset-0 bg-halo opacity-70" />
           <div className="pointer-events-none absolute -right-16 -bottom-16 h-64 w-64 rounded-full bg-resa-red/20 blur-3xl anim-float" />
@@ -229,7 +229,7 @@ function NewsCard({ article, locale, t }: { article: any; locale: string; t: any
       href={`/actualites/${article.slug}`}
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-300 hover:-translate-y-1 hover:shadow-resa-lg"
     >
-      <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-resa-navy to-resa-royal">
+      <div className="relative aspect-[16/9] overflow-hidden bg-linear-to-br from-resa-navy to-resa-royal">
         <div className="absolute inset-0 bg-grid opacity-40" />
         <div className="pointer-events-none absolute -right-8 -bottom-8 h-32 w-32 rounded-full bg-resa-red/20 blur-2xl transition-opacity duration-500 group-hover:opacity-100 opacity-60" />
 

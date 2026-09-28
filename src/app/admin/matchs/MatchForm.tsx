@@ -78,7 +78,7 @@ export default function MatchForm({
 
         {/* Section 1 : Catégorie + Saison */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-navy/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-navy/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-navy" />
             <h2 className="text-sm font-bold text-resa-navy">Contexte</h2>
           </header>
@@ -129,7 +129,7 @@ export default function MatchForm({
 
         {/* Section 2 : Équipes */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-red/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-red/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-red" />
             <h2 className="text-sm font-bold text-resa-navy">Équipes</h2>
           </header>
@@ -168,7 +168,7 @@ export default function MatchForm({
 
         {/* Section 3 : Date & lieu */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-royal/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-royal/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-royal" />
             <h2 className="text-sm font-bold text-resa-navy">Date & lieu</h2>
           </header>
@@ -206,7 +206,7 @@ export default function MatchForm({
 
         {/* Section 4 : Statut */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-emerald-500/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-emerald-500/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-emerald-500" />
             <h2 className="text-sm font-bold text-resa-navy">Statut</h2>
           </header>

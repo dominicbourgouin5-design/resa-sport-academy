@@ -72,7 +72,7 @@ export default function SchoolsTable({ schools }: { schools: any[] }) {
                   <tr key={s.id} className="transition hover:bg-resa-gray/40">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-resa-navy to-resa-royal font-display text-[12px] font-black text-white">
+                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-linear-to-br from-resa-navy to-resa-royal font-display text-[12px] font-black text-white">
                           {s.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">

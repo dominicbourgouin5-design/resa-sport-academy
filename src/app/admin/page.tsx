@@ -58,7 +58,7 @@ export default async function AdminDashboard() {
                 <div className="mt-3 font-display text-4xl font-black text-resa-navy">
                   {k.value}
                 </div>
-                <div className={`mt-2 h-0.5 w-8 rounded-full bg-gradient-to-r ${k.gradient}`} />
+                <div className={`mt-2 h-0.5 w-8 rounded-full bg-linear-to-r ${k.gradient}`} />
                 <div className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-resa-text/50">
                   {k.label}
                 </div>

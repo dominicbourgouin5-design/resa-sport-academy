@@ -67,7 +67,7 @@ export default function ProgramsTable({ programs }: { programs: any[] }) {
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${
+                        className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-linear-to-br ${
                           p.accent ?? 'from-resa-navy to-resa-royal'
                         } text-lg`}
                       >

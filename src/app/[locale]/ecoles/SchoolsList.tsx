@@ -77,11 +77,11 @@ function SchoolCard({ school, t, locale }: { school: any; t: any; locale: string
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-300 hover:-translate-y-1 hover:shadow-resa-lg"
     >
       {/* Bande accent top */}
-      <div className="h-1 w-full bg-gradient-to-r from-resa-navy via-resa-royal to-resa-red" />
+      <div className="h-1 w-full bg-linear-to-r from-resa-navy via-resa-royal to-resa-red" />
 
       {/* En-tête */}
       <div className="flex items-start gap-3 p-5 pb-3">
-        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-resa-navy to-resa-royal font-display text-xl font-black text-white shadow-resa transition-transform duration-300 group-hover:scale-105">
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-linear-to-br from-resa-navy to-resa-royal font-display text-xl font-black text-white shadow-resa transition-transform duration-300 group-hover:scale-105">
           {initial}
         </div>
         <div className="min-w-0 flex-1">

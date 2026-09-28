@@ -62,7 +62,7 @@ export default function PlayerForm({
 
         {/* Section 1 : Équipe */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-navy/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-navy/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-navy" />
             <h2 className="text-sm font-bold text-resa-navy">Équipe</h2>
           </header>
@@ -87,7 +87,7 @@ export default function PlayerForm({
 
         {/* Section 2 : Photo */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-royal/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-royal/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-royal" />
             <h2 className="text-sm font-bold text-resa-navy">Photo du joueur</h2>
           </header>
@@ -108,7 +108,7 @@ export default function PlayerForm({
 
         {/* Section 3 : Identité */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-red/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-red/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-red" />
             <h2 className="text-sm font-bold text-resa-navy">Identité</h2>
           </header>
@@ -142,7 +142,7 @@ export default function PlayerForm({
 
         {/* Section 4 : Poste & numéro */}
         <section className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <header className="flex items-center gap-3 border-b border-black/5 bg-gradient-to-r from-resa-royal/5 to-transparent px-5 py-3">
+          <header className="flex items-center gap-3 border-b border-black/5 bg-linear-to-r from-resa-royal/5 to-transparent px-5 py-3">
             <div className="h-4 w-1 rounded-full bg-resa-royal" />
             <h2 className="text-sm font-bold text-resa-navy">Poste & numéro</h2>
           </header>

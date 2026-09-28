@@ -41,7 +41,7 @@ export default function UsersTable({
                 <tr key={u.id} className={`transition hover:bg-resa-gray/40 ${isMe ? 'bg-resa-navy/5' : ''}`}>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-resa-navy to-resa-royal font-display text-[12px] font-black text-white">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-linear-to-br from-resa-navy to-resa-royal font-display text-[12px] font-black text-white">
                         {(u.full_name ?? u.email ?? '?').charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">

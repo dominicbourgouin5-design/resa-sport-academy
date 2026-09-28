@@ -170,14 +170,14 @@ function AcademyContent() {
                 <Reveal variant="up" delay={i * 100}>
                   <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg">
                     <div className="relative h-40 overflow-hidden">
-                      <div className={`absolute inset-0 bg-gradient-to-br ${p.gradient}`} />
+                      <div className={`absolute inset-0 bg-linear-to-br ${p.gradient}`} />
                       <img
                         src={p.image}
                         alt=""
                         className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                         loading="lazy"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-resa-navy/60 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-linear-to-t from-resa-navy/60 via-transparent to-transparent" />
                       <div className="absolute left-4 top-4 grid h-12 w-12 place-items-center rounded-xl border border-white/15 bg-white/10 text-2xl backdrop-blur-md transition-transform duration-500 group-hover:scale-110">
                         {p.icon}
                       </div>
@@ -219,14 +219,14 @@ function AcademyContent() {
               <Reveal variant="up" delay={i * 100}>
                 <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg md:flex-row">
                   <div className="relative h-48 overflow-hidden md:h-auto md:w-48 md:shrink-0">
-                    <div className={`absolute inset-0 bg-gradient-to-br ${p.gradient}`} />
+                    <div className={`absolute inset-0 bg-linear-to-br ${p.gradient}`} />
                     <img
                       src={p.image}
                       alt=""
                       className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                       loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-resa-navy/60 via-transparent to-transparent md:bg-gradient-to-r" />
+                    <div className="absolute inset-0 bg-linear-to-t from-resa-navy/60 via-transparent to-transparent md:bg-linear-to-r" />
 
                     <div className="absolute left-4 top-4 grid h-12 w-12 place-items-center rounded-xl border border-white/15 bg-white/10 text-2xl backdrop-blur-md md:bottom-4 md:top-auto">
                       {p.icon}
@@ -288,14 +288,14 @@ function AcademyContent() {
           {regions.map((r, i) => (
             <Reveal key={r.key} variant="up" delay={i * 120}>
               <article className="relative flex h-64 items-center gap-6 overflow-hidden rounded-3xl shadow-resa-lg md:h-72">
-                <div className={`absolute inset-0 bg-gradient-to-br ${r.gradient}`} />
+                <div className={`absolute inset-0 bg-linear-to-br ${r.gradient}`} />
                 <img
                   src={r.image}
                   alt=""
                   className="absolute inset-0 h-full w-full object-cover"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-resa-navy/95 via-resa-navy/60 to-resa-navy/30" />
+                <div className="absolute inset-0 bg-linear-to-t from-resa-navy/95 via-resa-navy/60 to-resa-navy/30" />
                 <div className="absolute inset-0 bg-grid opacity-20" />
 
                 <div className="relative flex w-full items-center gap-6 p-8 text-white md:p-10">
@@ -321,7 +321,7 @@ function AcademyContent() {
           <Reveal variant="up">
             <article className="relative flex flex-col items-center gap-8 overflow-hidden rounded-3xl bg-white p-10 text-center shadow-resa-lg md:flex-row md:p-14 md:text-left">
               <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-resa-royal/5" />
-              <div className="relative grid h-24 w-24 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-resa-navy to-resa-royal text-5xl text-white shadow-resa">
+              <div className="relative grid h-24 w-24 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-resa-navy to-resa-royal text-5xl text-white shadow-resa">
                 👥
               </div>
               <div className="relative flex-1">

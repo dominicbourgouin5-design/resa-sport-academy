@@ -43,7 +43,7 @@ export default async function AdminDashboard() {
               href={c.href}
               className="group block overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-300 hover:-translate-y-1 hover:shadow-resa-lg"
             >
-              <div className={`h-1 w-full bg-gradient-to-r ${c.accent}`} />
+              <div className={`h-1 w-full bg-linear-to-r ${c.accent}`} />
               <div className="p-5">
                 <div className="flex items-center justify-between">
                   <span className="text-2xl">{c.icon}</span>

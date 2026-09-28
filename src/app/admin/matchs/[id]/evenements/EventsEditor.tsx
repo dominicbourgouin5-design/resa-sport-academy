@@ -99,7 +99,7 @@ export default function EventsEditor({
 
       {/* Header match */}
       <div className="mb-8 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
-        <div className="border-b border-black/5 bg-gradient-to-r from-resa-navy/5 to-transparent px-6 py-4">
+        <div className="border-b border-black/5 bg-linear-to-r from-resa-navy/5 to-transparent px-6 py-4">
           <div className="text-[10px] font-bold uppercase tracking-widest text-resa-red">
             {match.category?.code} ·{' '}
             {new Date(match.match_date).toLocaleDateString('fr-FR', {

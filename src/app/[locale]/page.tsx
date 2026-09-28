@@ -142,7 +142,7 @@ function HomeContent({
               'linear-gradient(90deg, rgba(10,31,68,.97) 0%, rgba(10,31,68,.85) 40%, rgba(10,31,68,.4) 75%, rgba(10,31,68,.2) 100%)'
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-resa-navy/80 via-transparent to-resa-navy/40" />
+        <div className="absolute inset-0 bg-linear-to-t from-resa-navy/80 via-transparent to-resa-navy/40" />
         <div className="absolute inset-0 bg-grid opacity-20" />
 
         <div className="pointer-events-none absolute right-[-15%] top-[-25%] h-[420px] w-[420px] rounded-full bg-resa-red/15 blur-3xl anim-float" />
@@ -194,7 +194,7 @@ function HomeContent({
             <Reveal key={p.key} variant="up" delay={i * 120}>
               <Link href={p.href as any} className="group block h-full">
                 <article className="relative flex h-full flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg">
-                  <div className={`h-1.5 w-full bg-gradient-to-r ${p.accent}`} />
+                  <div className={`h-1.5 w-full bg-linear-to-r ${p.accent}`} />
 
                   <div className="relative flex h-40 items-center justify-center overflow-hidden bg-resa-gray">
                     <div className="absolute inset-0 bg-grid opacity-40" />
@@ -265,7 +265,7 @@ function HomeContent({
           {regions.map((r, i) => (
             <Reveal key={r.key} variant="up" delay={i * 120}>
               <Link href={r.href as any} className="group block h-full">
-                <article className={`relative flex h-full items-center gap-6 overflow-hidden rounded-3xl bg-gradient-to-br ${r.accent} p-8 text-white shadow-resa-lg transition-all duration-500 hover:-translate-y-2 md:p-10`}>
+                <article className={`relative flex h-full items-center gap-6 overflow-hidden rounded-3xl bg-linear-to-br ${r.accent} p-8 text-white shadow-resa-lg transition-all duration-500 hover:-translate-y-2 md:p-10`}>
                   <div className="absolute inset-0 bg-grid opacity-20" />
                   <div className="absolute right-0 top-0 h-40 w-40 bg-halo opacity-40" />
 
@@ -323,7 +323,7 @@ function HomeContent({
                 <Reveal key={n.id} variant="up" delay={i * 120}>
                   <Link href={`/actualites/${n.slug}` as any} className="group block h-full">
                     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-resa transition-all duration-500 hover:-translate-y-2 hover:shadow-resa-lg">
-                      <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-resa-navy to-resa-royal">
+                      <div className="relative aspect-[16/9] overflow-hidden bg-linear-to-br from-resa-navy to-resa-royal">
                         <div className="absolute inset-0 bg-grid opacity-40" />
                         <div className="absolute bottom-3 left-3 rounded-full bg-resa-red px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
                           {n.published_at
